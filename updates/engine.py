@@ -1,6 +1,7 @@
 """Signed staging and a journaled switch. Drivers retain ownership and admission gates."""
 import hashlib
 from pathlib import Path
+import re
 import secrets
 
 from updates.security import UpdateError, verify, fetch, download, unpack, verify_tree
@@ -18,7 +19,7 @@ def installed(home):
     return config, current, root
 
 
-def check(home, context=None):
+def check(home, context=None, authorization=None):
     home = no_links(home)
     with lock(home / 'state' / 'update.lock'):
         config, current, _ = installed(home)
@@ -26,7 +27,8 @@ def check(home, context=None):
         source = trust.get('sources', {}).get(config['component'])
         if not source or not trust.get('keys'):
             raise UpdateError('update_trust_not_provisioned')
-        envelope = fetch(source, context=context)
+        options = {} if authorization is None else {'authorization': authorization}
+        envelope = fetch(source, context=context, **options)
         ledger_path = home / 'state' / 'ledger.json'
         ledger = read(ledger_path) if ledger_path.exists() else {}
         release, ledger = verify(envelope, trust, config['component'], config['platform'],
@@ -36,7 +38,7 @@ def check(home, context=None):
         return release
 
 
-def stage(home, progress=None, context=None):
+def stage(home, progress=None, context=None, authorization=None):
     home = no_links(home)
     with lock(home / 'state' / 'update.lock'):
         config, current, _ = installed(home)
@@ -49,7 +51,8 @@ def stage(home, progress=None, context=None):
         directory = home / 'staging' / secrets.token_hex(12)
         directory.mkdir(parents=True)
         archive = directory / 'package.zip'
-        download(release, archive, progress=progress, context=context)
+        options = {} if authorization is None else {'authorization': authorization}
+        download(release, archive, progress=progress, context=context, **options)
         target = unpack(archive, directory / 'package', release)
         manifest = verify_tree(target, expected_component=config['component'], expected_version=release['version'])
         if manifest['platform'] != config['platform']:
@@ -146,9 +149,13 @@ class Transaction:
                 activation_started = True
                 self.driver.activate()
                 self.record('committed', success=True)
-            except BaseException:
+            except BaseException as failure:
                 if not hasattr(self, 'value'):
                     raise
+                cause = (failure.code if isinstance(failure, UpdateError)
+                         and isinstance(failure.code, str)
+                         and re.fullmatch(r'[a-z0-9_]{1,80}', failure.code)
+                         else 'update_operation_failed')
                 if activation_started:
                     # An activation acknowledgement or journal write can be lost
                     # after new work was admitted. Never roll it back or replay.
@@ -156,7 +163,7 @@ class Transaction:
                 elif not stopped:
                     self.record('needs_review', error='old_exit_unconfirmed')
                 else:
-                    self.record('rollback_required')
+                    self.record('rollback_required', cause=cause)
                     try:
                         self.driver.cleanup_target()
                         self.preserved()

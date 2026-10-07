@@ -13,7 +13,61 @@ import java.net.HttpURLConnection
 import java.net.URI
 import java.security.MessageDigest
 
-internal data class UpdateOffer(val payload: UpdatePayload, val ledger: UpdateLedger)
+internal data class UpdateOffer(val payload: UpdatePayload, val ledger: UpdateLedger,
+                                val loginBinding: String)
+
+/** A request credential lives only in memory; never include its token in an exception or toString. */
+internal class UpdateIdentity internal constructor(
+    private val loginUrl: String, val account: String, private val token: String,
+) {
+    fun matches(url: String, principal: String, loginToken: String): Boolean =
+        loginUrl == url && account == principal && token == loginToken
+
+    fun binding(): String = MessageDigest.getInstance("SHA-256")
+        .digest("$loginUrl\n$account\n$token".toByteArray(Charsets.UTF_8))
+        .joinToString("") { "%02x".format(it.toInt() and 255) }
+
+    fun authorize(connection: HttpURLConnection) {
+        connection.setRequestProperty("Authorization", "Bearer $token")
+        connection.setRequestProperty("X-Desktop-Remote-Principal", "account")
+    }
+
+    override fun toString(): String = "UpdateIdentity(redacted)"
+}
+
+/** Fail before opening a connection, including on different ports of the same host. */
+internal fun requireUpdateScope(loginUrl: String, account: String, token: String,
+                                source: URI, request: URI, packageRequest: Boolean = false): UpdateIdentity {
+    if (loginUrl.isBlank() || account.isBlank() || token.isBlank()) throw UpdateFailure("ota_login_required")
+    if (!account.matches(Regex("[A-Za-z0-9_.-]{1,64}")) || !token.matches(Regex("[a-f0-9]{64}")))
+        throw UpdateFailure("ota_login_required")
+    val relay = try { URI(loginUrl) } catch (_: Exception) { throw UpdateFailure("ota_source_mismatch") }
+    if (relay.scheme != "https" || relay.host.isNullOrBlank() || relay.rawUserInfo != null ||
+        relay.rawQuery != null || relay.rawFragment != null || relay.port !in -1..65535 || relay.port == 0 ||
+        relay.rawPath !in setOf("", "/"))
+        throw UpdateFailure("ota_source_mismatch")
+    val trusted = try { checkedUri(source.toString()) } catch (_: UpdateFailure) {
+        throw UpdateFailure("ota_source_mismatch")
+    }
+    val target = try { checkedUri(request.toString()) } catch (_: UpdateFailure) {
+        throw UpdateFailure("ota_source_mismatch")
+    }
+    fun port(uri: URI): Int = if (uri.port == -1) 443 else uri.port
+    fun sameOrigin(a: URI, b: URI): Boolean = a.scheme == b.scheme &&
+        a.host.equals(b.host, ignoreCase = true) && port(a) == port(b)
+    val sourcePath = Regex("/desktop-remote-updates/(test|stable)/android/latest\\.json")
+    val directory = trusted.path.substringBeforeLast('/') + "/"
+    val packagePath = Regex(Regex.escape(directory) +
+        "android-[0-9]{1,9}\\.[0-9]{1,9}\\.[0-9]{1,9}(?:-alpha\\.[0-9]{1,9})?\\.apk")
+    if (trusted.rawPath.contains('%') || target.rawPath.contains('%') ||
+        trusted.port !in -1..65535 || target.port !in -1..65535 ||
+        trusted.port == 0 || target.port == 0 ||
+        !sourcePath.matches(trusted.path) ||
+        !sameOrigin(relay, trusted) || !sameOrigin(trusted, target) ||
+        (if (packageRequest) !packagePath.matches(target.path) else target.path != trusted.path))
+        throw UpdateFailure("ota_source_mismatch")
+    return UpdateIdentity(loginUrl, account, token)
+}
 
 internal data class PendingInstall(
     val oldVersion: String, val oldCode: Int, val version: String, val versionCode: Int,
@@ -41,15 +95,32 @@ internal fun hasDownloadSpace(usableBytes: Long, packageBytes: Long): Boolean =
 
 internal class UpdateClient(private val context: Context) {
     private val prefs = context.getSharedPreferences("android-update-ledger", Context.MODE_PRIVATE)
+    private val credentials = Credentials(context)
     private fun trustBytes(): ByteArray = context.assets.open("update-trust.json").use { it.readBytes() }
     private fun source(): URI {
         val trust = JSONObject(trustBytes().toString(Charsets.UTF_8))
         val keys = trust.getJSONObject("keys")
         val sources = trust.getJSONObject("sources")
         if (keys.length() == 0 || !sources.has("android")) throw UpdateFailure("ota_unconfigured")
-        return checkedUri(sources.getString("android"))
+        return try { checkedUri(sources.getString("android")) }
+            catch (_: UpdateFailure) { throw UpdateFailure("ota_source_mismatch") }
     }
-    fun requireConfigured() { source() }
+    private fun login(source: URI, request: URI = source, packageRequest: Boolean = false): UpdateIdentity {
+        val url = credentials.url
+        val account = credentials.account
+        val token = credentials.token
+        val identity = requireUpdateScope(url, account, token, source, request, packageRequest)
+        assertCurrent(identity)
+        return identity
+    }
+    private fun assertCurrent(identity: UpdateIdentity) {
+        if (!identity.matches(credentials.url, credentials.account, credentials.token))
+            throw UpdateFailure("ota_login_changed")
+    }
+    fun requireConfigured() {
+        val trusted = source()
+        login(trusted)
+    }
     private fun ledger(): UpdateLedger {
         val raw = prefs.getString("ledger", null) ?: return UpdateLedger()
         try {
@@ -141,19 +212,28 @@ internal class UpdateClient(private val context: Context) {
             throw UpdateFailure("pending_install_write_failed")
         return result
     }
-    private fun connection(uri: URI, accept: String): HttpURLConnection {
+    private fun connection(uri: URI, source: URI, identity: UpdateIdentity, accept: String,
+                           packageRequest: Boolean = false): HttpURLConnection {
+        requireUpdateScope(credentials.url, credentials.account, credentials.token, source, uri, packageRequest)
+        assertCurrent(identity)
         val conn = uri.toURL().openConnection() as HttpURLConnection
         conn.instanceFollowRedirects = false
         conn.requestMethod = "GET"
         conn.connectTimeout = 10_000
         conn.readTimeout = 30_000
         conn.setRequestProperty("Accept", accept)
+        identity.authorize(conn)
         return conn
     }
-    private fun fetch(): ByteArray {
-        val conn = connection(source(), "application/json")
+    private fun fetch(source: URI, identity: UpdateIdentity): ByteArray {
+        val conn = connection(source, source, identity, "application/json")
         try {
-            if (conn.responseCode != 200) throw UpdateFailure("metadata_http_failed")
+            when (conn.responseCode) {
+                401 -> throw UpdateFailure("ota_login_expired")
+                403 -> throw UpdateFailure("ota_access_denied")
+                200 -> Unit
+                else -> throw UpdateFailure("metadata_http_failed")
+            }
             conn.inputStream.use { input ->
                 val output = java.io.ByteArrayOutputStream()
                 val chunk = ByteArray(8192)
@@ -163,18 +243,26 @@ internal class UpdateClient(private val context: Context) {
                     if (output.size() + count > 65536) throw UpdateFailure("metadata_size_invalid")
                     output.write(chunk, 0, count)
                 }
+                assertCurrent(identity)
                 return output.toByteArray()
             }
         } finally { conn.disconnect() }
     }
     suspend fun check(): UpdateOffer = withContext(Dispatchers.IO) {
-        val verified = verifyUpdate(fetch(), trustBytes(), BuildConfig.VERSION_NAME, BuildConfig.VERSION_CODE,
+        val trusted = source()
+        val identity = login(trusted)
+        val verified = verifyUpdate(fetch(trusted, identity), trustBytes(), BuildConfig.VERSION_NAME, BuildConfig.VERSION_CODE,
             Build.VERSION.SDK_INT, ledger(), System.currentTimeMillis() / 1000)
+        requireUpdateScope(credentials.url, credentials.account, credentials.token, trusted, verified.first.url, true)
+        assertCurrent(identity)
         saveLedger(verified.second)
-        UpdateOffer(verified.first, verified.second)
+        UpdateOffer(verified.first, verified.second, identity.binding())
     }
     suspend fun download(offer: UpdateOffer, progress: (Long, Long) -> Unit): File = withContext(Dispatchers.IO) {
         val payload = offer.payload
+        val trusted = source()
+        val identity = login(trusted, payload.url, true)
+        if (identity.binding() != offer.loginBinding) throw UpdateFailure("ota_login_changed")
         if (System.currentTimeMillis() / 1000 >= payload.expiresAt) throw UpdateFailure("metadata_expired")
         if (ledger() != offer.ledger) throw UpdateFailure("ledger_changed")
         val directory = File(context.cacheDir, "updates")
@@ -183,9 +271,14 @@ internal class UpdateClient(private val context: Context) {
         val target = File(directory, "update-${payload.sha256}.apk")
         val partial = File(directory, "update-${payload.sha256}.partial")
         if (partial.exists() && !partial.delete()) throw UpdateFailure("download_storage_failed")
-        val conn = connection(payload.url, "application/vnd.android.package-archive")
+        val conn = connection(payload.url, trusted, identity, "application/vnd.android.package-archive", true)
         try {
-            if (conn.responseCode != 200) throw UpdateFailure("download_http_failed")
+            when (conn.responseCode) {
+                401 -> throw UpdateFailure("ota_login_expired")
+                403 -> throw UpdateFailure("ota_access_denied")
+                200 -> Unit
+                else -> throw UpdateFailure("download_http_failed")
+            }
             val digest = MessageDigest.getInstance("SHA-256")
             var copied = 0L
             conn.inputStream.use { input ->
@@ -205,9 +298,11 @@ internal class UpdateClient(private val context: Context) {
             }
             val hash = digest.digest().joinToString("") { "%02x".format(it.toInt() and 255) }
             if (copied != payload.bytes || hash != payload.sha256) throw UpdateFailure("download_hash_invalid")
+            assertCurrent(identity)
             if (target.exists() && !target.delete()) throw UpdateFailure("download_storage_failed")
             if (!partial.renameTo(target)) throw UpdateFailure("download_storage_failed")
             verifyApk(target, payload)
+            assertCurrent(identity)
             target
         } catch (error: Exception) {
             partial.delete()
@@ -215,9 +310,13 @@ internal class UpdateClient(private val context: Context) {
         } finally { conn.disconnect() }
     }
     fun verifyBeforeInstall(file: File, offer: UpdateOffer) {
+        val trusted = source()
+        val identity = login(trusted, offer.payload.url, true)
+        if (identity.binding() != offer.loginBinding) throw UpdateFailure("ota_login_changed")
         if (System.currentTimeMillis() / 1000 >= offer.payload.expiresAt ||
             ledger() != offer.ledger) throw UpdateFailure("metadata_expired_or_changed")
         verifyApk(file, offer.payload)
+        assertCurrent(identity)
     }
     private fun signatures(info: PackageInfo): Set<String> {
         @Suppress("DEPRECATION")

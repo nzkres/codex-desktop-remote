@@ -200,7 +200,8 @@ def _run_case(base, bad_candidate=False):
         else:
             raise RuntimeError("helper_transaction_timeout")
         if journal["phase"] != expected_phase:
-            raise RuntimeError("unexpected_transaction_phase:" + journal["phase"])
+            raise RuntimeError("unexpected_transaction_phase:" + journal["phase"] +
+                               ":" + journal.get('cause', 'unavailable'))
         current = read(home / "current.json")
         expected_version = "0.0.1" if bad_candidate else "0.0.2"
         if current["version"] != expected_version:

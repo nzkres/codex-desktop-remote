@@ -183,6 +183,24 @@ class EngineTests(unittest.TestCase):
         self.assertEqual(read(tx.journal)["phase"], "needs_review")
         self.assertNotIn("start_old", self.driver.events)
 
+    def test_rollback_keeps_only_bounded_error_code(self):
+        for failure, expected in ((UpdateError('candidate_health_unverified'), 'candidate_health_unverified'),
+                                  (RuntimeError('synthetic private token'), 'update_operation_failed')):
+            with self.subTest(error=type(failure).__name__):
+                # Each transaction starts from a new staged request, preserving its history.
+                tx = self.prepared()
+                original_verify = self.driver.verify
+                def fail_candidate(root):
+                    if Path(root).name != 'old':
+                        raise failure
+                    return original_verify(root)
+                self.driver.verify = fail_candidate
+                with self.assertRaisesRegex(UpdateError, 'update_rolled_back'):
+                    tx.apply()
+                self.assertEqual(read(tx.journal)['cause'], expected)
+                self.assertNotIn('synthetic private token', tx.journal.read_text())
+                self.driver.verify = original_verify
+
     def test_failed_rollback_is_reviewable(self):
         tx = self.prepared()
         candidate_name = read(self.home / "state" / "staged.json")["candidate"]["path"].split("/")[-1]

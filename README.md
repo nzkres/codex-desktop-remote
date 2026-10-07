@@ -14,7 +14,7 @@
 
 ## 版本更新记录
 
-**alpha.3 已加入三端 OTA 代码。** 手机通过应用内检查并由系统确认安装，Windows 通过窗口和独立助手更新，中继通过私有本机管理工具在线更新。三端共用签名元数据和独立 HTTPS 源，详见 [OTA 实现边界](docs/OTA.md)、[发布流程](docs/OTA-PUBLISH.md)与[恢复说明](docs/OTA-RECOVERY.md)。正式更新源、稳定签名首装与真实设备升级尚未配置/验收，普通 CI 包不能直接成为正式 OTA 基线。
+**alpha.4 在三端 OTA 上增加私有下载鉴权。** 手机复用账号登录，Windows 复用配对身份，中继管理员交互登录后更新。元数据与包都受控，仅向同源 HTTPS 的固定目录发送凭据，发布签名仍独立验证。正式更新源、稳定签名首装与真实设备升级尚未配置/验收，普通 CI 包不能直接成为正式 OTA 基线。按 [三阶段落地与验收](docs/OTA-ACCEPTANCE.md)逐项推进；[实现边界](docs/OTA.md)、[发布](docs/OTA-PUBLISH.md)和[恢复](docs/OTA-RECOVERY.md)提供具体说明。
 
 **仓库文档是查看每次更新的主要入口。** 三个软件分别保存完整历史，按版本从新到旧排列：
 
@@ -26,7 +26,7 @@
 
 [全部版本索引](docs/versions/README.md) · [仓库更新总览](CHANGELOG.md) · [后续维护规则](docs/ITERATION.md)
 
-以后每次软件版本更新，都必须把更新内容追加到对应文档并随代码提交；已发布记录持续保留。目前三份文档包含 alpha.3 的 OTA 变化，并保留 alpha.2 / alpha.1 历史。
+以后每次软件版本更新，都必须把更新内容追加到对应文档并随代码提交；已发布记录持续保留。目前三份文档包含 alpha.4 的私有鉴权变化，并保留更早历史。
 
 可下载开发预览：[v0.1.0-alpha.3](https://github.com/nzkres/codex-desktop-remote/releases/tag/v0.1.0-alpha.3)。登录有权限的 GitHub 账号后，可下载 Android 测试 APK、Windows/relay 源码 ZIP、校验值和报告；alpha.2 / alpha.1 继续归档。Android 预览包更新信任为空，Windows/relay 源码包需外部运行时及首装信任配置，尚无一体化 EXE 安装器。建议先看 [原型关系图](docs/ARCHITECTURE.md)，再运行下面的合成自测/窗口预览，最后按 [测试指南](docs/TESTING.md) 做专用任务联调。遇到问题可用 [测试反馈](https://github.com/nzkres/codex-desktop-remote/issues/new?template=test-feedback.yml) 记录版本、步骤和结果。
 

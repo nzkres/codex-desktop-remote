@@ -10,4 +10,4 @@
 
 想先看界面，可运行 `python windows/demo.py`，它只用合成数据。实际手机文字闭环需已审核的 HTTPS 中继、独立测试账号、专用 Desktop 原生任务、新连接器配对和手机确认；下载、安装、连通与任务完成是不同证据层。旧 App 包名不同，可并存；不要为了测试卸载旧 App 或复制其凭据。
 
-alpha.3 的三个下载文件是开发预览产物，Windows/relay ZIP 都是源码包，不是 EXE 安装器或已签 OTA feed。首次受管安装与发布仍须独立的测试公钥/私钥管理、可达的 HTTPS 静态源及候选包；命令见 [发布步骤](../OTA-PUBLISH.md)。普通 debug 签名不保证覆盖已装 alpha.2，遇到冲突先保留应用和数据，勿卸载绕过。产品代码完成不等于真机已升级。GitHub Actions 14 天临时 artifact 不能充当在线更新服务；遇到 `needs_review` 按 [恢复说明](../OTA-RECOVERY.md)保留现场。
+alpha.3 的三个下载文件是开发预览产物，Windows/relay ZIP 都是源码包，不是 EXE 安装器或已签 OTA feed。alpha.4 新增私有下载鉴权；首次受管安装与发布仍须测试公钥/私钥管理、同源私有 HTTPS 路由及候选包，不能公开为静态目录；命令见 [发布步骤](../OTA-PUBLISH.md)，顺序见 [落地验收](../OTA-ACCEPTANCE.md)。普通 debug 签名不保证覆盖已装 alpha.2，遇到冲突先保留应用和数据，勿卸载绕过。产品代码完成不等于真机已升级。GitHub Actions 14 天临时 artifact 不能充当在线更新服务；遇到 `needs_review` 按 [恢复说明](../OTA-RECOVERY.md)保留现场。

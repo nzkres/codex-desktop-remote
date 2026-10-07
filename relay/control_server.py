@@ -45,7 +45,7 @@ class RelayAccount:
 
 
 def handler_for(registry, account=None, plugin=False, forwarder=None, gateway_links=None,
-                transport_settings=None, release_catalog=None, gate=None):
+                transport_settings=None, release_catalog=None, gate=None, private_updates=None):
     class Handler(BaseHTTPRequestHandler):
         server_version = "TerminalControl/0.1"
         protocol_version = "HTTP/1.1"
@@ -173,6 +173,11 @@ def handler_for(registry, account=None, plugin=False, forwarder=None, gateway_li
 
         def _handle_admitted_request(self):
             try:
+                if not plugin and self.path.startswith("/desktop-remote-updates/"):
+                    if private_updates is None:
+                        raise ControlError(404, "not_found")
+                    private_updates.handle(self)
+                    return
                 if not plugin and self.path.startswith("/terminal-api/"):
                     if forwarder is None:
                         raise ControlError(503, "terminal_forwarding_unavailable")
@@ -199,7 +204,7 @@ def handler_for(registry, account=None, plugin=False, forwarder=None, gateway_li
 
 
 def make_server(registry, port=0, account=None, plugin=False, forwarder=None,
-                gateway_links=None, transport_settings=None, gate=None):
+                gateway_links=None, transport_settings=None, gate=None, private_updates=None):
     if not plugin and account is None:
         raise ValueError("An account verifier is required")
     if forwarder is not None and (plugin or forwarder.registry is not registry or forwarder.account is not account):
@@ -208,9 +213,12 @@ def make_server(registry, port=0, account=None, plugin=False, forwarder=None,
         raise ValueError("Gateway links must share the API registry")
     if transport_settings is not None and (plugin or transport_settings.registry is not registry or gateway_links is None or forwarder is None):
         raise ValueError("Transport settings require the same registry and enabled forwarding")
+    if private_updates is not None and (plugin or private_updates.registry is not registry or private_updates.account is not account):
+        raise ValueError("Private updates require the same API registry and account verifier")
     catalog = None if plugin else load_catalog()
     return ThreadingHTTPServer(("127.0.0.1", port), handler_for(
-        registry, account, plugin, forwarder, gateway_links, transport_settings, catalog, gate))
+        registry, account, plugin, forwarder, gateway_links, transport_settings, catalog, gate,
+        private_updates))
 
 
 def main():

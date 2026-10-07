@@ -1,5 +1,7 @@
 # 自测与验收
 
+从 [三阶段 OTA 落地验收](OTA-ACCEPTANCE.md)查看资源准备、三端逐一 N→N+1 和失败演练。alpha.4 新增私有 HTTPS 客户端、真实账号过期/登出和设备暂停/撤销测试；Windows 身份缺失不创建，Linux 会话文件保护与登出 CAS、Android 登录切换与严格同源目录均有覆盖。所有这些仍是合成验证，不能替代部署和手机安装。
+
 新增三端 OTA 的专项验收清单见 [OTA.md](OTA.md)：连续两个构件、签名/平台/渠道拒绝、活跃与未知操作延期、进程树清理、更新中断、启动/探针失败和数据保留均需覆盖。alpha.3 新增 test/test_update_*.py、test/test_windows_update_driver.py、relay 的维护/宿主测试与 Android Update*Test；各层结果见 STATUS，不能用旧 alpha.2 结果代替。
 
 在仓库根目录、Windows 上使用 Python 3.12 + cryptography、Node 20.19 运行。合成自测不需要 FRP、Desktop 或账号；实际连接才需要另行提供 FRP 0.71。项目不下载运行工具，也不复制旧 DPAPI 身份、真实任务日志或账号数据。

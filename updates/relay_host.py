@@ -19,6 +19,7 @@ if str(ROOT / "relay") not in sys.path:
 from relay.update_driver import RelayDriver
 from relay.managed import read_home
 from updates.engine import Transaction, check, installed, stage
+from updates.credentials import for_installation
 from updates.processes import OwnedChild
 from updates.security import UpdateError
 from updates.storage import ensure_launchable, read
@@ -216,9 +217,9 @@ class RelayHost:
         if op == "status":
             return self.status()
         if op == "check":
-            return {"release": check(self.home)}
+            return {"release": check(self.home, authorization=for_installation(self.home))}
         if op == "stage":
-            return {"release": stage(self.home)}
+            return {"release": stage(self.home, authorization=for_installation(self.home))}
         if op == "apply":
             return self._apply()
         if op == "stop":

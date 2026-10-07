@@ -357,8 +357,14 @@ private fun RemoteApp(night: Boolean, destination: NotificationDestination?, onD
                                         updateStatus = "发现候选版本 ${offer.payload.version} · ${offer.payload.channel} 渠道\n${offer.payload.notes}"
                                     } catch (error: CancellationException) { throw error }
                                     catch (error: UpdateFailure) {
+                                        if (error.code.startsWith("ota_login_") || error.code in setOf("ota_access_denied", "ota_source_mismatch"))
+                                            updateOffer = null
                                         updateStatus = when (error.code) {
                                             "ota_unconfigured" -> "OTA 尚未配置可信更新源与公钥"
+                                            "ota_login_required", "ota_login_expired" -> "请重新登录测试中继后检查更新"
+                                            "ota_access_denied" -> "当前账号没有更新文件权限，请联系测试中继管理员"
+                                            "ota_login_changed" -> "登录身份已变化，请重新检查更新"
+                                            "ota_source_mismatch" -> "更新源与当前登录的 HTTPS 中继不一致，已拒绝请求"
                                             "update_not_newer" -> "当前已是该渠道最新版本"
                                             "update_activity_uncertain" -> "任务或发送状态无法证明安全，稍后再检查"
                                             else -> "检查失败：${error.code}"
@@ -397,7 +403,17 @@ private fun RemoteApp(night: Boolean, destination: NotificationDestination?, onD
                                             updateStatus = "已交给 Android 系统；请确认安装并重新打开核对版本"
                                         }
                                     } catch (error: CancellationException) { throw error }
-                                    catch (error: UpdateFailure) { updateStatus = "安装已延期：${error.code}" }
+                                    catch (error: UpdateFailure) {
+                                        if (error.code.startsWith("ota_login_") || error.code in setOf("ota_access_denied", "ota_source_mismatch"))
+                                            updateOffer = null
+                                        updateStatus = when (error.code) {
+                                            "ota_login_required", "ota_login_expired" -> "安装已延期：请重新登录测试中继"
+                                            "ota_access_denied" -> "安装已延期：当前账号没有更新文件权限"
+                                            "ota_login_changed" -> "安装已延期：登录身份已变化，请重新检查更新"
+                                            "ota_source_mismatch" -> "安装已延期：更新源与登录中继不一致"
+                                            else -> "安装已延期：${error.code}"
+                                        }
+                                    }
                                     catch (_: Exception) { updateStatus = "安装已延期：下载或任务状态不可用" }
                                     finally { busy = false; updateBusy = false }
                                 }

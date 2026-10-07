@@ -47,12 +47,13 @@ RELAY_REQUIRED = (
     "relay/releases.json", "relay/auth/auth_server.py", "relay/configure_managed.py",
     "relay/control_server.py",
     "relay/forwarder.py", "relay/frp_policy.py", "relay/gateway_link.py",
-    "relay/maintenance.py", "relay/managed.py", "relay/registry.py",
+    "relay/maintenance.py", "relay/managed.py", "relay/registry.py", "relay/private_updates.py",
     "relay/release_notes.py", "relay/transport_settings.py", "relay/update_driver.py",
     "updates/relay_host.py",
 )
 UPDATE_REQUIRED = (
     "updates/__init__.py", "updates/security.py", "updates/storage.py", "updates/engine.py",
+    "updates/authorization.py", "updates/credentials.py",
     "updates/processes.py", "updates/child_gate.py", "updates/launch.py",
     "updates/bootstrap.py", "updates/cli.py", "updates/requirements.txt",
     "third-party/licenses/AGPL-3.0.txt", "third-party/licenses/HAPI-NOTICE.md",

@@ -15,6 +15,8 @@ alpha.3 包仍须手动安装。源码中已有“我的 → 版本与更新说�
 
 ## 文件校验与常见问题
 
+alpha.4 增加私有 OTA 登录鉴权。部署受管私有源并安装带固定 trust 的受控首装后，App 复用当前账号检查/下载，不需要另填下载密码。源须与登录服务器同 HTTPS origin，固定 `/desktop-remote-updates/test/android/`（stable 独立配置）；会话过期提示重新登录，账号切换后旧候选不能继续安装。普通预览包仍为空 trust；其构建/发布状态以 STATUS 为准。后续真实覆盖安装顺序见 [验收计划](../OTA-ACCEPTANCE.md)。
+
 如先下载到 Windows 再传到手机，可在 APK 所在目录打开 PowerShell，核对完整性：
 
 ```powershell

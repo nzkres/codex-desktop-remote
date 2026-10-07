@@ -20,6 +20,7 @@ from gateway_link import GatewayLinks
 from maintenance import (MaintenanceBusy, MaintenanceClosed, MaintenanceGate,
                          critical_digest, inspect_registry, probe_update_status,
                          _read_only, _columns)
+from private_updates import PrivateUpdates
 from registry import Registry
 from release_notes import load_catalog
 from transport_settings import TransportSettings
@@ -154,6 +155,7 @@ class ManagedRelay:
         self.gate = MaintenanceGate(initially_closed=quarantine, recovery=quarantine)
         self.quarantine = quarantine
         self.account = RelayAccount(self.config["authPort"])
+        self.private_updates = PrivateUpdates(self.data, self.registry, self.account)
         self.links = GatewayLinks(self.registry)
         self.forwarder = Forwarder(self.registry, self.account, self.links.credential,
                                    on_uncertain=self.gate.mark_uncertain)
@@ -169,7 +171,8 @@ class ManagedRelay:
             bound.append(self.plugin_server)
             self.api_server = make_server(self.registry, self.config["apiPort"], account=self.account,
                                           forwarder=self.forwarder, gateway_links=self.links,
-                                          transport_settings=settings, gate=self.gate)
+                                          transport_settings=settings, gate=self.gate,
+                                          private_updates=self.private_updates)
             bound.append(self.api_server)
         except BaseException:
             for server in bound:

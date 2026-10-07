@@ -227,10 +227,33 @@ def _opener(context):
     return urllib.request.build_opener(_NoRedirect(), urllib.request.HTTPSHandler(context=context))
 
 
-def fetch(source, context=None):
-    _url(source)
+def _authorization_headers(authorization, url):
+    if authorization is None:
+        return {}
+    from updates.authorization import UpdateAuthorization
+    if not isinstance(authorization, UpdateAuthorization):
+        _fail("update_authentication_required")
+    return authorization.headers_for(url)
+
+
+def _http_error(error, fallback):
+    status = error.code
     try:
-        with _opener(context).open(urllib.request.Request(source, headers={"Accept": "application/json"}), timeout=20) as response:
+        error.close()
+    except Exception:
+        pass  # A failed response close must not expose a private network error.
+    if status == 401:
+        _fail("update_authentication_required")
+    if status == 403:
+        _fail("update_access_denied")
+    _fail(fallback)
+
+
+def fetch(source, context=None, authorization=None):
+    _url(source)
+    headers = {"Accept": "application/json", **_authorization_headers(authorization, source)}
+    try:
+        with _opener(context).open(urllib.request.Request(source, headers=headers), timeout=20) as response:
             raw = response.read(METADATA_LIMIT + 1)
             if response.status != 200 or not 0 < len(raw) <= METADATA_LIMIT:
                 _fail("invalid_release_response")
@@ -240,6 +263,8 @@ def fetch(source, context=None):
         return value
     except UpdateError:
         raise
+    except urllib.error.HTTPError as error:
+        _http_error(error, "update_fetch_failed")
     except (OSError, urllib.error.URLError, ValueError, UnicodeError):
         _fail("update_fetch_failed")
 
@@ -265,8 +290,9 @@ def _file_sha(path):
     return result.hexdigest()
 
 
-def download(payload, destination, progress=None, context=None):
+def download(payload, destination, progress=None, context=None, authorization=None):
     _url(payload.get("url") if isinstance(payload, dict) else None)
+    headers = _authorization_headers(authorization, payload["url"])
     count = payload.get("bytes")
     expected = payload.get("sha256")
     if type(count) is not int or not 0 < count <= LIMIT or not _sha(expected):
@@ -278,7 +304,7 @@ def download(payload, destination, progress=None, context=None):
         _fail("insufficient_disk_space")
     written, digest = 0, hashlib.sha256()
     try:
-        with _opener(context).open(payload["url"], timeout=20) as response:
+        with _opener(context).open(urllib.request.Request(payload["url"], headers=headers), timeout=20) as response:
             if response.status != 200 or response.headers.get("Content-Length") != str(count):
                 _fail("download_size_mismatch")
             with target.open("xb") as output:
@@ -297,6 +323,8 @@ def download(payload, destination, progress=None, context=None):
         return target
     except UpdateError:
         raise
+    except urllib.error.HTTPError as error:
+        _http_error(error, "update_download_failed")
     except Exception:
         _fail("update_download_failed")
 

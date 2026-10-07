@@ -24,14 +24,14 @@ sys.path.insert(0, str(ROOT / "relay"))
 
 from relay.configure_managed import configure
 from relay.maintenance import critical_digest
-from updates import bootstrap, engine, publish
+from updates import bootstrap, credentials, engine, publish
 from updates.processes import OwnedChild
 from updates.relay_host import RelayHost, request
 from updates.security import UpdateError
 from updates.storage import read
 
 
-SOURCE = "https://updates.example.test/test/relay/latest.json"
+SOURCE = "https://relay.example.test/desktop-remote-updates/test/relay/latest.json"
 VERSIONS = ("0.0.1", "0.0.2", "0.0.3")
 
 
@@ -102,7 +102,7 @@ def smoke(cgroup_root):
             publish.pack("relay", archive, root=root)
             publish.sign("relay", archive, metadata, private_key=private,
                          key_id="synthetic-smoke", source=SOURCE,
-                         url=f"https://updates.example.test/test/relay/{version}.zip",
+                         url=f"https://relay.example.test/desktop-remote-updates/test/relay/relay-{version}.zip",
                          sequence=sequence, root=root)
             packages.append((archive, metadata))
         home = base / "fresh-home"
@@ -110,6 +110,13 @@ def smoke(cgroup_root):
         auth_port, api_port, plugin_port = ports()
         configure(home, "synthetic-owner", auth_port, api_port, plugin_port,
                   21000, 21020, password_provider=lambda _: "synthetic-password-123")
+        # Exercise the actual host credential-loading path. This lifecycle fixture
+        # substitutes transport only; verified HTTPS and server auth have separate tests.
+        import time
+        with patch.object(credentials, '_post', return_value={
+                'token': 'a' * 64, 'expiresAt': int(time.time()) + 3600}):
+            credentials.login(home, username_provider=lambda _: 'synthetic-owner',
+                              password_provider=lambda _: 'synthetic-password-123', notice=lambda _: None)
         protected_before = (critical_digest(home / "data" / "auth.sqlite3", "auth"),
                             critical_digest(home / "data" / "registry.sqlite3", "registry"))
         spawned = []

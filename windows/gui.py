@@ -219,12 +219,15 @@ class _Window:
             try:
                 if kind in ('updatecheck', 'updateinstall'):
                     from updates.engine import check, stage
+                    from updates.credentials import for_installation
                     from update_ui import handoff
                     home = self.controller.update_home
+                    authorization = for_installation(home)
                     if kind == 'updatecheck':
-                        self.events.put(('updatechecked', check(home)))
+                        self.events.put(('updatechecked', check(home, authorization=authorization)))
                     else:
-                        stage(home, progress=lambda done,total:self.events.put(('updateprogress', int(done*100/total))))
+                        stage(home, authorization=authorization,
+                              progress=lambda done,total:self.events.put(('updateprogress', int(done*100/total))))
                         handoff(home)
                         self.events.put(('updatehandoff', None))
                 elif kind == "status":
@@ -265,7 +268,11 @@ class _Window:
                 messagebox.showinfo('可用更新 · ' + value['version'], value['notes'] + '\n\n点击“下载并安装”后窗口会退出，独立助手将验证并重开。Desktop 任务不会被停止。', parent=self.root)
             elif kind == 'updatefailed':
                 self.busy = False
-                messages = {'no_update_available':'当前已是此渠道最新版本。', 'active_or_unverified_desktop_task':'任务活动或状态未确认，更新延期。', 'update_trust_not_provisioned':'更新源及发布公钥尚未配置。'}
+                messages = {'no_update_available':'当前已是此渠道最新版本。', 'active_or_unverified_desktop_task':'任务活动或状态未确认，更新延期。', 'update_trust_not_provisioned':'更新源及发布公钥尚未配置。',
+                            'update_device_not_paired':'请先完成手机确认与连接，再检查私有更新。',
+                            'update_authentication_required':'更新下载认证失败，请核对设备配对状态。',
+                            'update_access_denied':'设备无更新下载权限，请在手机核对暂停或撤销状态。',
+                            'untrusted_update_url':'更新源必须与已配对中继同源；未发送设备凭据。'}
                 self.update_text.set(messages.get(value, '更新未完成：' + value + '；保留旧版本和现场，可查看 state/ 中的诊断。'))
             elif kind == 'updatehandoff':
                 self.busy = False

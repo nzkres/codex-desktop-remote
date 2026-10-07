@@ -1,5 +1,13 @@
 # 工作记录
 
+## 2026-10-08 — alpha.4 私有下载鉴权
+
+- 用户确定“保持私有，先补下载鉴权”；主代理拆出服务器、Android 和共享 HTTPS 鉴权给 GPT-6 Sol medium，逐项复核后整合。复用现有账号/DPAPI 配对，不新增登录协议；同 origin 固定私有路径、分组件授权、匿名/过期/暂停/撤销拒绝；保持发布签名和本地事务验证。
+- 主代理修正 Android 鉴权类型与服务器常量不一致、放宽路径范围两处整合问题；新增 Linux 交互 login/logout（密码不落盘、限时会话0600）、Windows 缺身份时无创建副作用、登出同内容换 inode 的 CAS。补发布白名单、实际 CLI/GUI/宿主入口与 smoke 的合成凭据加载。
+- 本机命令：固定 Node 20.19.0 `--test` 33/33；Python 3.12 `-B -m unittest discover -s test -p 'test_*.py'` 104 项通过（5 Linux 跳过），relay 同命令 77 项（4 Linux 跳过）；新增回退脱敏诊断后 `-m unittest test.test_update_engine test.test_update_credentials -v` 21 项通过（5 Linux 跳过）。Node 沙箱先被路径 EPERM 阻断，获准在本机合成范围复验通过。
+- `python -B scripts/windows_ota_smoke.py` 首轮意外 rolled_back，原日志缺失败首因；未操作真实服务，自动回退成功。随后两轮实际 pythonw/helper 均 committed0.0.2 与预期坏探针 rolled_back0.0.1；增加事务 cause 的受限错误码及脱敏测试，保留首轮未定位事实，CI 继续验证。
+- 新增 [OTA-ACCEPTANCE](docs/OTA-ACCEPTANCE.md)：先服务器/固定签名首装，再 Windows→Android→relay 一次一端真实升级，最后故障演练和 BUG 批次。alpha.4 开发预览与将来受控 N/N+1 分开，旧包不换签/换包；三个版本历史、安装和跨电脑交接同步更新。本版 CI/构件下载复验待补；未部署、未合并 main、未迁真实身份。
+
 ## 2026-10-07 — 三个原型增加 OTA 的正式要求
 
 - 用户明确“所有原型必须增加 OTA 的方式更新迭代版本”。在独立分支 `codex/ota-requirements` 将三端 OTA 从此前排除项改为正式必做范围，新增 `docs/OTA.md`，同步项目范围、原型关系、安装/迭代/测试指南与状态；已发布 alpha.1/alpha.2 的记录保持原样。

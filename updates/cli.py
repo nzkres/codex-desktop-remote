@@ -19,12 +19,16 @@ def relay_command(home, operation):
 
 def main(home, operation):
     config, current, _ = installed(home)
+    if operation in ('login', 'logout'):
+        from updates.credentials import login, logout
+        return (login if operation == 'login' else logout)(home)
     if operation == 'recover':
         return Transaction(home,None).recover()
     if config['component']=='relay':
         return relay_command(home,operation)
-    if operation=='check': return check(home)
-    if operation=='stage': return stage(home)
+    if operation in ('check', 'stage'):
+        from updates.credentials import for_installation
+        return (check if operation == 'check' else stage)(home, authorization=for_installation(home))
     if operation=='status':
         journal=Path(home)/'state/transaction.json'
         return {'version':current['version'], 'transaction':read(journal) if journal.exists() else None}
@@ -34,7 +38,7 @@ def main(home, operation):
 if __name__=='__main__':
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--home',required=True,type=Path)
-    parser.add_argument('operation',choices=['check','stage','apply','status','stop','recover'])
+    parser.add_argument('operation',choices=['login','logout','check','stage','apply','status','stop','recover'])
     args=parser.parse_args()
     try:
         print(json.dumps(main(no_links(args.home),args.operation),ensure_ascii=False))
