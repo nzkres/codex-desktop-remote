@@ -1,0 +1,32 @@
+name: 测试反馈
+description: 记录一个可重现的问题或一次人工验收结果
+body:
+  - type: input
+    id: version
+    attributes:
+      label: 测试版本 / commit
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: 部分
+      options:
+        - 手机 UI
+        - Windows 连接器
+        - 服务器中继
+        - 同一 Desktop 任务联调
+        - 文档或测试步骤
+  - type: textarea
+    id: steps
+    attributes:
+      label: 操作步骤与环境版本
+      description: 写可重现的步骤；不要附带配对码、令牌或真实聊天日志。
+    validations:
+      required: true
+  - type: textarea
+    id: result
+    attributes:
+      label: 预期结果和实际结果
+    validations:
+      required: true

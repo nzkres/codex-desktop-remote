@@ -1,0 +1,9 @@
+# Project rules
+
+- Product: an Android remote for an existing native Codex Desktop task. Desktop owns execution. Do not add app-server, copy threads, alter Desktop internals, or bypass compatibility/permissions.
+- Keep the first acceptance scope to one explicitly selected test task. Keep changes small and record evidence in STATUS.md and CHANGELOG.md.
+- Read docs/UI-BASELINE.md before UI work. Reuse existing Android transcript, glass controls, drafts and navigation; retain the Windows connection window. Do not redesign without the user's request.
+- Use synthetic identities, temporary databases and isolated loopback ports for tests. Never copy real DPAPI state, private logs, signing keys, account tokens or runtime data into Git.
+- Current services and paired identities are not disposable fixtures. Prepare and review a switch before requesting approval to stop, migrate or deploy them. Unknown receipts are never replayed.
+- Run `node --test` and `python -B -m unittest discover -s test -p "test_*.py"`; relay and Android have their own documented checks. Distinguish code, tests, CI artifacts, installation and real-phone acceptance.
+- Keep prototypes/relationships in docs/PROTOTYPES.md and docs/ARCHITECTURE.md; use docs/ITERATION.md for version work. Do not recreate the old installer/updater framework as incidental work.

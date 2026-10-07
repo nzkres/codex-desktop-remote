@@ -1,0 +1,12 @@
+{
+  "schema": 1,
+  "desktopRoot": "C:\\Program Files\\WindowsApps\\OpenAI.Codex_26.930.7945.0_x64__2p2nqsd0c76g0",
+  "threadId": "REPLACE_WITH_AUTHORIZED_DESKTOP_TEST_THREAD",
+  "projectPath": "C:\\DesktopRemoteTest",
+  "title": "Desktop 联调测试",
+  "permissionsHash": "REPLACE_WITH_VERIFIED_PERMISSION_DIGEST",
+  "port": 18789,
+  "dataDir": "C:\\DesktopRemoteLite\\data\\fixture",
+  "node": {"path":"C:\\DesktopRemoteLite\\runtime\\node.exe","sha256":"REPLACE_WITH_VERIFIED_BINARY_HASH"},
+  "frpc": {"path":"C:\\DesktopRemoteLite\\runtime\\frpc.exe","sha256":"REPLACE_WITH_VERIFIED_BINARY_HASH"}
+}
