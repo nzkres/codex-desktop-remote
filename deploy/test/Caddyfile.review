@@ -1,0 +1,28 @@
+# Review candidate only. Not installed on the server.
+# Runs in a NEW container; do not replace the existing :443 Caddyfile.
+{
+	admin 127.0.0.1:22019
+	auto_https off
+	servers {
+		protocols h1 h2
+	}
+}
+
+https://106.53.126.69:9443 {
+	tls /etc/letsencrypt/live/codex-remote-ip/fullchain.pem /etc/letsencrypt/live/codex-remote-ip/privkey.pem
+
+	handle /auth/* {
+		reverse_proxy 127.0.0.1:28181 {
+			header_up X-Real-IP {remote_host}
+		}
+	}
+
+	@relay path /control-api/* /connector-api/* /terminal-api/* /desktop-remote-updates/*
+	handle @relay {
+		reverse_proxy 127.0.0.1:28191
+	}
+
+	handle {
+		respond 404
+	}
+}

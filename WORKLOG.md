@@ -1,5 +1,14 @@
 # 工作记录
 
+## 2026-10-08 — 现有中继隔离部署预检
+
+- 用户选择“现有中继服务器上新增隔离环境”。从旧本机部署审查定位ubuntu@106.53.126.69，而非把不相关SSH配置当作目标；当前实际SSH只读核对Python3.12.3/cryptography41.0.7/systemd255/cgroup2、磁盘、现用服务、Caddy挂载/摘要、FRPS0.71.0与端口池、UFW、候选路径和用户。未写服务器文件、未开端口、未停服/reload。
+- 现用443/7443/7000和18081/18091/18092保留；候选9443/17443/22019/28181/28191/28192/28200–28220当时无监听，两个旧FRPS池也不重叠。候选路径和cdrtest用户不存在，云安全组与新服务cgroup委派尚未验证。现有TLS正常校验收到404，只作为握手证据，不能计作登录/OTA成功。
+- 发现现用IP短期证书于2026-10-13 22:07:54 UTC到期；新独立Caddy需独立续证reload钩子，不能只复用证书路径而忽略续期。新增docs/OTA-DEPLOYMENT-REVIEW.md与deploy/test/Caddyfile.review，明确精确资源、私有路由、签名/首装顺序、撤回和待确认事项。候选auth路由覆盖X-Real-IP，避免客户端伪造限流来源。
+- 将候选经stdin送入现有容器中独立的`caddy adapt --config - --adapter caddyfile --validate`进程，返回0；未保存为远端配置、未reload、未创建新监听。没有修改旧Android下载路径，仍禁止新OTA静态公开。GPT-6 Sol medium只读审查源码前提，主代理验收并核对现场。
+- 验证：最终候选Caddy adapt/validate返回0（仅格式提示）；`python -B scripts/check_versions.py`、受影响Markdown本地链接和`git diff --check`通过。未重跑未改变的产品测试，也不把历史CI计作本次候选部署成功。
+- 本轮仅文档/部署候选维护，无软件版本递增；受控alpha.5/alpha.6、发行密钥、CI签名Secrets、手机安装、真实三端OTA仍未完成。下一步确认候选origin与签名保管/合并安排，完成最终受控构件及可审查服务配置后，再按用户要求确认实际公网部署。
+
 ## 2026-10-08 — alpha.4 构建复验
 
 - 最终 `c92ea98` Core push 37657708244、PR37657716116 的 Windows/Linux 全成功；Android PR37657716149也成功。发布前目录经过完整清单/Git输入/APK说明/哈希验证，私有 `v0.1.0-alpha.4` 六附件全部 uploaded，服务端 digest/size 与本地相同。发布首次 HEAD 预检遇 EOF，GET确认404未创建后重试成功，未覆盖旧Release。STATUS/安装起点/版本索引已写实际包信息，PR描述同步最终范围。
