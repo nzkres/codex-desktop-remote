@@ -3,12 +3,12 @@
 from __future__ import annotations
 
 import queue
-import json
-from pathlib import Path
 import threading
 import time
 import tkinter as tk
 from tkinter import ttk, messagebox
+from tkinter.scrolledtext import ScrolledText
+from release_notes import VERSION, format_notes
 
 def enable_dpi():
     import os
@@ -45,8 +45,8 @@ class _Window:
         self.close_notice = False
         self.close_error = False
 
-        version = json.loads((Path(__file__).resolve().parents[1] / 'package.json').read_text(encoding='utf-8'))['version']
-        root.title("Desktop 手机联调 · " + version)
+        self.notes_window = None
+        root.title("Desktop 手机联调 · " + VERSION)
         root.resizable(False, False)
         frame = ttk.Frame(root, padding=16)
         frame.grid(sticky="nsew")
@@ -82,12 +82,40 @@ class _Window:
             wraplength=600,
         ).grid(row=5, column=0, columnspan=2, sticky="w")
 
+        version_row = ttk.Frame(frame)
+        version_row.grid(row=6, column=0, columnspan=2, sticky="ew", pady=(12, 0))
+        ttk.Label(version_row, text="Windows 连接器 " + VERSION).pack(side="left", padx=(0, 12))
+        self.notes_button = ttk.Button(version_row, text="版本与更新说明", command=self.show_release_notes)
+        self.notes_button.pack(side="right")
+
         self._buttons()
         root.protocol("WM_DELETE_WINDOW", self.close)
         self.worker = threading.Thread(target=self._work, name="desktop-remote-lite-network")
         self.worker.start()
         self.commands.put(("status",))
         root.after(100, self._drain)
+
+    def show_release_notes(self):
+        if self.notes_window is not None and self.notes_window.winfo_exists():
+            self.notes_window.lift()
+            return
+        dialog = tk.Toplevel(self.root)
+        self.notes_window = dialog
+        dialog.title("版本与更新说明 · " + VERSION)
+        dialog.transient(self.root)
+        dialog.geometry("680x540")
+        dialog.minsize(420, 320)
+        body = ttk.Frame(dialog, padding=12)
+        body.pack(fill="both", expand=True)
+        body.rowconfigure(0, weight=1)
+        body.columnconfigure(0, weight=1)
+        notes = ScrolledText(body, wrap="word", font=("Microsoft YaHei UI", 10), padx=12, pady=12)
+        notes.insert("1.0", format_notes())
+        notes.configure(state="disabled")
+        notes.grid(row=0, column=0, sticky="nsew")
+        self.notes_text = notes
+        ttk.Button(body, text="返回", command=dialog.destroy).grid(row=1, column=0, sticky="e", pady=(10, 0))
+        dialog.bind("<Escape>", lambda _event: dialog.destroy())
 
     def _buttons(self):
         self.pair_button.configure(state="disabled" if self.busy or self.closing else "normal")

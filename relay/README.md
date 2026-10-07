@@ -29,3 +29,9 @@ python -B -m unittest discover -s relay -p 'test_*.py' -v
 ```
 
 现用中继仍由旧仓库及其部署配置管理；本目录是独立开发副本。后续若要发布，需单独审核 HTTPS 入口、单账号认证服务的连接、FRP TLS/端口设置、数据迁移与回退方案，再做隔离环境验收。这里的测试仅覆盖本地协议行为和合成转发。
+
+## 版本与体验记录
+
+`releases.json` 是本组件唯一版本记录。运行 `python -B relay/control_server.py --version` 可只打印当前版本；`--release-notes` 会列出每版改动、体验方式、验证步骤和限制。这两个命令不需要 `--db`，不创建数据库或监听端口。运行中的服务提供 `GET /control-api/version`，返回当前版本和完整历史；它位于现有单账号 Bearer 验证之后，FRP plugin 端口没有此接口。
+
+该 HTTP 接口返回**本进程启动时**从已安装的 `releases.json` 读取的快照；运行期间仅替换磁盘文件不会改变结果。只有部署并启动含新版记录的 relay 服务，服务器返回值才会更新；Windows、Android 或其他组件更新不代表服务器已更新。当前目录的本地版本只能说明开发副本状态，不能证明现用公网中继的版本。

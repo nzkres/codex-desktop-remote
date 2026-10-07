@@ -6,7 +6,18 @@
 .\scripts\SelfTest.ps1 -Node '<NODE_EXE_PATH>' -Python '<PYTHON_EXE_PATH>'
 ```
 
-脚本依次运行 `node --test`、`python -B -m unittest discover -s test -p 'test_*.py' -v`、`python -B -m unittest discover -s relay -p 'test_*.py' -v`。它覆盖合成数据下的适配器、Windows 控制与 relay 行为；不证明手机、Desktop、公网或安装包通过。Windows 窗口可用 `python windows/demo.py` 只看纯合成预览，不产生身份或网络连接。
+脚本先检查三份版本记录与生成文档，再运行 `node --test`、`python -B -m unittest discover -s test -p 'test_*.py' -v`、`python -B -m unittest discover -s relay -p 'test_*.py' -v`。它覆盖合成数据下的适配器、Windows 控制与 relay 行为；不证明手机、Desktop、公网或安装包通过。Windows 窗口可用 `python windows/demo.py` 只看纯合成预览，不产生身份或网络连接。
+
+本次版本说明的体验验收：
+
+| 软件 | 操作 | 预期 |
+| --- | --- | --- |
+| 手机 | 我的 → 版本与更新说明，阅读/滚动后返回；进入我的后断网重试 | 版本与实际 APK 相符，alpha.2/alpha.1 都可读，每项有体验和验证文字；返回不改变草稿，不自动下载 |
+| Windows | `python windows/demo.py`，点底部版本说明，滚动并返回 | 只读文本包含新旧版本；原连接窗口保留，查看说明不设置断开信号 |
+| 中继 | `python relay/control_server.py --version` 和 `--release-notes` | 无需 `--db`，直接显示版本/历史并退出，不新建数据库或监听器 |
+| 中继接口 | 合成 HTTP 测试请求 `/control-api/version` | 合法账号得到启动时版本快照；匿名/错误令牌拒绝，plugin 端口 404；无需使用真实令牌 |
+
+只改仓库文件不等于升级软件。反馈时分别写明手机、Windows 与实际中继版本；旧中继没有版本接口就记“未知”，不要把源码版本填进去。
 
 Android 源码测试与构建另需 JDK 17/Android SDK 36，在 `android-native/` 运行：
 

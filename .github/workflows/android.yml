@@ -5,11 +5,13 @@ on:
     paths:
       - 'android-native/**'
       - 'third-party/licenses/**'
+      - 'scripts/check_versions.py'
       - '.github/workflows/android.yml'
   pull_request:
     paths:
       - 'android-native/**'
       - 'third-party/licenses/**'
+      - 'scripts/check_versions.py'
       - '.github/workflows/android.yml'
   workflow_dispatch:
 permissions:
@@ -21,6 +23,11 @@ jobs:
     timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Check component release histories
+        run: python -B scripts/check_versions.py
       - uses: actions/setup-java@v4
         with:
           distribution: temurin

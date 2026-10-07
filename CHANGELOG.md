@@ -1,5 +1,14 @@
 # 变更记录
 
+每个软件的完整历史、体验入口和验证方法分别见 [手机](docs/versions/ANDROID.md)、[Windows](docs/versions/WINDOWS.md)、[中继](docs/versions/RELAY.md)。这里记录仓库组合版本；组件可以独立升级。
+
+## 0.1.0-alpha.2 — 2026-10-07（开发预览）
+
+- 手机 `0.1.0-alpha.2`：在“我的 → 版本与更新说明”离线查看当前与旧版的更新、体验步骤、验证方法和限制；版本名/版本码与内置说明共用一份记录。
+- Windows `0.1.0-alpha.2`：连接窗口底部显示本机版本，新增可滚动更新说明窗口；查看不会断开连接。窗口、适配器健康响应与心跳上报使用同一版本。
+- 中继 `0.1.0-alpha.2`：无需数据库的 `--version` / `--release-notes` 命令；新增需账号认证的 `/control-api/version`，仅反映实际运行服务启动时载入的版本。
+- 为三个原型各自保留 alpha.1 历史，新增生成 Markdown 和 CI 校验；构建、安装、真机与部署证据见 [STATUS.md](STATUS.md)。
+
 ## 0.1.0-alpha.1 — 2026-10-07（开发预览）
 
 - 建立独立仓库，导入 Lite Windows/Desktop 跟随代码、原 Android UI 源码和最小 relay 原型；保留各自的授权与任务归属边界。

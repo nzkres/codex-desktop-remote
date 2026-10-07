@@ -24,6 +24,18 @@ try:
  window.code.set('012345ABCDEF');window.pair();assert window.code.get()==''
  pump();assert '手机上确认' in window.status_text.get()
  window.connect();pump();assert '手机任务待验证' in window.status_text.get()
+ window.notes_button.invoke();pump()
+ notes = window.notes_text.get('1.0', 'end')
+ assert '0.1.0-alpha.2' in notes and '0.1.0-alpha.1' in notes
+ assert '体验：' in notes and '验证：' in notes
+ assert window.notes_text.cget('state') == 'disabled'
+ assert not window.stop_event.is_set()
+ if len(sys.argv)>2:
+    from PIL import ImageGrab
+    dialog=window.notes_window;dialog.lift();pump()
+    x,y=dialog.winfo_rootx(),dialog.winfo_rooty()
+    ImageGrab.grab(bbox=(x,y,x+dialog.winfo_width(),y+dialog.winfo_height())).save(sys.argv[2])
+ window.notes_window.destroy();pump();assert window.root.winfo_exists()
  if len(sys.argv)>1:
     from PIL import ImageGrab
     root.lift();root.update();pump()

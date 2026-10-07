@@ -7,9 +7,11 @@ import tempfile
 import threading
 import time
 import unittest
+from unittest.mock import patch
 from pathlib import Path
 
 from control_server import RelayAccount, make_server
+from release_notes import load_catalog
 from registry import Registry
 
 
@@ -78,6 +80,23 @@ class HttpTests(unittest.TestCase):
         self.assertEqual(self.request("POST", path, {"executor": "unknown", "version": "test"}, token)[0], 204)
         self.assertEqual(self.request("POST", f"/control-api/terminals/{terminal['id']}/remove", {}, self.session)[0], 204)
         self.assertEqual(self.request("POST", path, {"executor": "ready", "version": "test"}, token)[0], 403)
+
+    def test_version_history_requires_account_and_is_not_on_plugin_listener(self):
+        self.assertEqual(self.request("GET", "/control-api/version")[0], 401)
+        self.assertEqual(self.request("GET", "/control-api/version", token=secrets.token_hex(32))[0], 401)
+        status, body = self.request("GET", "/control-api/version", token=self.session)
+        self.assertEqual(status, 200)
+        self.assertEqual(body, load_catalog())
+        self.assertEqual(body["component"], "relay")
+        self.assertEqual(body["version"], body["releases"][0]["version"])
+        self.assertEqual(self.request("GET", "/control-api/version", token=self.session, server=self.plugin)[0], 404)
+
+    def test_version_is_frozen_for_the_running_process(self):
+        original = load_catalog()
+        with patch("control_server.load_catalog", side_effect=AssertionError("must not reread")):
+            status, body = self.request("GET", "/control-api/version", token=self.session)
+        self.assertEqual(status, 200)
+        self.assertEqual(body, original)
 
     def test_no_header_or_query_identity_bypass_and_logout_revokes(self):
         for headers in ({}, {"X-Account-Id": "relay-owner"}, {"X-Forwarded-User": "relay-owner"}):

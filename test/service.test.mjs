@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtempSync, rmSync, mkdirSync } from 'node:fs';
+import { mkdtempSync, rmSync, mkdirSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { randomBytes } from 'node:crypto';
@@ -33,6 +33,9 @@ test('APP HTTP contract: auth, same native thread, bounded sync and acknowledged
  const base='http://127.0.0.1:'+server.address().port;
  assert.equal((await fetch(base+'/api/sessions')).status,401);
  const get=async p=>{const r=await fetch(base+p,{headers:{Authorization:'Bearer '+token}});assert.equal(r.status,200);return r.json();};
+ const health=await get('/api/connector/health');
+ const release=JSON.parse(readFileSync(new URL('../windows/releases.json',import.meta.url),'utf8')).releases[0];
+ assert.equal(health.version,release.version);assert.equal(health.executor,'unknown');
  assert.equal((await get('/api/sessions')).sessions[0].id,f.id);
  const page=await get(`/api/sessions/${f.id}/mobile-sync`);
  assert.equal(page.protocol,1);assert.equal(page.items[1].item.text,'ready');assert.equal(page.session.id,f.id);

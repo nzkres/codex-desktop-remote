@@ -6,6 +6,8 @@
 
 ## 先安全自测
 
+三个原型都有独立版本历史，每项更新附带体验位置和验证步骤：手机“我的 → 版本与更新说明”、Windows 窗口底部“版本与更新说明”、中继 `python relay/control_server.py --release-notes`。仓库对应 [手机](docs/versions/ANDROID.md)、[Windows](docs/versions/WINDOWS.md)、[中继](docs/versions/RELAY.md) 三份历史；维护方法见 [迭代规则](docs/ITERATION.md)。本地说明与已部署服务版本分别记录，不能相互推定。
+
 合成自测需要 Python 3.12、Node 20.19；Windows 上会额外验证真实 Job 进程树，窗口演示还需 Tkinter。只有实际连接才需要 FRP 0.71 和指定版本 Desktop。工具须由使用者自行可靠取得；仓库不会自动下载安装。Node 无外部 npm 依赖；Android 构建另需 JDK 17、Android SDK 36 与 Gradle/Maven 依赖。
 
 ```powershell

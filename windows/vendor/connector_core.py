@@ -17,6 +17,9 @@ import urllib.error
 import urllib.parse
 import urllib.request
 
+# Fixed for this process: changing a source checkout does not upgrade a running connector.
+CONNECTOR_VERSION = json.loads((Path(__file__).resolve().parents[1] / 'releases.json').read_text(encoding='utf-8'))['releases'][0]['version']
+
 
 class ConnectorError(Exception):
     pass
@@ -354,7 +357,7 @@ class Connector:
             if body.get("terminalState") == "paused":
                 state["state"] = "paused"
             elif body.get("terminalState") == "active":
-                result, _ = client.post(f"/connector-api/terminals/{terminal_id}/heartbeat", token, {"executor": "unknown", "version": "0.1.0-core"})
+                result, _ = client.post(f"/connector-api/terminals/{terminal_id}/heartbeat", token, {"executor": "unknown", "version": CONNECTOR_VERSION})
                 state["state"] = "connected" if result == 204 else "reconnecting"
             else:
                 raise ConnectorError("invalid_terminal_state")

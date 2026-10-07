@@ -1,0 +1,43 @@
+{
+  "schema": 1,
+  "component": "relay",
+  "name": "服务器中继",
+  "releases": [
+    {
+      "version": "0.1.0-alpha.2",
+      "date": "2026-10-07",
+      "summary": "可查询中继本身的运行版本与历史更新说明。",
+      "changes": [
+        {
+          "title": "无需启动服务即可阅读版本与更新记录",
+          "experience": "运行 python relay/control_server.py --version 或 --release-notes，分别查看版本和完整中文历史。",
+          "verify": "不提供 --db 也能查看；命令退出后没有新数据库，也没有新监听端口。"
+        },
+        {
+          "title": "已登录账号可查询实际运行的中继版本",
+          "experience": "新中继提供 GET /control-api/version；它返回该中继进程启动时载入的版本和更新历史。",
+          "verify": "合成测试中合法账号得到 relay 版本与历史；未登录和错误令牌被拒绝，FRP plugin 端口不提供此接口。"
+        }
+      ],
+      "limitations": ["尚未部署公网；现用服务器不会因为仓库更新而自动变成此版本。", "查询版本不证明转发或 Desktop 任务已通过验收。"]
+    },
+    {
+      "version": "0.1.0-alpha.1",
+      "date": "2026-10-07",
+      "summary": "提取最小的认证、配对、设备路由与受控转发服务。",
+      "changes": [
+        {
+          "title": "复用账号认证、设备绑定和撤销保护",
+          "experience": "在临时数据库和回环服务里完成配对、确认、暂停、恢复及移除设备。",
+          "verify": "运行 python -B -m unittest discover -s relay -p 'test_*.py' -v，核对未授权请求和已撤销设备均被拒绝。"
+        },
+        {
+          "title": "只向登记的目标电脑转发",
+          "experience": "手机请求按获授权的电脑标识路由；服务器不会执行 Codex 任务。",
+          "verify": "通过合成转发测试核对目标隔离和断线行为；不能把本地测试通过当作公网部署完成。"
+        }
+      ],
+      "limitations": ["此版本的 45 项合成测试通过；未部署新 HTTPS/FRP 公网服务。"]
+    }
+  ]
+}

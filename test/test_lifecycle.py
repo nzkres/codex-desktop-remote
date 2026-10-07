@@ -9,7 +9,8 @@ from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'windows'))
 from controller import LiteRuntime
-from connector_core import Connector, ConnectorError
+from connector_core import Connector, ConnectorError, CONNECTOR_VERSION
+from release_notes import VERSION
 from runtime_core import OwnedProcess
 
 
@@ -65,6 +66,19 @@ def run(core, stop, result):
 
 
 class LifecycleTests(unittest.TestCase):
+    def test_heartbeat_uses_the_bundled_window_version(self):
+        store = Store()
+        terminal = 'a' * 32
+        store.state.update(relay='https://relay.example.test', pairingId='b' * 32, terminalId=terminal)
+        with patch('connector_core.RelayClient') as client:
+            client.return_value.post.side_effect = [
+                (200, {'state': 'confirmed', 'terminalId': terminal, 'terminalState': 'active'}),
+                (204, None),
+            ]
+            Connector(store).tick()
+            self.assertEqual(client.return_value.post.call_args.args[2], {'executor': 'unknown', 'version': VERSION})
+            self.assertEqual(CONNECTOR_VERSION, VERSION)
+
     def test_launch_factory_failure_cannot_claim_empty_tree_or_retry(self):
         process = OwnedProcess('unused', [], 'unused', 'unused', lambda: True,
                                process_factory=lambda *a, **kw: (_ for _ in ()).throw(OSError('synthetic gate failure')))

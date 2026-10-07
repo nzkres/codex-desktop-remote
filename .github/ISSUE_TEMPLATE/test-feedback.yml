@@ -4,7 +4,8 @@ body:
   - type: input
     id: version
     attributes:
-      label: 测试版本 / commit
+      label: 仓库版本，以及手机 / Windows / 中继各自版本
+      description: 从各软件版本入口填写；不知道实际中继版本时写“未知”，不要用仓库版本推测。
     validations:
       required: true
   - type: dropdown

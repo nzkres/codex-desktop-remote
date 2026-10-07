@@ -148,12 +148,8 @@ fun MeScreen(
             TextButton(onClick = onChangeGateway, contentPadding = PaddingValues(0.dp)) { Text("更改地址", fontSize = 12.sp) }
         }
         HorizontalDivider(color = HapiPalette.divider, thickness = 0.5.dp)
-        if (BuildConfig.DEBUG) Column(Modifier.fillMaxWidth().padding(horizontal = 18.dp, vertical = 18.dp)) {
-            Text("测试版更新", color = HapiPalette.ink, fontSize = 15.sp, fontWeight = FontWeight.Medium)
-            Spacer(Modifier.height(4.dp))
-            Text("当前 ${BuildConfig.VERSION_NAME} · 新测试包请手动安装", color = HapiPalette.muted, fontSize = 12.sp)
-        }
-        if (BuildConfig.DEBUG) HorizontalDivider(color = HapiPalette.divider, thickness = 0.5.dp)
+        ReleaseNotesEntry()
+        HorizontalDivider(color = HapiPalette.divider, thickness = 0.5.dp)
         NotificationSettings()
         HorizontalDivider(color = HapiPalette.divider, thickness = 0.5.dp)
         Row(Modifier.fillMaxWidth().clickable(onClick = onToggleNight).padding(horizontal = 18.dp, vertical = 18.dp), verticalAlignment = Alignment.CenterVertically) {

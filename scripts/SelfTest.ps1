@@ -2,6 +2,8 @@ param([string]$Node = 'node', [string]$Python = 'python')
 $ErrorActionPreference = 'Stop'
 Push-Location (Split-Path $PSScriptRoot -Parent)
 try {
+    & $Python -B scripts/check_versions.py
+    if ($LASTEXITCODE -ne 0) { throw 'Release notes or generated histories are inconsistent' }
     & $Node --test
     if ($LASTEXITCODE -ne 0) { throw 'Node tests failed' }
     & $Python -B -m unittest discover -s test -p 'test_*.py' -v

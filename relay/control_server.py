@@ -9,6 +9,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import parse_qs, urlsplit
 
 from frp_policy import evaluate
+from release_notes import ReleaseNotesError, format_history, load_catalog
 from registry import ControlError, Registry
 
 
@@ -41,7 +42,8 @@ class RelayAccount:
             connection.close()
 
 
-def handler_for(registry, account=None, plugin=False, forwarder=None, gateway_links=None, transport_settings=None):
+def handler_for(registry, account=None, plugin=False, forwarder=None, gateway_links=None,
+                transport_settings=None, release_catalog=None):
     class Handler(BaseHTTPRequestHandler):
         server_version = "TerminalControl/0.1"
         protocol_version = "HTTP/1.1"
@@ -107,6 +109,8 @@ def handler_for(registry, account=None, plugin=False, forwarder=None, gateway_li
                 return 200, evaluate(registry, query["op"][0], self.body().get("content"))
             if path.startswith("/control-api/"):
                 owner = account("Bearer " + self.bearer())
+                if path == "/control-api/version" and self.command == "GET":
+                    return 200, release_catalog
                 if path == "/control-api/pairings":
                     if self.command == "POST":
                         self.body()
@@ -187,18 +191,32 @@ def make_server(registry, port=0, account=None, plugin=False, forwarder=None, ga
         raise ValueError("Gateway links must share the API registry")
     if transport_settings is not None and (plugin or transport_settings.registry is not registry or gateway_links is None or forwarder is None):
         raise ValueError("Transport settings require the same registry and enabled forwarding")
-    return ThreadingHTTPServer(("127.0.0.1", port), handler_for(registry, account, plugin, forwarder, gateway_links, transport_settings))
+    catalog = None if plugin else load_catalog()
+    return ThreadingHTTPServer(("127.0.0.1", port), handler_for(
+        registry, account, plugin, forwarder, gateway_links, transport_settings, catalog))
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--db", required=True, help="Dedicated test registry, never the legacy auth DB")
+    parser.add_argument("--db", help="Dedicated test registry, never the legacy auth DB")
+    notes = parser.add_mutually_exclusive_group()
+    notes.add_argument("--version", action="store_true", help="Print installed relay version and exit")
+    notes.add_argument("--release-notes", action="store_true", help="Print installed relay release history and exit")
     parser.add_argument("--port", type=int, default=18091)
     parser.add_argument("--plugin-port", type=int, default=18092)
     parser.add_argument("--auth-port", type=int, default=18081)
     parser.add_argument("--enable-terminal-forwarding", action="store_true", help="Opt-in isolated Gateway registration and forwarding; public deployment requires verified HTTPS")
     parser.add_argument("--transport-config", help="Private server-side FRP settings; requires terminal forwarding")
     args = parser.parse_args()
+    if args.version or args.release_notes:
+        try:
+            catalog = load_catalog()
+        except ReleaseNotesError:
+            parser.exit(2, "release_notes_unavailable\n")
+        print(catalog["version"] if args.version else format_history(catalog))
+        return
+    if not args.db:
+        parser.error("--db is required to start the relay")
     if args.transport_config and not args.enable_terminal_forwarding:
         parser.error("--transport-config requires --enable-terminal-forwarding")
     registry = Registry(args.db)
