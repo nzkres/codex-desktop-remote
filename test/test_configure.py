@@ -26,7 +26,7 @@ class ConfigureTests(unittest.TestCase):
     def setUp(self):
         self.temp = TemporaryDirectory()
         self.addCleanup(self.temp.cleanup)
-        self.root = Path(self.temp.name)
+        self.root = Path(self.temp.name).resolve()  # Windows CI may use an 8.3 TEMP alias.
         self.project = self.root / "public-project"
         self.desktop = self.root / "public-desktop"
         self.project.mkdir()
