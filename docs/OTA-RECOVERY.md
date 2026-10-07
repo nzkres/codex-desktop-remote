@@ -13,9 +13,9 @@
 
 ```powershell
 $PythonExe = '<PYTHON_3_12_EXE>'
-$Home = '<EXISTING_MANAGED_HOME>'
-& $PythonExe -B -m updates.cli --home $Home status
-& $PythonExe -B -m updates.cli --home $Home recover
+$InstallRoot = '<EXISTING_MANAGED_HOME>'
+& $PythonExe -B -m updates.cli --home $InstallRoot status
+& $PythonExe -B -m updates.cli --home $InstallRoot recover
 ```
 
 Windows `status` 可在窗口退出后读，`apply` 必须走 GUI 的独立助手。Linux relay 的 `status/check/stage/apply/stop` 发往**已运行、同所有者**的受管宿主 socket；宿主或 cgroup 归属丢失时失败闭锁。普通用户不要把 `recover` 当作“继续安装”，也不要对现用旧中继执行受管命令。

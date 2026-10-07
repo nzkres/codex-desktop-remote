@@ -6,6 +6,7 @@ import sys
 from tempfile import TemporaryDirectory
 import unittest
 
+from updates.security import UpdateError
 from updates.processes import OwnedChild
 
 
@@ -57,3 +58,16 @@ class OwnedChildWindowsTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+@unittest.skipUnless(os.name == "nt", "Windows Job containment")
+class BrokenControlPipeTests(unittest.TestCase):
+    def test_pipe_close_failure_after_proven_exit_does_not_block_recovery(self):
+        child = OwnedChild([sys.executable, "-c", "raise SystemExit(2)"])
+        try:
+            child.wait(timeout=10)
+            with self.assertRaises(UpdateError):
+                child.write({"schema":1,"op":"stop"})
+            self.assertTrue(child.stop_tree())
+            self.assertTrue(child.tree_stopped)
+        finally:
+            child.stop_tree()

@@ -252,7 +252,7 @@ internal class UpdateClient(private val context: Context) {
         val installed = manager.getPackageInfo(context.packageName, flags)
         @Suppress("DEPRECATION")
         val archiveCode = if (Build.VERSION.SDK_INT >= 28) archive.longVersionCode else archive.versionCode.toLong()
-        if (archive.packageName != context.packageName || archive.versionName != payload.version ||
+        if (archive.applicationInfo?.minSdkVersion != payload.minSdk || archive.packageName != context.packageName || archive.versionName != payload.version ||
             archiveCode != payload.versionCode.toLong() || archiveCode <= BuildConfig.VERSION_CODE ||
             signatures(archive) != signatures(installed)) throw UpdateFailure("apk_identity_invalid")
     }

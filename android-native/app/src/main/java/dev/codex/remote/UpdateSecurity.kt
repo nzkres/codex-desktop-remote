@@ -15,7 +15,7 @@ internal class UpdateFailure(val code: String) : Exception(code)
 internal data class UpdatePayload(
     val version: String, val versionCode: Int, val sequence: Long, val url: URI,
     val bytes: Long, val sha256: String, val notes: String, val expiresAt: Long,
-    val binding: String, val channel: String,
+    val binding: String, val channel: String, val minSdk: Int,
 )
 
 internal data class UpdateLedger(
@@ -187,7 +187,7 @@ internal fun verifyUpdate(
     if (ledger.versions[version]?.let { it != artifactHash } == true) fail("metadata_version_conflict")
     if (code <= installedCode || !newer) fail("update_not_newer")
     val updated = UpdateLedger(sequence, binding, ledger.versions + (version to artifactHash))
-    return UpdatePayload(version, code, sequence, url, bytes, artifactHash, notes, expires, binding, channel) to updated
+    return UpdatePayload(version, code, sequence, url, bytes, artifactHash, notes, expires, binding, channel, minSdk.toInt()) to updated
 }
 
 internal fun checkedUri(text: String): URI {

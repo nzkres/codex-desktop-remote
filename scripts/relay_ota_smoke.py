@@ -121,6 +121,7 @@ def smoke(cgroup_root):
 
         host = None
         server = None
+        phase = "host_start"
         try:
             with patch("updates.relay_host.OwnedChild", side_effect=record_child), \
                  patch("relay.update_driver.OwnedChild", side_effect=record_child):
@@ -136,7 +137,9 @@ def smoke(cgroup_root):
                 first = spawned[0]
                 assert request(home, "status")["version"] == VERSIONS[0]
 
+                phase = "commit_stage"
                 stage_fixture(home, packages[1][1], packages[1][0])
+                phase = "commit_apply"
                 result = request(home, "apply")
                 assert result == {"phase": "committed", "version": VERSIONS[1]}
                 assert request(home, "status")["healthy"] is True
@@ -146,7 +149,9 @@ def smoke(cgroup_root):
                                    critical_digest(home / "data" / "registry.sqlite3", "registry"))
                 assert protected_after == protected_before
 
+                phase = "rollback_stage"
                 stage_fixture(home, packages[2][1], packages[2][0])
+                phase = "rollback_apply"
                 try:
                     request(home, "apply")
                 except UpdateError as error:
@@ -161,10 +166,22 @@ def smoke(cgroup_root):
                 assert spawned[2].tree_stopped and not spawned[2].group.root.exists()
                 assert protected_before == (critical_digest(home / "data" / "auth.sqlite3", "auth"),
                                             critical_digest(home / "data" / "registry.sqlite3", "registry"))
+                phase = "final_stop"
                 assert request(home, "stop") == {"stopped": True}
                 server.join(timeout=5)
                 assert not server.is_alive()
                 assert spawned[3].tree_stopped and not spawned[3].group.root.exists()
+        except BaseException as error:
+            code = error.code if isinstance(error, UpdateError) else type(error).__name__
+            journal_path = home / "state" / "transaction.json"
+            try:
+                journal = read(journal_path) if journal_path.exists() else {}
+                journal_phase, journal_error = journal.get("phase", "none"), journal.get("error", "none")
+            except Exception:
+                journal_phase, journal_error = "unreadable", "unreadable"
+            print(f"relay_ota_smoke_step_failed phase={phase} code={code} "
+                  f"journal={journal_phase} journal_error={journal_error}", file=sys.stderr)
+            raise
         finally:
             if host is not None and host.child is not None:
                 try:

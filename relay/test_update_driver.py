@@ -1,4 +1,5 @@
 from pathlib import Path
+import subprocess
 import tempfile
 import unittest
 from unittest.mock import patch
@@ -16,6 +17,8 @@ class FakeChild:
         self.tree_stopped = False
         self.pending = None
         self.first = quarantine
+        self.waited = False
+        self.wait_timeout = False
 
     def poll(self):
         return None if self.alive else 0
@@ -46,9 +49,17 @@ class FakeChild:
         return {"schema": 1, "result": value}
 
     def stop_tree(self, timeout=10):
+        if not self.waited:
+            raise AssertionError("must await child_gate before tree proof")
         self.alive = False
         self.tree_stopped = True
         return True
+
+    def wait(self, timeout=10):
+        if self.wait_timeout:
+            raise subprocess.TimeoutExpired("synthetic-gate", timeout)
+        self.waited = True
+        return 0
 
 
 class DriverTests(unittest.TestCase):
@@ -60,6 +71,8 @@ class DriverTests(unittest.TestCase):
         self.new_slot = self.home / "versions" / "new"
         (self.old_slot / "relay").mkdir(parents=True)
         (self.new_slot / "relay").mkdir(parents=True)
+        self.old_slot = self.old_slot.resolve()
+        self.new_slot = self.new_slot.resolve()
         (self.home / "data").mkdir()
         (self.home / "config.json").write_text('{"synthetic":1}', encoding="utf-8")
         (self.home / "control.token").write_text("f" * 64, encoding="ascii")
@@ -74,7 +87,7 @@ class DriverTests(unittest.TestCase):
             patch("update_driver._small_json", side_effect=lambda _: self.ready),
             patch("update_driver.critical_digest", side_effect=lambda _, component: ("a" if component == "auth" else "b") * 64),
             patch("update_driver.OwnedChild", return_value=self.new),
-            patch.object(RelayDriver, "_version", side_effect=lambda slot: "1.0" if Path(slot) == self.old_slot else "2.0"),
+            patch.object(RelayDriver, "_version", side_effect=lambda slot: "1.0" if Path(slot).resolve() == self.old_slot else "2.0"),
         )
         for item in patches:
             item.start()
@@ -148,6 +161,36 @@ class DriverTests(unittest.TestCase):
         self.assertEqual(len(snapshot["configSha256"]), 64)
         self.assertEqual(len(snapshot["controlTokenSha256"]), 64)
         self.assertIsNone(snapshot["transportSha256"])
+
+    def test_stop_ack_wait_timeout_never_forces_old_tree_or_switches(self):
+        self.driver.preflight()
+        self.old.wait_timeout = True
+        with self.assertRaisesRegex(UpdateError, "tree_exit_unconfirmed"):
+            self.driver.stop_old()
+        self.assertFalse(self.old.tree_stopped)
+        self.assertFalse(self.driver.old_stopped)
+        self.assertIs(self.driver.child, self.old)
+
+    def test_candidate_stop_ack_wait_timeout_leaves_tree_for_review(self):
+        self.driver.preflight()
+        self.driver.stop_old()
+        self.driver.start(self.new_slot)
+        self.new.wait_timeout = True
+        with self.assertRaisesRegex(UpdateError, "tree_exit_unconfirmed"):
+            self.driver.cleanup_target()
+        self.assertFalse(self.new.tree_stopped)
+        self.assertIs(self.driver.child, self.new)
+
+    def test_crashed_candidate_with_broken_control_pipe_is_cleaned_after_exit(self):
+        self.driver.preflight()
+        self.driver.stop_old()
+        self.driver.start(self.new_slot)
+        self.new.alive = False
+        self.new.write = lambda _: (_ for _ in ()).throw(UpdateError("candidate_control_closed"))
+        self.driver.cleanup_target()
+        self.assertTrue(self.new.waited)
+        self.assertTrue(self.new.tree_stopped)
+        self.assertIsNone(self.driver.child)
 
 
 if __name__ == "__main__":

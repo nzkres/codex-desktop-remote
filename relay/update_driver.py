@@ -5,6 +5,7 @@ import json
 import os
 from pathlib import Path
 import stat
+import subprocess
 import sys
 import time
 
@@ -33,6 +34,8 @@ class RelayDriver:
     @staticmethod
     def _file_sha(path, limit, *, optional=False):
         try:
+            if any(parent.is_symlink() for parent in path.parents):
+                raise UpdateError("managed_relay_configuration_changed")
             if optional and not path.exists() and not path.is_symlink():
                 return None
             info = path.lstat()
@@ -134,6 +137,11 @@ class RelayDriver:
             raise UpdateError("managed_relay_not_prepared")
         self.stop_attempted = True
         self._rpc(self.old_child, "stop", timeout=20)
+        try:
+            if self.old_child.wait(timeout=15) != 0:
+                raise UpdateError("managed_relay_tree_exit_unconfirmed")
+        except subprocess.TimeoutExpired:
+            raise UpdateError("managed_relay_tree_exit_unconfirmed") from None
         if self.old_child.stop_tree(timeout=15) is not True:
             raise UpdateError("managed_relay_tree_exit_unconfirmed")
         self.old_stopped = True
@@ -193,10 +201,18 @@ class RelayDriver:
         if self.activate_attempted:
             # An ambiguous activation may have admitted a request; no safe kill.
             raise UpdateError("managed_relay_activation_ambiguous")
+        acknowledged = False
         try:
             self._rpc(self.target, "stop", timeout=15)
-        except BaseException:
-            pass  # OwnedChild still must prove the entire quarantined tree exited.
+            acknowledged = True
+        except UpdateError:
+            pass  # A failed child may already have exited without a reply.
+        try:
+            exit_code = self.target.wait(timeout=15)
+        except subprocess.TimeoutExpired:
+            raise UpdateError("managed_relay_tree_exit_unconfirmed") from None
+        if acknowledged and exit_code != 0:
+            raise UpdateError("managed_relay_tree_exit_unconfirmed")
         if self.target.stop_tree(timeout=15) is not True:
             raise UpdateError("managed_relay_tree_exit_unconfirmed")
         self.target = None

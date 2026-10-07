@@ -155,7 +155,10 @@ class OwnedChild:
             self.group.close()
             for pipe in (self.process.stdin, self.process.stdout):
                 if pipe:
-                    pipe.close()
+                    try:
+                        pipe.close()
+                    except (OSError, ValueError):
+                        pass  # Closed control pipes cannot negate original-handle + empty-tree proof.
             return True
         except (OSError, subprocess.TimeoutExpired):
             raise UpdateError('candidate_tree_exit_unconfirmed') from None

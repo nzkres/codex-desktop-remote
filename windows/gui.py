@@ -45,6 +45,8 @@ class _Window:
         self.close_notice = False
         self.close_error = False
 
+        self.update_blocked = False
+        self.update_phase = None
         self.update_release = None
         self.notes_window = None
         root.title("Desktop 手机联调 · " + VERSION)
@@ -103,6 +105,29 @@ class _Window:
         self.worker.start()
         self.commands.put(("status",))
         root.after(100, self._drain)
+        self._poll_update()
+
+    def _poll_update(self):
+        home = getattr(self.controller, 'update_home', None)
+        if home and not self.closing:
+            try:
+                from updates.storage import read
+                journal = home / 'state' / 'transaction.json'
+                phase = read(journal).get('phase') if journal.exists() else 'ready'
+                self.update_blocked = phase not in ('ready', 'committed', 'rolled_back')
+                if phase != self.update_phase:
+                    messages = {'committed':'上次更新：新版启动、保全与健康核验通过；当前连接请查看上方状态。',
+                                'rolled_back':'上次更新失败，已验证并回退至旧版。',
+                                'needs_review':'更新结果需复核；已禁用新连接，请保留 data 与 state 目录。'}
+                    if phase != 'ready':
+                        self.update_text.set(messages.get(phase, '独立助手正在完成更新事务，请稍候…'))
+                    self.update_phase = phase
+                self._buttons()
+            except Exception:
+                self.update_blocked = True
+                self.update_text.set('更新记录无法读取；请保留现场，暂不建立新连接。')
+                self._buttons()
+            self.root.after(500, self._poll_update)
 
     def show_release_notes(self):
         if self.notes_window is not None and self.notes_window.winfo_exists():
@@ -127,12 +152,12 @@ class _Window:
         dialog.bind("<Escape>", lambda _event: dialog.destroy())
 
     def _buttons(self):
-        self.pair_button.configure(state="disabled" if self.busy or self.closing else "normal")
-        self.connect_button.configure(state="disabled" if self.busy or self.closing else "normal")
+        self.pair_button.configure(state="disabled" if self.busy or self.closing or self.update_blocked else "normal")
+        self.connect_button.configure(state="disabled" if self.busy or self.closing or self.update_blocked else "normal")
         self.disconnect_button.configure(state="normal" if self.connecting and not self.closing else "disabled")
 
         if hasattr(self, 'check_update_button'):
-            enabled = bool(getattr(self.controller, 'update_home', None)) and not self.busy and not self.closing
+            enabled = bool(getattr(self.controller, 'update_home', None)) and not self.busy and not self.closing and not self.update_blocked
             self.check_update_button.configure(state='normal' if enabled else 'disabled')
             self.install_update_button.configure(state='normal' if enabled and self.update_release else 'disabled')
 
@@ -145,7 +170,7 @@ class _Window:
         self.commands.put((kind,))
 
     def pair(self):
-        if self.busy or self.closing:
+        if self.busy or self.closing or self.update_blocked:
             return
         relay = self.relay.get().strip()
         name = self.name.get().strip()
@@ -160,7 +185,7 @@ class _Window:
         self.commands.put(("pair", relay, code, name))
 
     def connect(self):
-        if self.busy or self.closing:
+        if self.busy or self.closing or self.update_blocked:
             return
         self.busy = True
         self.connecting = True

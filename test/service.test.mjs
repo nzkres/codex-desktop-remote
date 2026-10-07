@@ -217,3 +217,11 @@ test('drain timeout remains fenced and can only succeed after the admitted send 
  assert.deepEqual(await service.prepareDisconnect(),{drained:true});
  assert.equal(f.calls.length,1);
 });
+
+test('quarantined OTA adapter permits fresh evidence but never forwards phone mutations', async t => {
+ const f=fixture(t);const service=new Service(f.config,f.follower,f.receipts,{quarantine:true});
+ assert.equal((await service.updateStatus()).idle,true);
+ await assert.rejects(service.send(f.id,message),{code:'update_quarantine'});
+ assert.equal(f.calls.length,0);
+ assert.deepEqual(await service.prepareDisconnect(),{drained:true});
+});

@@ -11,8 +11,8 @@ $SigningKey = '<EXTERNAL_CONTROLLED_RSA_PRIVATE_KEY_PEM>'
 $KeyId = '<REVIEWED_KEY_ID>'
 $Sequence = [int](Read-Host '输入已审核的下一发布序号')
 $Source = 'https://<REVIEWED_HOST>/desktop-remote-updates/test/windows/latest.json'
-$ArtifactUrl = 'https://<REVIEWED_HOST>/desktop-remote-updates/test/windows/windows.zip'
-$Zip = Join-Path $OutputDir 'windows.zip'
+$ArtifactUrl = 'https://<REVIEWED_HOST>/desktop-remote-updates/test/windows/windows-0.1.0-alpha.3.zip'
+$Zip = Join-Path $OutputDir 'windows-0.1.0-alpha.3.zip'
 $Metadata = Join-Path $OutputDir 'windows-latest.json'
 & $PythonExe -B -m updates.publish pack windows --output $Zip
 & $PythonExe -B -m updates.publish sign windows --artifact $Zip --output $Metadata --private-key $SigningKey --key-id $KeyId --source $Source --url $ArtifactUrl --sequence $Sequence --channel test
@@ -26,7 +26,7 @@ Android 先用**同一受控 APK 签名证书**构建候选，核对实际包名
 $Apk = '<INDEPENDENTLY_VERIFIED_SIGNED_APK>'
 $AndroidVersionCode = [int](Read-Host '输入与 Android releases.json 一致的 versionCode')
 $AndroidSource = 'https://<REVIEWED_HOST>/desktop-remote-updates/test/android/latest.json'
-$AndroidUrl = 'https://<REVIEWED_HOST>/desktop-remote-updates/test/android/android.apk'
+$AndroidUrl = 'https://<REVIEWED_HOST>/desktop-remote-updates/test/android/android-0.1.0-alpha.3.apk'
 & $PythonExe -B -m updates.publish sign android --artifact $Apk --output (Join-Path $OutputDir 'android-latest.json') --private-key $SigningKey --key-id $KeyId --source $AndroidSource --url $AndroidUrl --sequence $Sequence --channel test --apk-version-code $AndroidVersionCode --apk-package-id dev.codex.desktopremote.lite --min-sdk 26 --apk-verified
 ```
 
