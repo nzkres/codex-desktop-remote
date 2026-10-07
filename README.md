@@ -28,7 +28,7 @@
 
 以后每次软件版本更新，都必须把更新内容追加到对应文档并随代码提交；已发布记录持续保留。目前三份文档包含 alpha.4 的私有鉴权变化，并保留更早历史。
 
-可下载开发预览：[v0.1.0-alpha.3](https://github.com/nzkres/codex-desktop-remote/releases/tag/v0.1.0-alpha.3)。登录有权限的 GitHub 账号后，可下载 Android 测试 APK、Windows/relay 源码 ZIP、校验值和报告；alpha.2 / alpha.1 继续归档。Android 预览包更新信任为空，Windows/relay 源码包需外部运行时及首装信任配置，尚无一体化 EXE 安装器。建议先看 [原型关系图](docs/ARCHITECTURE.md)，再运行下面的合成自测/窗口预览，最后按 [测试指南](docs/TESTING.md) 做专用任务联调。遇到问题可用 [测试反馈](https://github.com/nzkres/codex-desktop-remote/issues/new?template=test-feedback.yml) 记录版本、步骤和结果。
+可下载开发预览：[v0.1.0-alpha.4](https://github.com/nzkres/codex-desktop-remote/releases/tag/v0.1.0-alpha.4)。登录有权限的 GitHub 账号后，可下载 Android 测试 APK、Windows/relay 源码 ZIP、校验值和报告；alpha.2 / alpha.1 继续归档。Android 预览包更新信任为空，Windows/relay 源码包需外部运行时及首装信任配置，尚无一体化 EXE 安装器。建议先看 [原型关系图](docs/ARCHITECTURE.md)，再运行下面的合成自测/窗口预览，最后按 [测试指南](docs/TESTING.md) 做专用任务联调。遇到问题可用 [测试反馈](https://github.com/nzkres/codex-desktop-remote/issues/new?template=test-feedback.yml) 记录版本、步骤和结果。
 
 ## 先安全自测
 

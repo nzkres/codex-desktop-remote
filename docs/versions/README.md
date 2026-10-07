@@ -4,6 +4,8 @@
 
 | 仓库版本 | 日期 | 本版更新摘要 | 下载 |
 | --- | --- | --- | --- |
+| `0.1.0-alpha.4` | 2026-10-08 | 三端私有下载鉴权；账号/配对身份复用、严格同源与组件授权；新增落地验收步骤 | [开发预览](https://github.com/nzkres/codex-desktop-remote/releases/tag/v0.1.0-alpha.4) |
+| `0.1.0-alpha.3` | 2026-10-07 | 三端签名 OTA、独立更新助手、事务和隔离升级/回退验证 | [开发预览](https://github.com/nzkres/codex-desktop-remote/releases/tag/v0.1.0-alpha.3) |
 | `0.1.0-alpha.2` | 2026-10-07 | 三端独立版本记录；手机/Windows 增加说明入口，中继增加版本查询；校验仓库文档与 APK 内说明 | [开发预览](https://github.com/nzkres/codex-desktop-remote/releases/tag/v0.1.0-alpha.2) |
 | `0.1.0-alpha.1` | 2026-10-07 | 建立三个独立原型，复用手机 UI 和 Windows 窗口，提取最小中继，加入自测和原型关系图 | [开发预览](https://github.com/nzkres/codex-desktop-remote/releases/tag/v0.1.0-alpha.1) |
 

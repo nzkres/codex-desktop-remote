@@ -2,6 +2,8 @@
 
 ## 2026-10-08 — alpha.4 构建复验
 
+- 最终 `c92ea98` Core push 37657708244、PR37657716116 的 Windows/Linux 全成功；Android PR37657716149也成功。发布前目录经过完整清单/Git输入/APK说明/哈希验证，私有 `v0.1.0-alpha.4` 六附件全部 uploaded，服务端 digest/size 与本地相同。发布首次 HEAD 预检遇 EOF，GET确认404未创建后重试成功，未覆盖旧Release。STATUS/安装起点/版本索引已写实际包信息，PR描述同步最终范围。
+
 - 产品提交 `78ff65d` 推送前两次被 GitHub Internal Server Error 拒绝；只读确认远端未变后以 HTTP/1.1 推送成功。main 未修改。
 - 本机最终主套件 105 项（5 Linux 专属跳过），Android CI [37655844718](https://github.com/nzkres/codex-desktop-remote/actions/runs/37655844718) 94 JVM 测试、lint 0 errors / 45 warnings 与 APK 构建通过。下载后 alpha.4/code4、说明、ZIP 完整性及空 trust 均核对。
 - 同 head `78ff65d` Core push 37655845113 的 Windows smoke 等待首条 GUI 响应超时，PR [37655857428](https://github.com/nzkres/codex-desktop-remote/actions/runs/37655857428) 全部通过。仅为 smoke 加固定阶段诊断 `a206d1f`，不增超时或跳过检查；本机三次连续完整演练成功，Core push [37656996876](https://github.com/nzkres/codex-desktop-remote/actions/runs/37656996876) Windows/Linux 全通过。首轮偶发 GUI 超时/本机回退原因仍未定位，保留为待观察问题，不能据此宣布真实设备 OTA 验收。

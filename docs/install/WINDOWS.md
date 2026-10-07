@@ -1,6 +1,6 @@
 # Windows 连接器：源码预览与全新受管安装
 
-返回[安装起点](README.md)，版本变化见 [Windows 历史](../versions/WINDOWS.md)。alpha.3 开发预览提供源码 ZIP，可先手动预览窗口；下面的受管 OTA 命令对应同一版代码，**尚无长期 HTTPS 更新源、正式签名包或真实升级验收**。它只允许创建新安装目录，不读取、迁移或停用旧连接器、旧 Gateway/FRP 和现用身份。
+返回[安装起点](README.md)，版本变化见 [Windows 历史](../versions/WINDOWS.md)。alpha.4 开发预览提供源码 ZIP，可先手动预览窗口；下面的受管 OTA 命令对应同一版代码，**尚无长期 HTTPS 更新源、正式签名包或真实升级验收**。它只允许创建新安装目录，不读取、迁移或停用旧连接器、旧 Gateway/FRP 和现用身份。
 
 ## 前置条件
 
