@@ -2,6 +2,16 @@
 
 这个独立项目包含三个可迭代原型：沿用原界面的 Android 遥控 App、Windows 连接器、服务器中继。目标是让手机在**用户明确选择的一条 Codex Desktop 原生任务**中看文字、发文字，并看到 Desktop 后续在同一任务中的内容。Desktop 仍拥有任务和执行权限。源码布局及各原型边界见 [PROJECT.md](PROJECT.md) 和 [原型说明](docs/PROTOTYPES.md)；实际通过与未验收项以 [STATUS.md](STATUS.md) 为准。
 
+## 安装与开始使用
+
+第一次使用请从 **[三个原型的安装起点](docs/install/README.md)** 开始：包含下载位置、依赖、操作步骤、成功标志和故障处理。
+
+| 手机 App | Windows 连接器 | 服务器中继 |
+| --- | --- | --- |
+| [下载 APK、安装、登录与配对](docs/install/ANDROID.md) | [准备 Python、打开窗口、连接测试任务](docs/install/WINDOWS.md) | [本地隔离启动、认证与公网前置条件](docs/install/RELAY.md) |
+
+先安装手机 APK、预览电脑窗口；准备好测试 HTTPS 中继后再联调。当前 Windows 是源码窗口，中继是源码服务，尚无一键安装包；中继本地启动不等于手机可从公网连接。
+
 ## 版本更新记录
 
 **仓库文档是查看每次更新的主要入口。** 三个软件分别保存完整历史，按版本从新到旧排列：
