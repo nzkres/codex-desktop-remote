@@ -9,8 +9,17 @@ sys.path.insert(0, str(ROOT))
 from updates.engine import installed, Transaction
 from updates.processes import PinnedProcess
 from updates.security import UpdateError
-from updates.storage import atomic
+from updates.storage import atomic, no_links
 from update_driver import WindowsDriver
+
+
+def same_running_slot(slot):
+    # installed() has verified the package tree. Keep its no-link boundary,
+    # then normalize a Windows 8.3/long-path alias before comparing roots.
+    path = no_links(slot)
+    canonical = path.resolve(strict=True)
+    no_links(path)
+    return canonical == ROOT
 
 
 def main(home):
@@ -21,7 +30,7 @@ def main(home):
     if set(request) != {'schema','owner'} or request['schema'] != 1:
         raise UpdateError('invalid_update_handoff')
     config, _, slot = installed(home)
-    if config['component'] != 'windows' or slot != ROOT:
+    if config['component'] != 'windows' or not same_running_slot(slot):
         raise UpdateError('running_slot_changed')
     with PinnedProcess(request['owner']) as old:
         print(json.dumps({'schema':1,'pinned':True}), flush=True)

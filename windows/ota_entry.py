@@ -11,10 +11,17 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 sys.path.insert(0, str(ROOT / "windows"))
 from updates.engine import installed
-from updates.storage import ensure_launchable, lock, read
+from updates.storage import ensure_launchable, lock, no_links, read
 from updates.security import UpdateError
 from update_driver import controller_for, snapshot, probe
 from gui import _Window, enable_dpi
+
+
+def same_running_slot(slot):
+    path = no_links(slot)
+    canonical = path.resolve(strict=True)
+    no_links(path)
+    return canonical == ROOT
 
 
 def health(controller):
@@ -49,7 +56,7 @@ def health(controller):
 def run(home, quarantine=False):
     import tkinter as tk
     config, pointer, root = installed(home)
-    if root != ROOT or config['component'] != 'windows':
+    if not same_running_slot(root) or config['component'] != 'windows':
         raise UpdateError('running_slot_changed')
     if not quarantine:
         ensure_launchable(home)

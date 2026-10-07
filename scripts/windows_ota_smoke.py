@@ -35,13 +35,14 @@ root = Path(__file__).resolve().parents[1]
 version = json.loads((root / "windows/releases.json").read_text(encoding="utf-8"))["releases"][0]["version"]
 print(json.dumps({"idle": GOOD, "version": version, "permissionsVerified": GOOD, "receiptsCertain": GOOD}), flush=True)
 '''
-OLD_GUI = r'''import hashlib, json, os, pathlib, shutil, sys, tkinter as tk
+OLD_GUI = r'''import hashlib, json, os, pathlib, re, shutil, sys, time, tkinter as tk
 home, metadata, archive, slot = map(pathlib.Path, sys.argv[1:5])
 sys.path.insert(0, str(slot))
 sys.path.insert(0, str(slot / 'windows'))
 sys.path.insert(0, str(slot / 'windows/vendor'))
 import updates.engine as engine
 from updates.storage import lock
+from updates.security import UpdateError
 from update_driver import controller_for
 from update_ui import handoff
 from gui import _Window
@@ -66,13 +67,29 @@ root = tk.Tk(); root.withdraw()
 window = _Window(root, controller)
 
 def begin():
+    stage = 'check'
     try:
         engine.check(home)
+        stage = 'stage'
         engine.stage(home)
+        stage = 'handoff'
         handoff(home)
         print(json.dumps({'schema':1,'handoff':True}),flush=True)
-    except Exception:
-        print(json.dumps({'schema':1,'handoff':False}),flush=True)
+    except Exception as error:
+        code = error.code if isinstance(error, UpdateError) and isinstance(error.code, str) and re.fullmatch(r'[a-z0-9_]{1,80}', error.code) else 'smoke_operation_failed'
+        if stage == 'handoff' and code == 'update_handoff_unverified':
+            result = home / 'state/helper-result.json'
+            deadline = time.monotonic() + 1
+            while not result.exists() and time.monotonic() < deadline:
+                time.sleep(0.02)
+            if result.exists():
+                try:
+                    helper = json.loads(result.read_text(encoding='utf-8'))
+                    if helper.get('schema') == 1 and re.fullmatch(r'[a-z0-9_]{1,80}', helper.get('code', '')):
+                        code = helper['code']
+                except (OSError, ValueError, TypeError):
+                    pass
+        print(json.dumps({'schema':1,'handoff':False,'stage':stage,'code':code}),flush=True)
     finally:
         window.close()
 
@@ -145,6 +162,7 @@ def _run_case(base, bad_candidate=False):
                        textwrap.indent(OLD_GUI, "    ") +
                        "\nexcept BaseException:\n"
                        "    (pathlib.Path(sys.argv[1]).parent / 'wrapper-error.txt').write_text(traceback.format_exc(), encoding='utf-8')\n"
+                       "    print('{\"schema\":1,\"handoff\":false,\"stage\":\"startup\",\"code\":\"smoke_wrapper_start_failed\"}', flush=True)\n"
                        "    raise\n", encoding="utf-8")
     pythonw = python.with_name("pythonw.exe")
     gui_python = pythonw if pythonw.is_file() else python
@@ -159,7 +177,12 @@ def _run_case(base, bad_candidate=False):
                 raise RuntimeError("wrapper:" + diagnostic.read_text(encoding="utf-8")[-800:]) from None
             raise
         if message != {"schema": 1, "handoff": True}:
-            raise RuntimeError("gui_handoff_unverified")
+            if (isinstance(message, dict) and message.get("schema") == 1
+                    and message.get("handoff") is False
+                    and message.get("stage") in ("startup", "check", "stage", "handoff")
+                    and isinstance(message.get("code"), str)):
+                raise RuntimeError("gui_handoff_unverified:" + message["stage"] + ":" + message["code"])
+            raise RuntimeError("gui_handoff_unverified:invalid_response")
         old.wait(timeout=30)
         expected_phase = "rolled_back" if bad_candidate else "committed"
         deadline = time.monotonic() + 150

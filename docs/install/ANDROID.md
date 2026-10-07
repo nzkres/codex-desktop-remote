@@ -1,15 +1,15 @@
 # Android 手机端：安装与首次测试
 
-返回[三个原型的安装起点](./README.md)；版本变化见 [Android 历史](../versions/ANDROID.md)。下列私有 Release 步骤针对已发布的 `0.1.0-alpha.2` 手动安装包，适用于 Android 8.0 及以上；实际安装与真机证据以 [STATUS](../../STATUS.md) 为准。仓库新增的 alpha.3 OTA 代码还需要受控签名首装 APK、预置公钥和长期 HTTPS 源，不能由 alpha.2 的普通 debug 包推定可连续覆盖升级。
+返回[三个原型的安装起点](./README.md)；版本变化见 [Android 历史](../versions/ANDROID.md)。下一下载起点是**准备发布的 `0.1.0-alpha.3` 开发预览**，适用于 Android 8.0 及以上。Release 须待最终 CI 验收后创建；已下载复验构件不等于手机已安装或完成 OTA。实际安装与真机证据以 [STATUS](../../STATUS.md) 为准。alpha.3 普通 debug 包仍无受控签名首装信任和长期 HTTPS 源。
 
-1. 用有权限的 GitHub 账号打开私有 [v0.1.0-alpha.2 Release](https://github.com/nzkres/codex-desktop-remote/releases/tag/v0.1.0-alpha.2)，展开 Assets，下载 `desktop-remote-lite-0.1.0-alpha.2-debug.apk`；校验文件是同页的 `SHA256SUMS.txt`，不是源码 ZIP 或测试报告。下载成功只说明文件已到手，不说明已安装或能连接服务。
+1. Release 创建后，用有权限的 GitHub 账号打开私有 [v0.1.0-alpha.3 Release](https://github.com/nzkres/codex-desktop-remote/releases/tag/v0.1.0-alpha.3)，展开 Assets，下载 `desktop-remote-lite-0.1.0-alpha.3-debug.apk`；Windows/relay 的 source ZIP 和测试报告都不能当 APK 安装。下载成功只说明文件已到手，不说明已安装或能连接服务。此前 [v0.1.0-alpha.2 Release](https://github.com/nzkres/codex-desktop-remote/releases/tag/v0.1.0-alpha.2) 保留归档。
 2. 在手机上打开下载的 APK，按系统提示允许这一次安装并完成安装。不同 Android 设备的提示可能不同，参见 [Google 的 Android 应用安装帮助](https://support.google.com/android/answer/9457058?hl=zh-Hans)。此包的 application ID 是 `dev.codex.desktopremote.lite`，可与旧 App 并存；**不必卸载旧 App**。
 3. 打开“Desktop Remote Lite”。登录页的“中继地址”默认留空；只有在测试 HTTPS 服务器已单独配置并核验后，才填写其地址、测试账号和密码并登录。安装 APK 不会部署中继，也不会自动导入原 App 的登录或配对身份。
 4. 在“远程终端”点“添加电脑”，取得一次性配对码；在**新 Windows 连接器**中输入该码。手机刷新待确认列表，核对申请电脑的名称，再点“确认加入”。不要把配对码、账号密码或设备凭据写进仓库或反馈截图。
 5. 只选择预先准备的一台测试电脑及一条专用 Desktop 原生任务：先核对手机读到该任务历史，再发送一次明确的测试文字；在 Desktop **同一任务**接续，最后确认手机能看到接续内容。连接状态、心跳或发送回执都不能单独证明模型任务完成；若发送结果未知，先核对原任务，不换消息编号重发。新建任务、审批和模式设置仍留在 Desktop。
-6. 在“我的 → 版本与更新说明”确认显示 `0.1.0-alpha.2`，可阅读 alpha.2 与 alpha.1 记录；说明随已安装包提供，离线也能查看。记录下载、安装、登录/配对、同任务文字闭环各自的实际结果，不把前一步成功算成后一步验收。
+6. 在“我的 → 版本与更新说明”确认实际显示 `0.1.0-alpha.3`（`versionCode` 3），可阅读 alpha.3 及更早记录；说明随 APK 提供，离线也能查看。记录下载、安装、登录/配对、同任务文字闭环各自的实际结果，不把前一步成功算成后一步验收。
 
-alpha.2 包仍须手动安装。开发中的入口为“我的 → 版本与更新说明”检查签名更新、私有缓存下载和系统确认安装，见 [OTA 边界](../OTA.md) 与 [发布步骤](../OTA-PUBLISH.md)。首次 OTA 安装包必须包含审核过的测试/稳定渠道公钥和 source，并与后续 APK 使用**同一个受控 Android 签名证书**；元数据签名与 APK 证书是两道独立验证。默认 CI/debug 包的 trust 为空，不能用于生产 OTA；换一次 CI debug 签名也不能保证覆盖旧包。遇到签名冲突先保留应用与数据、核对安装签名，**不要默认卸载**。本项目包名不同，不会覆盖旧 App。
+alpha.3 包仍须手动安装。源码中已有“我的 → 版本与更新说明”的检查、下载和系统安装入口，但默认 CI/debug 包的 trust 为空，**检查更新会提示未配置**，不能用于生产 OTA。首次 OTA 安装包必须包含审核过的渠道公钥和 source，并与后续 APK 使用**同一个受控 Android 签名证书**；元数据签名与 APK 证书是两道独立验证。换一次 CI debug 签名不能保证覆盖已装 alpha.2 或其他构建。遇到签名冲突先保留应用与数据、核对签名及迁移方案，**不要卸载绕过**。本项目包名不同，不会覆盖旧 App。详见 [OTA 边界](../OTA.md) 与 [发布步骤](../OTA-PUBLISH.md)。
 
 系统安装对话框被取消或只返回原应用时仍是“待安装/可重试”，不是成功。新版本重开后还须核对实际 version/versionCode、自身 APK 哈希和更新 ledger，再取得所选电脑的**新鲜**空闲/权限/回执证据；取不到时显示任务待核对。Android 不承诺静默安装或降级。普通 CI artifact 只保留 14 天，也不是更新服务器。
 
@@ -18,10 +18,10 @@ alpha.2 包仍须手动安装。开发中的入口为“我的 → 版本与更�
 如先下载到 Windows 再传到手机，可在 APK 所在目录打开 PowerShell，核对完整性：
 
 ```powershell
-Get-FileHash -Algorithm SHA256 -LiteralPath '.\desktop-remote-lite-0.1.0-alpha.2-debug.apk'
+Get-FileHash -Algorithm SHA256 -LiteralPath '.\desktop-remote-lite-0.1.0-alpha.3-debug.apk'
 ```
 
-结果应与 `SHA256SUMS.txt` 一致。本版大小为 11,720,835 字节，SHA-256 为 `1d6d76b4e6eed91ba670593743e393ca10c7e6b62b236246cc675896829b2d11`；哈希用于发现损坏，不代替发布签名。安装现成 APK 不需要 Git、JDK、Android SDK 或自行编译。
+预备发布的 APK 已实际下载复验：**11,771,316 字节**，SHA-256 为 `d188ed0522f8fc36361565495536cdda141e36160443ededee314dbb843107f6`，`versionCode` 3，包内版本说明与 Git `e7602ec` 内容字节一致；JVM 测试 87/87，lint 0 错误、45 警告。这些是构件与检查证据，**不是 Release 已创建、手机已安装或真机 OTA 成功**。正式下载后仍须按上述哈希核对文件；哈希不代替签名。安装现成 APK 不需要 Git、JDK、Android SDK 或自行编译。
 
 | 现象 | 从哪里排查 |
 | --- | --- |

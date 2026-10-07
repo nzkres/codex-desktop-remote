@@ -2,7 +2,11 @@
 
 这里按版本记录仓库更新。每个软件的完整历史、体验入口和验证方法分别见 [手机](docs/versions/ANDROID.md)、[Windows](docs/versions/WINDOWS.md)、[中继](docs/versions/RELAY.md)，也可从 [全部版本索引](docs/versions/README.md) 查找。每次软件发布必须同时更新本总览与相应组件文档；组件可以独立升级，旧记录保留。
 
-## 未发布 — 文档维护
+## 0.1.0-alpha.3 — OTA 实现与隔离验证 — 2026-10-07
+
+三端新增 OTA 安全格式、检查/下载/安装入口及事务恢复。分组件体验步骤已写入 releases.json 和 docs/versions。Windows 真实窗口/独立助手和 Linux cgroup 中继的升级/回退已在合成数据中验证，Android 已完成编译与 JVM/lint；最终 CI/包证据见 STATUS。新增发布、全新受管安装、恢复与跨电脑交接文档。未上线更新源或做真实设备升级。
+
+## alpha.2 后的文档维护
 
 - 2026-10-07：将 Android、Windows、中继三端 OTA 改为正式必做范围，新增 `docs/OTA.md`，明确各端更新入口、稳定签名、隔离发布、数据保留、独立更新器及升级/恢复验收。同步原型、安装和迭代说明；本次是要求变更与复用审查，alpha.2 仍未实现 OTA，没有新增软件版本或部署。
 
@@ -24,7 +28,3 @@
 - 增加统一合成自测入口与原型/架构/验收文档。新仓库 CI、APK 安装、真实手机/桌面和公网部署结果以 [STATUS.md](STATUS.md) 为准，当前不能从旧仓库或 Lite 的验收推定通过。
 - 修正独立 CI 的 Android SDK 安装包选择，并让 Windows 配置测试兼容临时目录的 8.3 路径别名。Windows/Linux 核心 CI 已通过。
 - Android 70 项 JVM 单元测试通过，Lint 0 errors / 39 warnings，主 APK 与 instrumentation APK 已编译；私有开发预览提供主 debug APK、校验值与报告。未进行新包安装、模拟器 UI 执行或真实手机联调。
-
-## 0.1.0-alpha.3 — OTA 实现与隔离验证 — 2026-10-07
-
-三端新增 OTA 安全格式、检查/下载/安装入口及事务恢复。分组件体验步骤已写入 releases.json 和 docs/versions。Windows 真实窗口/独立助手和 Linux cgroup 中继的升级/回退已在合成数据中验证，Android 已完成编译与 JVM/lint；最终 CI/包证据见 STATUS。新增发布、全新受管安装、恢复与跨电脑交接文档。未上线更新源或做真实设备升级。
