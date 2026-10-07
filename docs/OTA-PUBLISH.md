@@ -35,3 +35,10 @@ Android 普通 push/PR CI 构建嵌入空 trust 且使用临时 debug 签名，�
 Windows/relay 首次安装的 `trust.json` 需由受控流程从**已审核的发布公钥**制作，字段为 `schema:1`、`product:codex-desktop-remote`、`channel:test|stable`、`keys:{keyId:PEM_PUBLIC_KEY}` 和 `sources:{windows|relay|android:HTTPS_LATEST_JSON}`；只配置该安装需要的组件 source。`sign` 不替操作者生成、安装或轮换 trust。首次 bootstrap 接收本地 trust、已签元数据和对应 ZIP，随后固定在新目录；旧实例不能通过下载更新自己的信任根。
 
 将**版本化构件先上传**独立 HTTPS 目录，核对服务端实际字节数/SHA-256、证书与访问控制；最后原子更新该目录的 `latest.json`，再从客户端执行 `check`。仓库没有通用上传命令或已批准的服务器目标。私有 GitHub Release 可作归档，14 天 Actions artifact 不能作长期 feed，更不能在客户端内置 GitHub PAT。发布证据至少记录源码版本、构件哈希、签名 keyId/公钥指纹、已服务文件哈希、元数据有效期、安装和真实任务验收层级，勿记录私钥或账号令牌。
+
+
+## 固定引导器与运行时
+
+Windows/relay ZIP 更新的是该原型的应用源码及下次可用的更新工具。Python/cryptography，以及 Windows 的 Node/FRP 为首次安装准备的外部运行时，不在此版 OTA 中更换；当前只接受数据格式 1 与相同兼容协议，不支持自动依赖或数据库迁移。
+
+受管 home 的固定启动脚本是首次验证包建立的信任入口，不在事务中自改。Linux 独立更新宿主在本次服务切换后继续保留原始子进程句柄，其自身 Python 模块不会热替换；正常管理员 stop 后再由固定入口 start，才加载 current 指向版本的宿主代码。若发行内容修复宿主本身，更新说明必须写明这个维护重启要求，不能把服务版本变化当作宿主代码已经重载。中继仍只通过 OTA 下载程序，不需要重新上传源码。

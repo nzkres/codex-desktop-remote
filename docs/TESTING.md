@@ -1,8 +1,8 @@
 # 自测与验收
 
-新增三端 OTA 的专项验收清单见 [OTA.md](OTA.md)：连续两个构件、签名/平台/渠道拒绝、活跃与未知操作延期、进程树清理、更新中断、启动/探针失败和数据保留均需覆盖。当前以下 alpha.2 测试没有覆盖尚未实现的 OTA，不能据此声称可在线更新。
+新增三端 OTA 的专项验收清单见 [OTA.md](OTA.md)：连续两个构件、签名/平台/渠道拒绝、活跃与未知操作延期、进程树清理、更新中断、启动/探针失败和数据保留均需覆盖。alpha.3 新增 test/test_update_*.py、test/test_windows_update_driver.py、relay 的维护/宿主测试与 Android Update*Test；各层结果见 STATUS，不能用旧 alpha.2 结果代替。
 
-在仓库根目录、Windows 上使用 Python 3.12、Node 20.19 运行。合成自测不需要 FRP、Desktop 或账号；实际连接才需要另行提供 FRP 0.71。项目不下载运行工具，也不复制旧 DPAPI 身份、真实任务日志或账号数据。
+在仓库根目录、Windows 上使用 Python 3.12 + cryptography、Node 20.19 运行。合成自测不需要 FRP、Desktop 或账号；实际连接才需要另行提供 FRP 0.71。项目不下载运行工具，也不复制旧 DPAPI 身份、真实任务日志或账号数据。
 
 ```powershell
 .\scripts\SelfTest.ps1 -Node '<NODE_EXE_PATH>' -Python '<PYTHON_EXE_PATH>'
@@ -32,3 +32,9 @@ Android 源码测试与构建另需 JDK 17/Android SDK 36，在 `android-native/
 真实联调先在 Desktop 建专用任务并取得 `DESKTOP_REMOTE_READY` 回复。从该任务链接读取线程 UUID，独立核实工作目录与所需本机可执行文件路径；执行 README 中的 `scripts/configure.py` 命令。它创建忽略的 `fixture.local.json`，对 Desktop 只读核对 marker、固定版本/两文件哈希和权限摘要，并写入本地配置；不发模型请求，不覆盖已有文件。失败会保留配置，不能改 pin 绕过。新测试设备必须手动配对；旧配对状态不可迁入。
 
 在已确认不会接管旧实例后，用 `pythonw windows/controller.py fixture.local.json` 打开连接窗口，手动填写拟用于测试的 HTTPS 中继地址。已有中继只有在协议匹配且允许新增独立测试设备时才能使用；此步骤不要求替换现用服务器，也不代表本仓库已经部署中继。只在明确的测试范围内依次核对：目标电脑与任务匹配、手机可读原生历史、一次文字发送得到明确回执、Desktop 在同任务接续、手机读到该接续。发送结果未知时停止，不换消息 ID 重发。连接/探针成功与模型执行成功分别记录；审批、提问、新建任务和模式设置仍在 Desktop 操作。实测结果写入根 [STATUS.md](../STATUS.md) 与 [WORKLOG.md](../WORKLOG.md)。
+
+## OTA 隔离验证命令
+
+先在独立 Python 环境安装 `python -m pip install -r updates/requirements.txt`，再运行上述全套自测。TLS 测试仅在临时 loopback HTTPS 监听和合成 CA 上运行，未关闭 TLS 校验。Windows 用 `python -B scripts/windows_ota_smoke.py` 验证真实 pythonw/Tk 窗口、独立 helper、原始句柄与 Job 的升级/回退；它只创建临时 unpaired DPAPI 身份，Desktop 探针使用签名 fixture，不访问实际任务。
+
+Linux 用 `DESKTOP_REMOTE_TEST_CGROUP=/sys/fs/cgroup/<专用委派目录> python -B scripts/relay_ota_smoke.py` 验证真实 relay 监听、账号/登记库、私有 socket、cgroup 树退出、提交与坏候选回退。没有该环境变量时明确跳过，跳过不算通过。只在隔离机器或 CI 使用；不要借用现用服务 cgroup。两种生命周期演练用本地签名 fixture 包，真实 TLS 下载另由 test_update_https.py 覆盖，两者不能合称生产网络端到端验收。

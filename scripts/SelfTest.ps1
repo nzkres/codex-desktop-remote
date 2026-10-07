@@ -2,6 +2,8 @@ param([string]$Node = 'node', [string]$Python = 'python')
 $ErrorActionPreference = 'Stop'
 Push-Location (Split-Path $PSScriptRoot -Parent)
 try {
+    & $Python -B -c "import cryptography"
+    if ($LASTEXITCODE -ne 0) { throw "Install updates/requirements.txt into the selected Python environment first" }
     & $Python -B scripts/check_versions.py
     if ($LASTEXITCODE -ne 0) { throw 'Release notes or generated histories are inconsistent' }
     & $Node --test
