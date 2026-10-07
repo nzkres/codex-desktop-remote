@@ -2,6 +2,8 @@
 
 用户安装从[手机安装指南](../docs/install/ANDROID.md)开始；下面的 Gradle 步骤仅用于源码开发，安装现成 APK 无需 JDK、SDK 或编译。
 
+OTA is now a required product capability; see [the three-component OTA requirements](../docs/OTA.md). The current alpha.2 still requires manual installation. A future OTA baseline must establish stable signing and verified system installation before claiming upgrade support.
+
 This module preserves the existing Android UI source as a starting point for the new Desktop-following connector. It was imported from the tracked `android-native` source and tests at `windows-client` commit `f8350e400cf6e7420d8283e03eb6efa37104ca79`. The old test signing key, build output, credentials, and `local.properties` are not part of this module. UI source here does not prove that an already installed APK contains these changes.
 
 Build with JDK 17 and Android SDK 36:

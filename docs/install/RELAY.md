@@ -2,6 +2,8 @@
 
 本指南用于在开发电脑上启动**独立的回环原型**，不接管现用中继。界面和版本说明见[安装指南索引](./README.md)与[中继版本历史](../versions/RELAY.md)；源码边界见[relay/README.md](../../relay/README.md)。当前没有公网部署证据，也没有完整的 HTTPS + FRPS 自动安装流程。只启动 `127.0.0.1` 服务，手机无法因此接入。
 
+**中继自身 OTA 也属于必做范围：**目标由管理员工具在线检查、下载并验证签名包，在安全维护窗口切换服务，保留账号与设备数据并验证健康。它不同于服务器向手机分发 APK，当前 `--version` / `--release-notes` 不是更新命令；具体条件见 [OTA.md](../OTA.md)。
+
 ## 准备与自测
 
 先按[下载说明](README.md)取得源码，使用 Python **3.12**，仅需标准库；没有 Python 的 Windows 电脑可参考[运行时准备](WINDOWS.md)。本页命令以 Windows PowerShell 为例，Linux 环境的 Python/服务管理需另行配置。在新仓库根目录打开 PowerShell，先确认实际调用的解释器：
