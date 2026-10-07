@@ -12,9 +12,7 @@ from updates.processes import OwnedChild
 @unittest.skipUnless(os.name == "nt", "Windows Job integration")
 class OwnedChildWindowsTests(unittest.TestCase):
     def launch(self, source, cwd):
-        child = OwnedChild([sys.executable, "-I", "-c", source], cwd=cwd)
-        self.addCleanup(self.cleanup, child)
-        return child
+        return OwnedChild([sys.executable, "-I", "-c", source], cwd=cwd)
 
     @staticmethod
     def cleanup(child):
@@ -33,22 +31,28 @@ class OwnedChildWindowsTests(unittest.TestCase):
                 "import subprocess,sys;"
                 "subprocess.Popen([sys.executable,'-I','-c','import time;time.sleep(30)'],"
                 "creationflags=0x08000000)", directory)
-            self.assertEqual(child.wait(timeout=8), 0)
-            self.assertGreater(child.group.active(), 0)
-            self.assertFalse(child.tree_stopped)
-            self.assertTrue(child.stop_tree(timeout=8))
-            self.assertTrue(child.tree_stopped)
-            self.assertIsNone(child.group.handle)
-            self.assertTrue(child.stop_tree())
+            try:
+                self.assertEqual(child.wait(timeout=8), 0)
+                self.assertGreater(child.group.active(), 0)
+                self.assertFalse(child.tree_stopped)
+                self.assertTrue(child.stop_tree(timeout=8))
+                self.assertTrue(child.tree_stopped)
+                self.assertIsNone(child.group.handle)
+                self.assertTrue(child.stop_tree())
+            finally:
+                self.cleanup(child)
 
     def test_natural_exit_race_uses_original_handle_and_empty_job(self):
         with TemporaryDirectory(prefix="ota-natural-exit-") as directory:
             child = self.launch("pass", directory)
-            self.assertEqual(child.wait(timeout=8), 0)
-            self.assertFalse(child.tree_stopped)
-            self.assertTrue(child.stop_tree(timeout=8))
-            self.assertTrue(child.tree_stopped)
-            self.assertIsNone(child.group.handle)
+            try:
+                self.assertEqual(child.wait(timeout=8), 0)
+                self.assertFalse(child.tree_stopped)
+                self.assertTrue(child.stop_tree(timeout=8))
+                self.assertTrue(child.tree_stopped)
+                self.assertIsNone(child.group.handle)
+            finally:
+                self.cleanup(child)
 
 
 if __name__ == "__main__":

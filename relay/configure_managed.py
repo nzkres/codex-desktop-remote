@@ -83,12 +83,14 @@ def configure(home, username, auth_port, api_port, plugin_port, port_start, port
             if (home / name).exists() or (home / name).is_symlink():
                 raise ConfigureError("managed_home_already_configured")
         registry_path = data / "registry.sqlite3"
+        _exclusive(registry_path, b"")
         Registry(registry_path, port_start, port_end)
         with sqlite3.connect(registry_path) as db:
             db.execute("PRAGMA user_version=1")
         registry_path.chmod(0o600)
 
         auth_path = data / "auth.sqlite3"
+        _exclusive(auth_path, b"")
         previous = auth_server.DB_PATH
         try:
             auth_server.DB_PATH = str(auth_path)

@@ -122,6 +122,7 @@ class RelayHost:
             raise UpdateError("wrong_installed_component")
         self.slot = slot
         self.child = None
+        self.review_children = []
         self.stopping = False
         self._start_initial()
 
@@ -161,6 +162,8 @@ class RelayHost:
 
     def status(self):
         phase = self._phase()
+        if phase not in ("ready", "committed", "rolled_back"):
+            return {"component": "relay", "version": None, "phase": "needs_review", "healthy": False}
         if self.child is None or self.child.poll() is not None:
             return {"component": "relay", "version": None, "phase": "needs_review", "healthy": False}
         _, pointer, slot = installed(self.home)
@@ -178,10 +181,17 @@ class RelayHost:
         try:
             result = Transaction(self.home, driver).apply()
         except BaseException:
+            # Preserve every original handle while the outcome needs review.
+            # In particular, ambiguous activation or cleanup may leave a live
+            # candidate whose stdin must remain owned by this host.
+            for child in (driver.old_child, driver.target, driver.child):
+                if child is not None and all(child is not held for held in self.review_children):
+                    self.review_children.append(child)
+            if driver.child is not None:
+                self.child = driver.child
             # A successful rollback also raises the original apply failure.
             # Its new OwnedChild belongs to this host, not a revived PID.
             if self._phase() == "rolled_back" and driver.child is not None:
-                self.child = driver.child
                 _, _, self.slot = installed(self.home)
             raise
         if result.get("phase") != "committed" or driver.child is None:
@@ -191,6 +201,8 @@ class RelayHost:
         return {"phase": "committed", "version": result["candidate"]["version"]}
 
     def _stop(self):
+        if self._phase() not in ("ready", "committed", "rolled_back"):
+            raise UpdateError("unfinished_update_requires_review")
         if self.child is None or self.child.poll() is not None:
             raise UpdateError("managed_relay_owner_lost")
         driver = self._driver()

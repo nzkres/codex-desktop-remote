@@ -90,6 +90,8 @@ def inspect_auth(path):
     try:
         from contextlib import closing
         with closing(_read_only(path)) as db:
+            if db.execute("PRAGMA user_version").fetchone()[0] != 1:
+                raise ManagedError("auth_schema_unknown")
             if not {"id", "username", "salt", "password_hash"} <= _columns(db, "account"):
                 raise ManagedError("auth_schema_unknown")
             if not {"token_hash", "expires_at"} <= _columns(db, "sessions"):

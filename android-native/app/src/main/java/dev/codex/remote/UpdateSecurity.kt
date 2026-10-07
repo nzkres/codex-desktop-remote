@@ -27,7 +27,7 @@ private val shaPattern = Regex("[a-f0-9]{64}")
 
 private fun fail(code: String): Nothing = throw UpdateFailure(code)
 private fun JSONObject.exact(vararg names: String) {
-    if (keySet() != names.toSet()) fail("metadata_fields_invalid")
+    if (keys().asSequence().toSet() != names.toSet()) fail("metadata_fields_invalid")
 }
 private fun JSONObject.integer(name: String): Long = when (val value = opt(name)) {
     is Int -> value.toLong()

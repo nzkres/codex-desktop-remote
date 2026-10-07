@@ -160,8 +160,10 @@ class OwnedChild:
         except (OSError, subprocess.TimeoutExpired):
             raise UpdateError('candidate_tree_exit_unconfirmed') from None
 
-    def detach_windows(self):
-        """Transfer an activated GUI's lifetime to itself after the journal commits."""
+    def allow_survive_owner_exit(self):
+        """Release kill-on-close BEFORE any user work can be admitted."""
+        if getattr(self, "lifetime_transferred", False):
+            return
         if os.name != 'nt':
             raise UpdateError('windows_lifetime_transfer_required')
         import ctypes
@@ -174,6 +176,10 @@ class OwnedChild:
         limits.basic.flags = 0
         if not self.group.api.SetInformationJobObject(self.group.handle, 9, ctypes.byref(limits), ctypes.sizeof(limits)):
             raise UpdateError('candidate_lifetime_transfer_failed')
+        self.lifetime_transferred = True
+
+    def detach_windows(self):
+        self.allow_survive_owner_exit()
         self.group.close()
         # The child treats EOF after activation as a normal end of the update helper.
         self.process.stdin.close()

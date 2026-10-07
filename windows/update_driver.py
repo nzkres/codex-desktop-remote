@@ -97,6 +97,7 @@ class WindowsDriver:
             raise UpdateError('candidate_health_unverified')
 
     def activate(self):
+        self.target.allow_survive_owner_exit()
         self.activation_started = True
         self.application_lock.__exit__(None, None, None)
         self.application_lock = None

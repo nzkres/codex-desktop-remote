@@ -31,8 +31,8 @@ class LinuxManagedTests(unittest.TestCase):
             original = auth_server.DB_PATH
             try:
                 auth_server.DB_PATH = str(auth_path)
-                with auth_server.db_session():
-                    pass
+                with auth_server.db_session() as db:
+                    db.execute("PRAGMA user_version=1")
             finally:
                 auth_server.DB_PATH = original
             auth_path.chmod(0o600)

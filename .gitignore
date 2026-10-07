@@ -20,3 +20,7 @@ local.properties
 !.env.example
 *.local.ps1
 *.local.toml
+
+dist/
+*.pem
+*.key

@@ -35,7 +35,8 @@ class HostCommandTests(unittest.TestCase):
         old = type("Child", (), {"poll": lambda self: None})()
         new = object()
         host.child = old
-        driver = type("Driver", (), {"child": new})()
+        host.review_children = []
+        driver = type("Driver", (), {"child": new, "old_child": old, "target": new})()
         host._driver = lambda: driver
         with patch("updates.relay_host.Transaction") as transaction, \
              patch("updates.relay_host.installed", return_value=({}, {}, Path("/synthetic/new"))):
@@ -51,9 +52,24 @@ class HostCommandTests(unittest.TestCase):
             transaction.return_value.apply.side_effect = UpdateError("update_needs_review")
             with self.assertRaisesRegex(UpdateError, "update_needs_review"):
                 host._apply()
+            self.assertIs(host.child, new)
+            self.assertEqual(host.review_children, [old, new])
+            self.assertEqual(host.status(), {"component": "relay", "version": None,
+                                             "phase": "needs_review", "healthy": False})
+            with self.assertRaisesRegex(UpdateError, "unfinished_update_requires_review"):
+                host._stop()
+
+        host.child = old
+        driver.child = None
+        with patch("updates.relay_host.Transaction") as transaction:
+            transaction.return_value.apply.side_effect = UpdateError("update_needs_review")
+            with self.assertRaisesRegex(UpdateError, "update_needs_review"):
+                host._apply()
             self.assertIs(host.child, old)
+            self.assertIn(new, host.review_children)  # Unproven target cleanup stays pinned.
 
         host._phase = lambda: "rolled_back"
+        driver.child = new
         with patch("updates.relay_host.Transaction") as transaction, \
              patch("updates.relay_host.installed", return_value=({}, {}, Path("/synthetic/old"))):
             transaction.return_value.apply.side_effect = UpdateError("update_rolled_back")

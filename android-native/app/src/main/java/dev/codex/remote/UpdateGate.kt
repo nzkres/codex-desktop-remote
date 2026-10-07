@@ -6,7 +6,7 @@ internal data class ConnectorUpdateProof(val version: String)
 
 /** A fresh, exact connector response is required; old connectors and unknown fields fail closed. */
 internal fun parseConnectorUpdateProof(row: JSONObject): ConnectorUpdateProof {
-    if (row.keySet() != setOf("idle", "version", "permissionsVerified", "receiptsCertain") ||
+    if (row.keys().asSequence().toSet() != setOf("idle", "version", "permissionsVerified", "receiptsCertain") ||
         row.opt("idle") != true || row.opt("permissionsVerified") != true ||
         row.opt("receiptsCertain") != true || row.opt("version") !is String) {
         throw UpdateFailure("update_activity_uncertain")

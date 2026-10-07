@@ -178,8 +178,9 @@ def sign(component, artifact, output, *, private_key, key_id, source, url, seque
     """Sign metadata for a previously built artifact; never build or deploy it."""
     root, artifact, output = Path(root).resolve(), _safe_local(artifact), _safe_local(output)
     key_path = _safe_local(private_key)
-    if (not Path(private_key).is_absolute() or key_path.is_relative_to(root)
-            or not key_path.is_file()):
+    if not Path(private_key).is_absolute() or not key_path.is_file():
+        _fail("external_private_key_required")
+    if key_path.resolve(strict=True).is_relative_to(root):
         _fail("external_private_key_required")
     if (component not in TARGETS or not artifact.is_file() or artifact.is_symlink()
             or not output.parent.is_dir() or output.exists() or output.is_symlink()):

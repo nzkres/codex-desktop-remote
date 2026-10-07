@@ -60,6 +60,11 @@ class DriverTests(unittest.TestCase):
         self.new_slot = self.home / "versions" / "new"
         (self.old_slot / "relay").mkdir(parents=True)
         (self.new_slot / "relay").mkdir(parents=True)
+        (self.home / "data").mkdir()
+        (self.home / "config.json").write_text('{"synthetic":1}', encoding="utf-8")
+        (self.home / "control.token").write_text("f" * 64, encoding="ascii")
+        (self.home / "config.json").chmod(0o600)
+        (self.home / "control.token").chmod(0o600)
         (self.new_slot / "relay" / "managed.py").write_text("# fixture", encoding="utf-8")
         self.old = FakeChild(101, "old-instance", "1.0")
         self.new = FakeChild(202, "new-instance", "2.0", quarantine=True)
@@ -117,6 +122,32 @@ class DriverTests(unittest.TestCase):
         self.ready["pid"] = self.old.pid
         with self.assertRaisesRegex(UpdateError, "binding_unverified"):
             self.driver._binding(self.old, self.old_slot)
+
+    def test_config_or_token_change_after_preflight_cannot_become_baseline(self):
+        for relative, replacement in (("config.json", b'{"synthetic":2}'),
+                                      ("control.token", b"e" * 64),
+                                      ("data/transport.json", b'{"synthetic":"transport"}')):
+            with self.subTest(relative=relative):
+                target = self.home / relative
+                original = target.read_bytes() if target.exists() else None
+                self.driver.preflight()
+                with target.open("wb") as stream:
+                    stream.write(replacement)
+                target.chmod(0o600)
+                with self.assertRaisesRegex(UpdateError, "configuration_changed"):
+                    self.driver.snapshot()
+                self.assertFalse(self.driver.stop_attempted)
+                if original is None:
+                    target.unlink()
+                else:
+                    target.write_bytes(original)
+
+    def test_snapshot_includes_local_stable_fingerprints(self):
+        self.driver.preflight()
+        snapshot = self.driver.snapshot()
+        self.assertEqual(len(snapshot["configSha256"]), 64)
+        self.assertEqual(len(snapshot["controlTokenSha256"]), 64)
+        self.assertIsNone(snapshot["transportSha256"])
 
 
 if __name__ == "__main__":

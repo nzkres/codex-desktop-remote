@@ -1,7 +1,10 @@
 """Relay lifecycle bridge for the shared journaled update transaction."""
 
+import hashlib
 import json
+import os
 from pathlib import Path
+import stat
 import sys
 import time
 
@@ -25,6 +28,29 @@ class RelayDriver:
         self.stop_attempted = False
         self.old_stopped = False
         self.activate_attempted = False
+        self.preflight_fingerprint = None
+
+    @staticmethod
+    def _file_sha(path, limit, *, optional=False):
+        try:
+            if optional and not path.exists() and not path.is_symlink():
+                return None
+            info = path.lstat()
+            if (not stat.S_ISREG(info.st_mode) or info.st_size > limit
+                    or (os.name == "posix" and (info.st_uid != os.geteuid() or info.st_mode & 0o077))):
+                raise UpdateError("managed_relay_configuration_changed")
+            with path.open("rb") as stream:
+                content = stream.read(limit + 1)
+            if len(content) > limit:
+                raise UpdateError("managed_relay_configuration_changed")
+            return hashlib.sha256(content).hexdigest()
+        except OSError:
+            raise UpdateError("managed_relay_configuration_changed") from None
+
+    def _stable_fingerprint(self):
+        return {"configSha256": self._file_sha(self.home / "config.json", 8192),
+                "controlTokenSha256": self._file_sha(self.home / "control.token", 128),
+                "transportSha256": self._file_sha(self.data / "transport.json", 32768, optional=True)}
 
     def _rpc(self, child, op, *, timeout=15):
         child.write({"schema": 1, "token": self.token, "op": op})
@@ -69,6 +95,7 @@ class RelayDriver:
     def preflight(self):
         if self.old_child.poll() is not None:
             raise UpdateError("managed_relay_owner_lost")
+        self.preflight_fingerprint = self._stable_fingerprint()
         health = self._binding(self.old_child, self.old_slot)
         if health.get("gate", {}).get("closed"):
             raise UpdateError("managed_relay_already_quiesced")
@@ -76,6 +103,8 @@ class RelayDriver:
             prepared = self._rpc(self.old_child, "prepare", timeout=45)
             if prepared.get("closed") is not True or prepared.get("active") != 0 or prepared.get("uncertain"):
                 raise UpdateError("managed_relay_prepare_unverified")
+            if self._stable_fingerprint() != self.preflight_fingerprint:
+                raise UpdateError("managed_relay_configuration_changed")
         except BaseException:
             # Engine has not entered its transaction try/finally yet.
             if self.old_child.poll() is None:
@@ -87,6 +116,8 @@ class RelayDriver:
         self.prepared = True
 
     def snapshot(self):
+        if not self.prepared or self._stable_fingerprint() != self.preflight_fingerprint:
+            raise UpdateError("managed_relay_configuration_changed")
         local = {"schema": 1, "dataSchema": 1,
                  "authSha256": critical_digest(self.data / "auth.sqlite3", "auth"),
                  "registrySha256": critical_digest(self.data / "registry.sqlite3", "registry")}
@@ -96,7 +127,7 @@ class RelayDriver:
             remote = self._rpc(self.old_child, "snapshot")
             if remote != local:
                 raise UpdateError("managed_relay_snapshot_mismatch")
-        return local
+        return {**local, **self.preflight_fingerprint}
 
     def stop_old(self):
         if not self.prepared or self.old_stopped:

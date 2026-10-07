@@ -252,7 +252,7 @@ class Gateway(private val baseUrl: String, private val token: String, val target
         val observation = it.optJSONObject("observation") ?: return@mapNotNull null
         ActivityEntry(session.session(), observation.observation())
     }
-    suspend fun updateStatus(): ConnectorUpdateProof = parseConnectorUpdateProof(request("/api/connector/update-status"))
+    internal suspend fun updateStatus(): ConnectorUpdateProof = parseConnectorUpdateProof(request("/api/connector/update-status"))
     suspend fun conversation(id: String, older: Boolean = false): Conversation = conversationLock.withLock {
         val window = windows.remove(id) ?: ConversationWindow()
         windows[id] = window

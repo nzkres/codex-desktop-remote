@@ -45,6 +45,8 @@ import io.noties.markwon.ext.tables.TablePlugin
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 class MainActivity : ComponentActivity() {
     private var notificationDestination by mutableStateOf<NotificationDestination?>(null)
@@ -233,9 +235,36 @@ private fun RemoteApp(night: Boolean, destination: NotificationDestination?, onD
         if (client.target.id.isBlank()) throw UpdateFailure("update_activity_uncertain")
         val proof = try { client.updateStatus() } catch (error: CancellationException) { throw error }
             catch (_: Exception) { throw UpdateFailure("update_activity_uncertain") }
-        if (!updateMayInstall(client.target.id, busy && !ignoreLocalBusy,
+        if (client !== gateway || !updateMayInstall(client.target.id, busy && !ignoreLocalBusy,
                 credentials.hasUnconfirmedMessages(), proof)) throw UpdateFailure("update_activity_uncertain")
         return proof
+    }
+
+    LaunchedEffect(gateway, lifecycleOwner) {
+        lifecycleOwner.lifecycle.repeatOnLifecycle(Lifecycle.State.RESUMED) {
+            if (!updater.hasPendingInstall()) return@repeatOnLifecycle
+            val client = gateway
+            try {
+                val proof = try { client?.updateStatus() }
+                    catch (cancel: CancellationException) { throw cancel }
+                    catch (_: Exception) { null }
+                if (client !== gateway || updateBusy) return@repeatOnLifecycle
+                val localBusy = busy
+                val pendingSend = credentials.hasUnconfirmedMessages()
+                val result = withContext(Dispatchers.IO) {
+                    updater.reconcilePendingInstall(client?.target?.id, localBusy, pendingSend, proof)
+                }
+                if (client !== gateway) return@repeatOnLifecycle
+                when (result) {
+                    PendingInstallState.RETRY -> updateStatus = "上次安装尚未完成或已取消；旧版仍在，可重新检查更新"
+                    PendingInstallState.TASK_PROOF_REQUIRED -> updateStatus = "新版已启动、安装包已核验；任务通道待核对，返回此页可重试"
+                    PendingInstallState.VERIFIED -> updateStatus = "新版实际安装与启动已核验，更新记录保留，任务通道检查通过；手机任务完成仍需单独确认"
+                    PendingInstallState.NEEDS_REVIEW -> updateStatus = "安装版本或更新记录不匹配；请保留应用数据，联系维护者"
+                    null -> Unit
+                }
+            } catch (cancel: CancellationException) { throw cancel }
+              catch (_: Exception) { updateStatus = "更新安装结果待核对；请保留应用数据" }
+        }
     }
 
     val palette = LocalAppPalette.current
@@ -340,11 +369,11 @@ private fun RemoteApp(night: Boolean, destination: NotificationDestination?, onD
                             },
                             onInstallUpdate = {
                                 val offer = updateOffer
-                                if (offer != null && !updateBusy) scope.launch {
+                                if (offer != null && !updateBusy && !busy) scope.launch {
                                     updateBusy = true
+                                    busy = true
                                     try {
-                                        val before = requireSafeUpdateHandoff()
-                                        busy = true
+                                        val before = requireSafeUpdateHandoff(ignoreLocalBusy = true)
                                         if (!context.packageManager.canRequestPackageInstalls()) {
                                             updateStatus = "请允许此 App 安装测试包，返回后再次点击安装"
                                             activity.startActivity(Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES,
@@ -363,6 +392,7 @@ private fun RemoteApp(night: Boolean, destination: NotificationDestination?, onD
                                                 clipData = ClipData.newRawUri("Desktop Remote update", uri)
                                                 addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
                                             }
+                                            withContext(Dispatchers.IO) { updater.recordPendingInstall(file, offer) }
                                             activity.startActivity(install)
                                             updateStatus = "已交给 Android 系统；请确认安装并重新打开核对版本"
                                         }
