@@ -2,7 +2,7 @@
 
 这个独立项目包含三个可迭代原型：沿用原界面的 Android 遥控 App、Windows 连接器、服务器中继。目标是让手机在**用户明确选择的一条 Codex Desktop 原生任务**中看文字、发文字，并看到 Desktop 后续在同一任务中的内容。Desktop 仍拥有任务和执行权限。源码布局及各原型边界见 [PROJECT.md](PROJECT.md) 和 [原型说明](docs/PROTOTYPES.md)；实际通过与未验收项以 [STATUS.md](STATUS.md) 为准。
 
-首个开发预览：[v0.1.0-alpha.1](https://github.com/nzkres/codex-desktop-remote/releases/tag/v0.1.0-alpha.1)。登录有权限的 GitHub 账号后，可下载独立 Android 测试 APK、校验值和测试报告；源码可克隆或从该版本页面下载。Windows 目前运行 Python 窗口源码，尚无安装器。建议先看 [原型关系图](docs/ARCHITECTURE.md)，再运行下面的合成自测/窗口预览，最后按 [测试指南](docs/TESTING.md) 做专用任务联调。遇到问题可用 [测试反馈](https://github.com/nzkres/codex-desktop-remote/issues/new?template=test-feedback.yml) 记录版本、步骤和结果。
+最新开发预览：[v0.1.0-alpha.2](https://github.com/nzkres/codex-desktop-remote/releases/tag/v0.1.0-alpha.2)。登录有权限的 GitHub 账号后，可下载独立 Android 测试 APK、校验值和测试报告；源码可克隆或从该版本页面下载，旧 alpha.1 仍保留。Windows 目前运行 Python 窗口源码，尚无安装器。建议先看 [原型关系图](docs/ARCHITECTURE.md)，再运行下面的合成自测/窗口预览，最后按 [测试指南](docs/TESTING.md) 做专用任务联调。遇到问题可用 [测试反馈](https://github.com/nzkres/codex-desktop-remote/issues/new?template=test-feedback.yml) 记录版本、步骤和结果。
 
 ## 先安全自测
 
