@@ -45,6 +45,7 @@ class _Window:
         self.close_notice = False
         self.close_error = False
 
+        self.update_release = None
         self.notes_window = None
         root.title("Desktop 手机联调 · " + VERSION)
         root.resizable(False, False)
@@ -88,6 +89,14 @@ class _Window:
         self.notes_button = ttk.Button(version_row, text="版本与更新说明", command=self.show_release_notes)
         self.notes_button.pack(side="right")
 
+        self.update_text = tk.StringVar(value='OTA：需使用受管安装基线' if not getattr(controller, 'update_home', None) else 'OTA：用户点击安装；更新前须先断开连接。')
+        ttk.Label(frame, textvariable=self.update_text, wraplength=600).grid(row=7, column=0, columnspan=2, sticky='w', pady=(8,0))
+        updates = ttk.Frame(frame)
+        updates.grid(row=8, column=0, columnspan=2, sticky='e')
+        self.check_update_button = ttk.Button(updates, text='检查更新', command=lambda:self.update('updatecheck'))
+        self.check_update_button.pack(side='left', padx=4)
+        self.install_update_button = ttk.Button(updates, text='下载并安装', command=lambda:self.update('updateinstall'))
+        self.install_update_button.pack(side='left', padx=4)
         self._buttons()
         root.protocol("WM_DELETE_WINDOW", self.close)
         self.worker = threading.Thread(target=self._work, name="desktop-remote-lite-network")
@@ -121,6 +130,19 @@ class _Window:
         self.pair_button.configure(state="disabled" if self.busy or self.closing else "normal")
         self.connect_button.configure(state="disabled" if self.busy or self.closing else "normal")
         self.disconnect_button.configure(state="normal" if self.connecting and not self.closing else "disabled")
+
+        if hasattr(self, 'check_update_button'):
+            enabled = bool(getattr(self.controller, 'update_home', None)) and not self.busy and not self.closing
+            self.check_update_button.configure(state='normal' if enabled else 'disabled')
+            self.install_update_button.configure(state='normal' if enabled and self.update_release else 'disabled')
+
+    def update(self, kind):
+        if self.busy or self.closing or not getattr(self.controller, 'update_home', None):
+            return
+        self.busy = True
+        self._buttons()
+        self.update_text.set('正在检查签名版本…' if kind == 'updatecheck' else '正在下载、校验并准备独立更新助手…')
+        self.commands.put((kind,))
 
     def pair(self):
         if self.busy or self.closing:
@@ -170,7 +192,17 @@ class _Window:
             if kind == "close":
                 return
             try:
-                if kind == "status":
+                if kind in ('updatecheck', 'updateinstall'):
+                    from updates.engine import check, stage
+                    from update_ui import handoff
+                    home = self.controller.update_home
+                    if kind == 'updatecheck':
+                        self.events.put(('updatechecked', check(home)))
+                    else:
+                        stage(home, progress=lambda done,total:self.events.put(('updateprogress', int(done*100/total))))
+                        handoff(home)
+                        self.events.put(('updatehandoff', None))
+                elif kind == "status":
                     self.events.put(("status", self.controller.status()))
                 elif kind == "pair":
                     self.events.put(("paired", self.controller.pair(*command[1:])))
@@ -180,6 +212,10 @@ class _Window:
                     )
                     self.events.put(("disconnected", result))
             except Exception as error:
+                if kind in ('updatecheck', 'updateinstall'):
+                    from updates.security import UpdateError
+                    self.events.put(('updatefailed', error.code if isinstance(error, UpdateError) else 'update_operation_failed'))
+                    continue
                 # Controller exceptions can contain credentials or HTTP bodies.
                 safe_codes = {"previous_runtime_requires_review", "runtime_cleanup_requires_review", "identity_changed", "legacy_identity_rejected", "connector_already_running", "task_channel_unavailable", "already_enrolled_or_pending", "invalid_pairing_code"}
                 code = str(error) if str(error) in safe_codes else "operation_failed"
@@ -195,7 +231,21 @@ class _Window:
                 if kind == 'failed' or (kind == 'disconnected' and value.get('runtimeNeedsReview')):
                     self.close_error = True
                 continue
-            if kind == "status":
+            if kind == 'updateprogress':
+                self.update_text.set(f'正在下载并校验：{value}%（尚未更新成功）')
+            elif kind == 'updatechecked':
+                self.busy = False
+                self.update_release = value
+                self.update_text.set('可更新至 ' + value['version'] + ' · ' + value['channel'] + '\n兼容：' + ', '.join(value['compatibility']))
+                messagebox.showinfo('可用更新 · ' + value['version'], value['notes'] + '\n\n点击“下载并安装”后窗口会退出，独立助手将验证并重开。Desktop 任务不会被停止。', parent=self.root)
+            elif kind == 'updatefailed':
+                self.busy = False
+                messages = {'no_update_available':'当前已是此渠道最新版本。', 'active_or_unverified_desktop_task':'任务活动或状态未确认，更新延期。', 'update_trust_not_provisioned':'更新源及发布公钥尚未配置。'}
+                self.update_text.set(messages.get(value, '更新未完成：' + value + '；保留旧版本和现场，可查看 state/ 中的诊断。'))
+            elif kind == 'updatehandoff':
+                self.busy = False
+                self.close()
+            elif kind == "status":
                 if isinstance(value, dict):
                     if not self.relay.get() and isinstance(value.get('relay'), str):
                         self.relay.set(value['relay'])

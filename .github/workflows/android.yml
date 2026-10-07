@@ -16,6 +16,12 @@ on:
       - 'scripts/check_android_apk.py'
       - '.github/workflows/android.yml'
   workflow_dispatch:
+    inputs:
+      signed_ota:
+        description: 'Build a controlled-signature test APK with provisioned OTA trust (main only)'
+        type: boolean
+        required: true
+        default: false
 permissions:
   contents: read
 
@@ -41,13 +47,86 @@ jobs:
       - name: Install Android SDK 36
         run: sdkmanager 'platforms;android-36' 'build-tools;36.0.0'
       - uses: gradle/actions/setup-gradle@v4
-      - name: Unit tests, lint, and debug APKs
+      - name: Prepare externally provisioned OTA trust and signer
+        if: github.event_name == 'workflow_dispatch' && inputs.signed_ota
+        env:
+          UPDATE_TRUST_JSON: ${{ secrets.ANDROID_UPDATE_TRUST_JSON }}
+          SIGNING_KEYSTORE_BASE64: ${{ secrets.ANDROID_SIGNING_KEYSTORE_BASE64 }}
+          SIGNING_STORE_PASSWORD: ${{ secrets.ANDROID_SIGNING_STORE_PASSWORD }}
+          SIGNING_KEY_ALIAS: ${{ secrets.ANDROID_SIGNING_KEY_ALIAS }}
+          SIGNING_KEY_PASSWORD: ${{ secrets.ANDROID_SIGNING_KEY_PASSWORD }}
+          EXPECTED_CERT_SHA256: ${{ secrets.ANDROID_SIGNING_CERT_SHA256 }}
+        run: |
+          set -euo pipefail
+          if [[ "$GITHUB_REF" != 'refs/heads/main' ]]; then
+            echo 'Controlled OTA test signing requires main.' >&2
+            exit 1
+          fi
+          for value in "$UPDATE_TRUST_JSON" "$SIGNING_KEYSTORE_BASE64" "$SIGNING_STORE_PASSWORD" "$SIGNING_KEY_ALIAS" "$SIGNING_KEY_PASSWORD" "$EXPECTED_CERT_SHA256"; do
+            if [[ -z "$value" ]]; then
+              echo 'Controlled OTA signing configuration is incomplete.' >&2
+              exit 1
+            fi
+          done
+          if [[ ! "$EXPECTED_CERT_SHA256" =~ ^[a-fA-F0-9]{64}$ ]]; then
+            echo 'Controlled OTA certificate fingerprint is invalid.' >&2
+            exit 1
+          fi
+          umask 077
+          private_dir=$(mktemp -d "$RUNNER_TEMP/android-ota.XXXXXX")
+          trust_file="$private_dir/update-trust.json"
+          keystore_file="$private_dir/signing.p12"
+          printf '%s' "$UPDATE_TRUST_JSON" > "$trust_file"
+          printf '%s' "$SIGNING_KEYSTORE_BASE64" | base64 --decode > "$keystore_file"
+          python - "$trust_file" <<'PY'
+          import json, pathlib, sys
+          value = json.loads(pathlib.Path(sys.argv[1]).read_text(encoding='utf-8'))
+          if (set(value) != {'schema','product','channel','keys','sources'}
+                  or value['schema'] != 1 or value['product'] != 'codex-desktop-remote'
+                  or value['channel'] != 'test' or not isinstance(value['keys'], dict)
+                  or not value['keys'] or not isinstance(value['sources'], dict)
+                  or not value['sources'].get('android')):
+              raise SystemExit('Controlled OTA trust document is incomplete.')
+          PY
+          {
+            echo "DESKTOP_REMOTE_ANDROID_UPDATE_TRUST=$trust_file"
+            echo "DESKTOP_REMOTE_ANDROID_KEYSTORE=$keystore_file"
+          } >> "$GITHUB_ENV"
+      # Branch/PR output has empty OTA trust and an ephemeral debug signer; it is never a production OTA artifact.
+      - name: Unit tests, lint, and untrusted debug APKs
+        if: github.event_name != 'workflow_dispatch' || !inputs.signed_ota
         working-directory: android-native
+        run: bash ./gradlew --no-daemon --max-workers=2 -Pkotlin.compiler.execution.strategy=in-process :app:testDebugUnitTest :app:lintDebug :app:assembleDebug :app:assembleDebugAndroidTest
+      - name: Unit tests, lint, and controlled-signature test APKs
+        if: github.event_name == 'workflow_dispatch' && inputs.signed_ota
+        working-directory: android-native
+        env:
+          DESKTOP_REMOTE_ANDROID_STORE_PASSWORD: ${{ secrets.ANDROID_SIGNING_STORE_PASSWORD }}
+          DESKTOP_REMOTE_ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_SIGNING_KEY_ALIAS }}
+          DESKTOP_REMOTE_ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_SIGNING_KEY_PASSWORD }}
         run: bash ./gradlew --no-daemon --max-workers=2 -Pkotlin.compiler.execution.strategy=in-process :app:testDebugUnitTest :app:lintDebug :app:assembleDebug :app:assembleDebugAndroidTest
       - name: Verify version and release notes inside APK
         run: python -B scripts/check_android_apk.py
-      - name: Save test APK and reports
-        if: always()
+      - name: Verify controlled APK signing certificate
+        if: github.event_name == 'workflow_dispatch' && inputs.signed_ota
+        env:
+          EXPECTED_CERT_SHA256: ${{ secrets.ANDROID_SIGNING_CERT_SHA256 }}
+        run: |
+          python - <<'PY'
+          import os, pathlib, re, subprocess
+          tool = pathlib.Path(os.environ['ANDROID_HOME']) / 'build-tools' / '36.0.0' / 'apksigner'
+          apk = pathlib.Path('android-native/app/build/outputs/apk/debug/app-debug.apk')
+          result = subprocess.run([str(tool), 'verify', '--min-sdk-version', '26',
+                                   '--verbose', '--print-certs', str(apk)],
+                                  capture_output=True, text=True)
+          found = re.findall(r'certificate SHA-256 digest:\s*([a-fA-F0-9]{64})', result.stdout)
+          expected = os.environ['EXPECTED_CERT_SHA256'].lower()
+          if result.returncode or not re.search(r'Number of signers:\s*1', result.stdout) or not found or any(x.lower() != expected for x in found):
+              raise SystemExit('Controlled APK signing verification failed.')
+          print('Controlled APK signing certificate verified.')
+          PY
+      - name: Save untrusted debug APK and reports
+        if: always() && (github.event_name != 'workflow_dispatch' || !inputs.signed_ota)
         uses: actions/upload-artifact@v4
         with:
           name: desktop-remote-android-debug
@@ -57,3 +136,19 @@ jobs:
             android-native/app/build/outputs/apk/debug/output-metadata.json
             android-native/app/build/reports/
           if-no-files-found: warn
+      - name: Save verified controlled-signature test APK and reports
+        if: success() && github.event_name == 'workflow_dispatch' && inputs.signed_ota
+        uses: actions/upload-artifact@v4
+        with:
+          name: desktop-remote-android-ota-test
+          retention-days: 14
+          path: |
+            android-native/app/build/outputs/apk/debug/*.apk
+            android-native/app/build/outputs/apk/debug/output-metadata.json
+            android-native/app/build/reports/
+          if-no-files-found: error
+      - name: Remove temporary signing inputs
+        if: always() && github.event_name == 'workflow_dispatch' && inputs.signed_ota
+        run: |
+          if [[ -n "${DESKTOP_REMOTE_ANDROID_UPDATE_TRUST:-}" ]]; then rm -f -- "$DESKTOP_REMOTE_ANDROID_UPDATE_TRUST"; fi
+          if [[ -n "${DESKTOP_REMOTE_ANDROID_KEYSTORE:-}" ]]; then rm -f -- "$DESKTOP_REMOTE_ANDROID_KEYSTORE"; fi

@@ -20,10 +20,12 @@ def target_path(raw):
     if len(raw) > 8192 or any(ord(c) < 33 or ord(c) > 126 for c in raw):
         raise ControlError(400, "invalid_target")
     parsed = urlsplit(raw)
-    match = re.fullmatch(r"/terminal-api/([0-9a-f]{32})(/api/(?:sessions|projects|activity)(?:/[A-Za-z0-9_.-]+)*)", parsed.path)
+    match = re.fullmatch(r"/terminal-api/([0-9a-f]{32})(/api/(?:sessions|projects|activity)(?:/[A-Za-z0-9_.-]+)*|/api/connector/update-status)", parsed.path)
     if parsed.scheme or parsed.netloc or parsed.fragment or not match:
         raise ControlError(404, "terminal_route_not_found")
     if any(part in (".", "..") for part in match[2].split("/")):
+        raise ControlError(400, "invalid_target")
+    if match[2] == "/api/connector/update-status" and parsed.query:
         raise ControlError(400, "invalid_target")
     return match[1], match[2] + ("?" + parsed.query if parsed.query else "")
 
@@ -53,7 +55,8 @@ class Lease:
 
 class Forwarder:
     def __init__(self, registry, account, gateway_credential, *, io_timeout=10,
-                 total_timeout=120, poll_interval=.25, max_active=32, max_body=1048576):
+                 total_timeout=120, poll_interval=.25, max_active=32, max_body=1048576,
+                 on_uncertain=None):
         if min(io_timeout, total_timeout, poll_interval, max_active, max_body) <= 0:
             raise ValueError("Forwarding limits must be positive")
         self.registry, self.account, self.gateway_credential = registry, account, gateway_credential
@@ -62,6 +65,7 @@ class Forwarder:
         self.lock = threading.RLock()
         self.leases = set()
         self.closed = False
+        self.on_uncertain = on_uncertain
 
     def change(self, owner, terminal_id, action, name=None):
         # Serialize admission and revocation; revoke both directions before ACK.
@@ -144,6 +148,8 @@ class Forwarder:
 
     def forward(self, handler):
         terminal_id, path = target_path(handler.path)
+        if path == "/api/connector/update-status" and handler.command != "GET":
+            raise ControlError(405, "method_not_allowed")
         authorization = "Bearer " + handler.bearer()
         owner = self.account(authorization)
         # Reject unauthorized or offline devices before reading their request body.
@@ -227,6 +233,8 @@ class Forwarder:
                         raise ControlError(403, lease.reason)
                 handler.wfile.write(b"0\r\n\r\n")
         except (OSError, http.client.HTTPException, ControlError) as error:
+            if lease.dispatched and handler.command not in ("GET", "HEAD") and self.on_uncertain is not None:
+                self.on_uncertain()
             if not lease.started:
                 if lease.cancelled.is_set():
                     code = lease.reason

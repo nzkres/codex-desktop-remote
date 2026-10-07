@@ -130,6 +130,12 @@ fun MeScreen(
     gatewayUrl: String,
     night: Boolean,
     onToggleNight: () -> Unit,
+    updateStatus: String,
+    updateProgress: String,
+    updateBusy: Boolean,
+    updateAvailable: Boolean,
+    onCheckUpdate: () -> Unit,
+    onInstallUpdate: () -> Unit,
     onChangeGateway: () -> Unit,
     onDisconnect: () -> Unit,
 ) {
@@ -148,7 +154,7 @@ fun MeScreen(
             TextButton(onClick = onChangeGateway, contentPadding = PaddingValues(0.dp)) { Text("更改地址", fontSize = 12.sp) }
         }
         HorizontalDivider(color = HapiPalette.divider, thickness = 0.5.dp)
-        ReleaseNotesEntry()
+        ReleaseNotesEntry(updateStatus, updateProgress, updateBusy, updateAvailable, onCheckUpdate, onInstallUpdate)
         HorizontalDivider(color = HapiPalette.divider, thickness = 0.5.dp)
         NotificationSettings()
         HorizontalDivider(color = HapiPalette.divider, thickness = 0.5.dp)

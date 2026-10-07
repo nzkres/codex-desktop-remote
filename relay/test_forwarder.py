@@ -144,6 +144,16 @@ class ForwarderTests(unittest.TestCase):
         self.credentials[device["id"]] = gateway_token
         return device["id"], backend
 
+    def test_update_status_is_get_only_and_stays_on_selected_device(self):
+        device, _ = self.device()
+        route = f"/terminal-api/{device}/api/connector/update-status"
+        status, body, _ = self.request(route)
+        self.assertEqual(status, 200)
+        self.assertEqual(json.loads(body)["path"], "/api/connector/update-status")
+        self.assertEqual(self.request(route, method="POST", body=b"{}")[0], 405)
+        self.assertEqual(self.request(route + "?token=anything")[0], 400)
+        self.assertEqual(self.request(f"/terminal-api/{device}/api/connector/control")[0], 404)
+
     def request(self, path, method="GET", token=None, body=None, headers=None):
         conn = http.client.HTTPConnection("127.0.0.1", self.server.server_port, timeout=3)
         combined = {"Authorization": "Bearer " + (self.alice if token is None else token), "Content-Type": "application/json", **(headers or {})}

@@ -6,7 +6,8 @@ data class TaskTarget(val id: String = "", val name: String = "原电脑 · 旧�
     fun endpoint(base: String): String = base.trimEnd('/') + if (id.isEmpty()) "" else "/terminal-api/$id"
     fun route(path: String): String {
         val task = path.substringBefore('?').let {
-            it == "/api/projects" || it.startsWith("/api/projects/") || it == "/api/activity" || it == "/api/sessions" || it.startsWith("/api/sessions/")
+            it == "/api/projects" || it.startsWith("/api/projects/") || it == "/api/activity" ||
+                it == "/api/sessions" || it.startsWith("/api/sessions/") || it == "/api/connector/update-status"
         }
         return if (task && id.isNotEmpty()) "/terminal-api/$id$path" else path
     }

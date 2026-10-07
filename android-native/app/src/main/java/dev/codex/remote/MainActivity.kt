@@ -1,7 +1,10 @@
 package dev.codex.remote
 
 import android.content.Intent
+import android.content.ClipData
+import android.net.Uri
 import android.os.Bundle
+import android.provider.Settings
 import android.widget.TextView
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -94,6 +97,11 @@ private fun RemoteApp(night: Boolean, destination: NotificationDestination?, onD
     var busy by remember { mutableStateOf(false) }
     var createOpen by remember { mutableStateOf(false) }
     var endpointOpen by remember { mutableStateOf(false) }
+    val updater = remember(context) { UpdateClient(context) }
+    var updateOffer by remember { mutableStateOf<UpdateOffer?>(null) }
+    var updateBusy by remember { mutableStateOf(false) }
+    var updateStatus by remember { mutableStateOf("未检查更新") }
+    var updateProgress by remember { mutableStateOf("") }
     val draftStorage = remember(gateway) { runCatching {
         gateway?.let { DraftStore.open(context, draftScope(it.taskEndpoint, credentials.account, credentials.token)) }
     } }
@@ -220,6 +228,15 @@ private fun RemoteApp(night: Boolean, destination: NotificationDestination?, onD
             } finally { busy = false }
         }
     }
+    suspend fun requireSafeUpdateHandoff(ignoreLocalBusy: Boolean = false): ConnectorUpdateProof {
+        val client = gateway ?: throw UpdateFailure("update_not_connected")
+        if (client.target.id.isBlank()) throw UpdateFailure("update_activity_uncertain")
+        val proof = try { client.updateStatus() } catch (error: CancellationException) { throw error }
+            catch (_: Exception) { throw UpdateFailure("update_activity_uncertain") }
+        if (!updateMayInstall(client.target.id, busy && !ignoreLocalBusy,
+                credentials.hasUnconfirmedMessages(), proof)) throw UpdateFailure("update_activity_uncertain")
+        return proof
+    }
 
     val palette = LocalAppPalette.current
     Column(Modifier.fillMaxSize().background(palette.background).windowInsetsPadding(WindowInsets.safeDrawing)) {
@@ -293,6 +310,68 @@ private fun RemoteApp(night: Boolean, destination: NotificationDestination?, onD
                             gatewayUrl = credentials.url,
                             night = night,
                             onToggleNight = onToggleNight,
+                            updateStatus = updateStatus,
+                            updateProgress = updateProgress,
+                            updateBusy = updateBusy,
+                            updateAvailable = updateOffer != null,
+                            onCheckUpdate = {
+                                if (!updateBusy) scope.launch {
+                                    updateBusy = true
+                                    updateOffer = null
+                                    updateProgress = ""
+                                    updateStatus = "正在核对更新…"
+                                    try {
+                                        updater.requireConfigured()
+                                        requireSafeUpdateHandoff()
+                                        val offer = updater.check()
+                                        updateOffer = offer
+                                        updateStatus = "发现候选版本 ${offer.payload.version} · ${offer.payload.channel} 渠道\n${offer.payload.notes}"
+                                    } catch (error: CancellationException) { throw error }
+                                    catch (error: UpdateFailure) {
+                                        updateStatus = when (error.code) {
+                                            "ota_unconfigured" -> "OTA 尚未配置可信更新源与公钥"
+                                            "update_not_newer" -> "当前已是该渠道最新版本"
+                                            "update_activity_uncertain" -> "任务或发送状态无法证明安全，稍后再检查"
+                                            else -> "检查失败：${error.code}"
+                                        }
+                                    } catch (_: Exception) { updateStatus = "检查失败：更新源或状态不可用" }
+                                    finally { updateBusy = false }
+                                }
+                            },
+                            onInstallUpdate = {
+                                val offer = updateOffer
+                                if (offer != null && !updateBusy) scope.launch {
+                                    updateBusy = true
+                                    try {
+                                        val before = requireSafeUpdateHandoff()
+                                        busy = true
+                                        if (!context.packageManager.canRequestPackageInstalls()) {
+                                            updateStatus = "请允许此 App 安装测试包，返回后再次点击安装"
+                                            activity.startActivity(Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES,
+                                                Uri.parse("package:${context.packageName}")))
+                                        } else {
+                                            updateStatus = "正在下载并校验安装包…"
+                                            val file = updater.download(offer) { copied, total ->
+                                                scope.launch { updateProgress = "${copied / 1024} / ${total / 1024} KiB" }
+                                            }
+                                            val after = requireSafeUpdateHandoff(ignoreLocalBusy = true)
+                                            if (after.version != before.version) throw UpdateFailure("update_activity_uncertain")
+                                            updater.verifyBeforeInstall(file, offer)
+                                            val uri = updater.installUri(file)
+                                            val install = Intent(Intent.ACTION_INSTALL_PACKAGE).apply {
+                                                data = uri
+                                                clipData = ClipData.newRawUri("Desktop Remote update", uri)
+                                                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                                            }
+                                            activity.startActivity(install)
+                                            updateStatus = "已交给 Android 系统；请确认安装并重新打开核对版本"
+                                        }
+                                    } catch (error: CancellationException) { throw error }
+                                    catch (error: UpdateFailure) { updateStatus = "安装已延期：${error.code}" }
+                                    catch (_: Exception) { updateStatus = "安装已延期：下载或任务状态不可用" }
+                                    finally { busy = false; updateBusy = false }
+                                }
+                            },
                             onChangeGateway = { endpointOpen = true },
                             onDisconnect = {
                                 val client = gateway

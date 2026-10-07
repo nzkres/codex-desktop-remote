@@ -54,3 +54,9 @@
 - 使用 `gh run download 37608678246 --repo nzkres/codex-desktop-remote --name desktop-remote-android-debug --dir artifacts/android-ci-37608678246` 下载；核对报告、APK ZIP CRC、文件大小及 SHA-256。APK 和完整测试报告归入私有 `v0.1.0-alpha.1` 开发预览，避免只依赖保留 14 天的 Actions artifact。哈希、来源与未验收项见 STATUS.md。
 - 最后只修订文档：Unix 使用 `bash ./gradlew`；澄清配对顺序、测试服务器选择、开发预览与稳定版本的区别。产品源码未在 CI 后变更，文档提交使用 `[skip ci]` 避免重复相同编译。
 - 下一步由用户按 TESTING.md 自测并反馈。现用手机、Gateway/FRP、公网中继及 DPAPI 身份均未切换；本仓库不宣称已完成新包真机验收。
+
+## 2026-10-07 OTA alpha.3 实现中
+
+- 分支 codex/ota-implementation；基于 main b7db21e。加入 RSA3072 签名元数据、隔离版本目录、持久化事务、独立助手和三端入口；未部署公网、未迁移现用身份。
+- 本机命令：`python -B -m unittest discover -s test -p "test_*.py"` 69 项通过；`node --test` 32 项通过。Windows 原始句柄/Job 子树合成测试通过。中继 agent suite 65 项通过含 2 个 Linux 跳过。
+- 下一步：Windows driver 审查、HTTPS 下载/两版本演练、Linux cgroup 实测 CI、Android 编译与安装文档。此检查点不是完整验收或生产发布。

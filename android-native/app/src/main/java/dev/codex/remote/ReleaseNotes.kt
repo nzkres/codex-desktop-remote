@@ -61,7 +61,14 @@ internal fun parseReleaseHistory(raw: String, installedVersion: String, installe
 }
 
 @Composable
-internal fun ReleaseNotesEntry() {
+internal fun ReleaseNotesEntry(
+    updateStatus: String = "未检查更新",
+    updateProgress: String = "",
+    updateBusy: Boolean = false,
+    updateAvailable: Boolean = false,
+    onCheckUpdate: () -> Unit = {},
+    onInstallUpdate: () -> Unit = {},
+) {
     var opened by remember { mutableStateOf(false) }
     Row(Modifier.fillMaxWidth().clickable { opened = true }.padding(horizontal = 18.dp, vertical = 18.dp)) {
         Column(Modifier.weight(1f)) {
@@ -71,11 +78,15 @@ internal fun ReleaseNotesEntry() {
         }
         Text("查看", color = HapiPalette.muted, fontSize = 13.sp)
     }
-    if (opened) ReleaseNotesDialog { opened = false }
+    if (opened) ReleaseNotesDialog(updateStatus, updateProgress, updateBusy, updateAvailable,
+        onCheckUpdate, onInstallUpdate) { opened = false }
 }
 
 @Composable
-private fun ReleaseNotesDialog(onClose: () -> Unit) {
+private fun ReleaseNotesDialog(
+    updateStatus: String, updateProgress: String, updateBusy: Boolean, updateAvailable: Boolean,
+    onCheckUpdate: () -> Unit, onInstallUpdate: () -> Unit, onClose: () -> Unit,
+) {
     val context = LocalContext.current
     val result = remember(context) {
         runCatching {
@@ -91,7 +102,18 @@ private fun ReleaseNotesDialog(onClose: () -> Unit) {
             Column(Modifier.heightIn(max = 520.dp).verticalScroll(rememberScrollState())) {
                 Text("当前安装版本 ${BuildConfig.VERSION_NAME}", color = HapiPalette.ink, fontSize = 14.sp)
                 Spacer(Modifier.height(5.dp))
-                Text("说明随安装包离线提供；新版本需手动安装。", color = HapiPalette.muted, fontSize = 12.sp)
+                Text("说明随安装包离线提供；更新需可信来源和 Android 系统确认。", color = HapiPalette.muted, fontSize = 12.sp)
+                Spacer(Modifier.height(10.dp))
+                Text(updateStatus, color = HapiPalette.muted, fontSize = 12.sp)
+                if (updateProgress.isNotBlank()) Text(updateProgress, color = HapiPalette.muted, fontSize = 12.sp)
+                Row(horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(8.dp)) {
+                    androidx.compose.material3.OutlinedButton(onClick = onCheckUpdate, enabled = !updateBusy) {
+                        Text(if (updateBusy) "请稍候…" else "检查更新")
+                    }
+                    if (updateAvailable) androidx.compose.material3.Button(onClick = onInstallUpdate, enabled = !updateBusy) {
+                        Text("下载并安装")
+                    }
+                }
                 val history = result.getOrNull()
                 if (history == null) {
                     Spacer(Modifier.height(16.dp))

@@ -24,3 +24,7 @@
 - 增加统一合成自测入口与原型/架构/验收文档。新仓库 CI、APK 安装、真实手机/桌面和公网部署结果以 [STATUS.md](STATUS.md) 为准，当前不能从旧仓库或 Lite 的验收推定通过。
 - 修正独立 CI 的 Android SDK 安装包选择，并让 Windows 配置测试兼容临时目录的 8.3 路径别名。Windows/Linux 核心 CI 已通过。
 - Android 70 项 JVM 单元测试通过，Lint 0 errors / 39 warnings，主 APK 与 instrumentation APK 已编译；私有开发预览提供主 debug APK、校验值与报告。未进行新包安装、模拟器 UI 执行或真实手机联调。
+
+## 0.1.0-alpha.3 开发检查点 — 2026-10-07
+
+三端新增 OTA 安全格式、检查/下载/安装入口及事务恢复。分组件体验步骤已写入 releases.json 和 docs/versions。仍待本轮 CI、隔离升级和安装指南收尾；未上线更新源或做真实设备升级。
