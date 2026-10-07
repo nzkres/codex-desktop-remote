@@ -1,6 +1,6 @@
 # OTA 打包、签名与发布交接
 
-以下是面向 **0.1.0-alpha.4 私有 OTA 首发**的操作范式，**尚未构建、签发、发布、部署或完成实机验收**；alpha.3 等既有版本历史保留，不以同版本换包。当前 `updates.publish` 只在本地打包 Windows/relay 源码 ZIP、对已有 APK/ZIP 签发布元数据，**不构建 APK、不上传文件、不部署中继**。正式发布须有受控 RSA 3072 位以上私钥、经审核的公钥/trust、Android 连续 APK 签名证书，以及与登录/配对中继同源的受鉴权 HTTPS 下载入口。私钥路径、口令与凭据不得进入仓库、日志或命令示例。
+以下是 **alpha.4 起支持的私有 OTA** 操作范式，构建与归档证据见 [STATUS](../STATUS.md)；尚未签发受控首装、部署源或完成实机验收。既有开发预览不以同版本重签或换包。[验收计划](OTA-ACCEPTANCE.md)拟用新 alpha.5 首装、alpha.6 在线升级，下面文件名以将来 alpha.5 为例，必须先更新对应 catalog。当前 `updates.publish` 只在本地打包 Windows/relay 源码 ZIP、对已有 APK/ZIP 签发布元数据，**不构建 APK、不上传文件、不部署中继**。正式发布须有受控 RSA 3072 位以上私钥、经审核的公钥/trust、Android 连续 APK 签名证书，以及与登录/配对中继同源的受鉴权 HTTPS 下载入口。私钥路径、口令与凭据不得进入仓库、日志或命令示例。
 
 先在仓库根目录更新发生变化组件的 `releases.json` 与版本说明，运行 `python scripts/check_versions.py --write` 及只读校验和相关测试。`pack` 从当前源码按固定白名单生成新文件，输出路径必须尚不存在。以下 PowerShell **占位符必须按已审核的真实资源替换**，`$PythonExe` 为带 `cryptography` 的 Python 3.12；本仓库不提供密钥或部署主机：
 
@@ -11,8 +11,8 @@ $SigningKey = '<EXTERNAL_CONTROLLED_RSA_PRIVATE_KEY_PEM>'
 $KeyId = '<REVIEWED_KEY_ID>'
 $Sequence = [int](Read-Host '输入已审核的下一发布序号')
 $Source = 'https://<REVIEWED_RELAY_HOST>/desktop-remote-updates/test/windows/latest.json'
-$ArtifactUrl = 'https://<REVIEWED_RELAY_HOST>/desktop-remote-updates/test/windows/windows-0.1.0-alpha.4.zip'
-$Zip = Join-Path $OutputDir 'windows-0.1.0-alpha.4.zip'
+$ArtifactUrl = 'https://<REVIEWED_RELAY_HOST>/desktop-remote-updates/test/windows/windows-0.1.0-alpha.5.zip'
+$Zip = Join-Path $OutputDir 'windows-0.1.0-alpha.5.zip'
 $Metadata = Join-Path $OutputDir 'windows-latest.json'
 & $PythonExe -B -m updates.publish pack windows --output $Zip
 & $PythonExe -B -m updates.publish sign windows --artifact $Zip --output $Metadata --private-key $SigningKey --key-id $KeyId --source $Source --url $ArtifactUrl --sequence $Sequence --channel test
@@ -26,7 +26,7 @@ Android 先用**同一受控 APK 签名证书**构建候选，核对实际包名
 $Apk = '<INDEPENDENTLY_VERIFIED_SIGNED_APK>'
 $AndroidVersionCode = [int](Read-Host '输入与 Android releases.json 一致的 versionCode')
 $AndroidSource = 'https://<REVIEWED_RELAY_HOST>/desktop-remote-updates/test/android/latest.json'
-$AndroidUrl = 'https://<REVIEWED_RELAY_HOST>/desktop-remote-updates/test/android/android-0.1.0-alpha.4.apk'
+$AndroidUrl = 'https://<REVIEWED_RELAY_HOST>/desktop-remote-updates/test/android/android-0.1.0-alpha.5.apk'
 & $PythonExe -B -m updates.publish sign android --artifact $Apk --output (Join-Path $OutputDir 'android-latest.json') --private-key $SigningKey --key-id $KeyId --source $AndroidSource --url $AndroidUrl --sequence $Sequence --channel test --apk-version-code $AndroidVersionCode --apk-package-id dev.codex.desktopremote.lite --min-sdk 26 --apk-verified
 ```
 
@@ -38,7 +38,7 @@ Windows/relay 首次安装的 `trust.json` 需由受控流程从**已审核的�
 
 HTTPS 必须使用与账号登录、Windows 配对相同的已审核 origin。反向代理把 `/desktop-remote-updates/*` **原路径**送往新受管中继的 API loopback 监听，不使用 `file_server` 或独立公开静态目录，也不能套用只认账号的前置 `forward_auth` 遮住设备凭据。代理须保留 `Authorization`、`X-Desktop-Remote-Principal`、`X-Desktop-Remote-Device`，且不记录这些请求头、下载内容或令牌。每次 `GET` 元数据和包都由中继重新鉴权：账号会话可下载三组件；已配对且活跃的设备凭据仅可下载 Windows，暂停或撤销后新请求被拒绝；FRP plugin 监听不提供该路径。已开始的流式下载属于已准入请求，维护门禁会等它结束，不能声称撤销能追回已发出的字节。空目录、未配置 feed、过期会话及旧中继都不能作为可用发布源。
 
-**首发顺序**：先在隔离环境核验 alpha.4 中继签名 ZIP/trust，用本地 bootstrap 建立新的受管 home 并启动该版中继；旧服务没有私有 OTA 路由，不能只靠上传文件启用它。再审核同源 HTTPS 路由和身份转发，在新受管目录放入 alpha.4 各组件构件与 `latest.json`，从对应账号/设备分别验证两次授权下载，最后才执行客户端 `check`。这仍是待执行流程，不代表当前服务器、手机或电脑已更新。发布证据至少记录源码版本、构件哈希、签名 keyId/公钥指纹、已服务文件哈希、元数据有效期、鉴权拒绝结果、安装和真实任务验收层级，勿记录私钥或账号令牌。
+**首发顺序**：先在隔离环境核验包含 alpha.4 私有路由实现的受控中继签名 ZIP/trust（计划 alpha.5），用本地 bootstrap 建立新的受管 home 并启动该版中继；旧服务没有私有 OTA 路由，不能只靠上传文件启用它。再审核同源 HTTPS 路由和身份转发，在新受管目录放入各组件已签构件与 `latest.json`，从对应账号/设备分别验证两次授权下载，最后发布下一版本执行客户端 `check`。这仍是待执行流程，不代表当前服务器、手机或电脑已更新。发布证据至少记录源码版本、构件哈希、签名 keyId/公钥指纹、已服务文件哈希、元数据有效期、鉴权拒绝结果、安装和真实任务验收层级，勿记录私钥或账号令牌。
 
 
 ## 固定引导器与运行时

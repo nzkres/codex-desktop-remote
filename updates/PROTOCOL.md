@@ -20,9 +20,9 @@ Python API: `updates.security.UpdateError(code)`, `verify(envelope, trust, compo
 
 Signed Windows/relay archives are immutable slots. Shared engine handles stages, journal, pointer CAS and fail-closed interruption; component drivers alone manage their explicitly owned service lifecycle. Android APK installation is delegated to Android after package/signing-certificate checks. Never call downloaded bytes before signature, platform, archive and manifest checks succeed.
 
-## Private download transport for planned 0.1.0-alpha.4
+## Private download transport from 0.1.0-alpha.4
 
-This transport requires a **new alpha.4 managed relay** first installed from reviewed local signed metadata and ZIP. The old relay has no private OTA route. The alpha.4 artifacts, HTTPS route, deployment and physical-device acceptance have **not** been completed; earlier release history remains intact. Download authentication only grants access to bytes and never replaces the signed envelope, pinned publisher public key, Android APK certificate continuity, version/sequence ledger or local installation checks. No GitHub PAT is shipped to a client.
+This transport requires a **new managed relay containing the alpha.4 implementation**, first installed from reviewed local signed metadata and ZIP. The old relay has no private OTA route. Build/archive evidence is in STATUS.md; controlled first-install signing, HTTPS deployment and physical-device acceptance are still pending. Use a new unreleased version for controlled first installation; never re-sign or replace an archived preview. Download authentication only grants access to bytes and never replaces the signed envelope, pinned publisher public key, Android APK certificate continuity, version/sequence ledger or local installation checks. No GitHub PAT is shipped to a client.
 
 Use the **same HTTPS origin** as relay `/auth/login` and device pairing. The reverse proxy forwards the original `/desktop-remote-updates/*` path to the managed relay's loopback **API listener**, not to a static `file_server` or public directory. It must preserve `Authorization`, `X-Desktop-Remote-Principal` and `X-Desktop-Remote-Device` and must not log these headers, token values or downloaded content. Account-only front-door authorization must not intercept the device route. The FRP plugin listener never serves this path.
 

@@ -1,6 +1,6 @@
 # Linux 中继：全新受管安装
 
-返回[安装起点](README.md)，版本变化见 [中继历史](../versions/RELAY.md)。本页补充 **0.1.0-alpha.4 私有 OTA 首发协议**；alpha.4 尚未构建、发布、部署或实机验收，alpha.3 及更早历史保留。新受管安装**不接管现用服务器、账号库、端口或公网入口**。旧中继没有 `/desktop-remote-updates/*` 私有下载路由，必须先用已签 alpha.4 中继 ZIP/trust 在新目录本地 bootstrap，不能靠上传 feed 把旧服务变为新服务。
+返回[安装起点](README.md)，版本变化见 [中继历史](../versions/RELAY.md)。本页说明 **alpha.4 起支持的私有 OTA**；构建/归档证据见 [STATUS](../../STATUS.md)，公网部署与实机验收尚未完成。新受管安装**不接管现用服务器、账号库、端口或公网入口**。旧中继没有 `/desktop-remote-updates/*` 私有下载路由，必须先用包含新实现的已签中继 ZIP/trust 在新目录本地 bootstrap，不能靠上传 feed 把旧服务变为新服务。受控首装计划使用未发布新版本，见 [验收计划](../OTA-ACCEPTANCE.md)；不对已归档预览换签或换包。
 
 受管宿主只支持 Linux，需 Python 3.12 与 `updates/requirements.txt` 中的 `cryptography`。还需要管理员预先提供经过审核的测试渠道发布公钥、已签名 relay 元数据和 ZIP；其后私有 OTA 下载走与中继账号登录和配对**同一 HTTPS origin**。宿主必须得到**显式委派的 cgroup v2 子树**，能创建子组并使用 `cgroup.kill`；`--cgroup-root` 不能用任意目录替代，也不能从 PID 空闲推断整树退出。本页不猜测 systemd 委派配置或宣称服务器已满足它。
 

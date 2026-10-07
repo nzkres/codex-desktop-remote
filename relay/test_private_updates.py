@@ -185,8 +185,19 @@ class PrivateUpdateTests(unittest.TestCase):
             self.assertEqual(self.get("/desktop-remote-updates/stable/windows/" + path.name,
                                       self.account_headers())[0], 404)
 
-        entered, resume = threading.Event(), threading.Event()
+        entered, resume, finished = threading.Event(), threading.Event(), threading.Event()
         original_stream = self.feed._stream
+
+        class ObservedHandler(self.server.RequestHandlerClass):
+            def do_GET(handler):
+                try:
+                    super().do_GET()
+                finally:
+                    # Receiving the final body byte does not prove the server
+                    # has left gate.admit(). Observe the actual handler return.
+                    finished.set()
+
+        self.server.RequestHandlerClass = ObservedHandler
 
         def held_stream(handler, stream, length):
             entered.set()
@@ -206,6 +217,7 @@ class PrivateUpdateTests(unittest.TestCase):
             resume.set()
             worker.join(timeout=5)
         self.assertEqual(result[0][0], 200)
+        self.assertTrue(finished.wait(timeout=5), 'download handler did not release admission')
         self.assertTrue(self.gate.prepare(lambda: None)["closed"])
         self.assertEqual(self.get(PREFIX + "windows/" + path.name,
                                   self.account_headers())[0], 503)
