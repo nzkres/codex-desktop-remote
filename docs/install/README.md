@@ -1,10 +1,10 @@
 # 三个原型的安装起点
 
-**下一下载起点是准备发布的 [v0.1.0-alpha.3 私有开发预览](https://github.com/nzkres/codex-desktop-remote/releases/tag/v0.1.0-alpha.3)。** Release 须在最终 CI 验收后由维护者创建；页面尚未出现时不要把链接或本地构建当作已发布。已有 [alpha.2 Release](https://github.com/nzkres/codex-desktop-remote/releases/tag/v0.1.0-alpha.2) 保留为历史归档。实际证据看 [STATUS](../../STATUS.md)，三端 OTA 边界看 [OTA](../OTA.md)。
+**下载起点是 [v0.1.0-alpha.3 私有开发预览](https://github.com/nzkres/codex-desktop-remote/releases/tag/v0.1.0-alpha.3)。** Windows/Linux 最终 CI 与 Android 构建已通过；页面为开发预览归档，不是正式 OTA feed。已有 [alpha.2 Release](https://github.com/nzkres/codex-desktop-remote/releases/tag/v0.1.0-alpha.2) 保留为历史归档。实际证据看 [STATUS](../../STATUS.md)，三端 OTA 边界看 [OTA](../OTA.md)。
 
 | 组件 | 第一次使用 | 后续更新入口 |
 | --- | --- | --- |
-| [Android](ANDROID.md) | alpha.3 Release 创建后下载 `desktop-remote-lite-0.1.0-alpha.3-debug.apk` 并手动安装 | App 内有检查入口，但此 debug 包的 trust 为空、无受控连续签名，不能作为生产 OTA 基线 |
+| [Android](ANDROID.md) | 从 alpha.3 Release 下载 `desktop-remote-lite-0.1.0-alpha.3-debug.apk` 并手动安装 | App 内有检查入口，但此 debug 包的 trust 为空、无受控连续签名，不能作为生产 OTA 基线 |
 | [Windows](WINDOWS.md) | 下载 `desktop-remote-windows-0.1.0-alpha.3-source.zip`；仍需外部 Python/Node/FRP/Desktop | 受管 OTA 须另有签名 ZIP、元数据与公钥，在**新目录** bootstrap；没有 EXE 安装器 |
 | [Linux 中继](RELAY.md) | 下载 `desktop-remote-relay-0.1.0-alpha.3-source.zip`；仍需外部 Python 与 Linux 运行条件 | 受管 OTA 须另有签名 ZIP、元数据、公钥和委派 cgroup；不接管现用中继 |
 

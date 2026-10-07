@@ -1,6 +1,6 @@
 # Linux 中继：全新受管安装
 
-返回[安装起点](README.md)，版本变化见 [中继历史](../versions/RELAY.md)。已发布 alpha.2 的源码回环启动仍可用于隔离开发；此处受管 OTA 对应当前开发代码，**不接管现用服务器、账号库、端口或公网入口**。尚无公网 OTA 源和实际生产部署证据。
+返回[安装起点](README.md)，版本变化见 [中继历史](../versions/RELAY.md)。alpha.3 开发预览提供源码 ZIP；此处受管 OTA 对应同一版代码，**不接管现用服务器、账号库、端口或公网入口**。尚无公网 OTA 源和实际生产部署证据。
 
 受管宿主只支持 Linux，需 Python 3.12 与 `updates/requirements.txt` 中的 `cryptography`。还需要管理员预先提供独立、经过审核的测试渠道发布公钥与 HTTPS 静态源、已签名 relay 元数据和 ZIP。宿主必须得到**显式委派的 cgroup v2 子树**，能创建子组并使用 `cgroup.kill`；`--cgroup-root` 不能用任意目录替代，也不能从 PID 空闲推断整树退出。本页不猜测 systemd 委派配置或宣称服务器已满足它。
 

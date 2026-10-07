@@ -1,8 +1,8 @@
 # Android 手机端：安装与首次测试
 
-返回[三个原型的安装起点](./README.md)；版本变化见 [Android 历史](../versions/ANDROID.md)。下一下载起点是**准备发布的 `0.1.0-alpha.3` 开发预览**，适用于 Android 8.0 及以上。Release 须待最终 CI 验收后创建；已下载复验构件不等于手机已安装或完成 OTA。实际安装与真机证据以 [STATUS](../../STATUS.md) 为准。alpha.3 普通 debug 包仍无受控签名首装信任和长期 HTTPS 源。
+返回[三个原型的安装起点](./README.md)；版本变化见 [Android 历史](../versions/ANDROID.md)。下载起点是** `0.1.0-alpha.3` 开发预览**，适用于 Android 8.0 及以上。Release 提供经过 CI 与下载后复验的构件，不等于手机已安装或完成 OTA。实际安装与真机证据以 [STATUS](../../STATUS.md) 为准。alpha.3 普通 debug 包仍无受控签名首装信任和长期 HTTPS 源。
 
-1. Release 创建后，用有权限的 GitHub 账号打开私有 [v0.1.0-alpha.3 Release](https://github.com/nzkres/codex-desktop-remote/releases/tag/v0.1.0-alpha.3)，展开 Assets，下载 `desktop-remote-lite-0.1.0-alpha.3-debug.apk`；Windows/relay 的 source ZIP 和测试报告都不能当 APK 安装。下载成功只说明文件已到手，不说明已安装或能连接服务。此前 [v0.1.0-alpha.2 Release](https://github.com/nzkres/codex-desktop-remote/releases/tag/v0.1.0-alpha.2) 保留归档。
+1. 用有权限的 GitHub 账号打开私有 [v0.1.0-alpha.3 Release](https://github.com/nzkres/codex-desktop-remote/releases/tag/v0.1.0-alpha.3)，展开 Assets，下载 `desktop-remote-lite-0.1.0-alpha.3-debug.apk`；Windows/relay 的 source ZIP 和测试报告都不能当 APK 安装。下载成功只说明文件已到手，不说明已安装或能连接服务。此前 [v0.1.0-alpha.2 Release](https://github.com/nzkres/codex-desktop-remote/releases/tag/v0.1.0-alpha.2) 保留归档。
 2. 在手机上打开下载的 APK，按系统提示允许这一次安装并完成安装。不同 Android 设备的提示可能不同，参见 [Google 的 Android 应用安装帮助](https://support.google.com/android/answer/9457058?hl=zh-Hans)。此包的 application ID 是 `dev.codex.desktopremote.lite`，可与旧 App 并存；**不必卸载旧 App**。
 3. 打开“Desktop Remote Lite”。登录页的“中继地址”默认留空；只有在测试 HTTPS 服务器已单独配置并核验后，才填写其地址、测试账号和密码并登录。安装 APK 不会部署中继，也不会自动导入原 App 的登录或配对身份。
 4. 在“远程终端”点“添加电脑”，取得一次性配对码；在**新 Windows 连接器**中输入该码。手机刷新待确认列表，核对申请电脑的名称，再点“确认加入”。不要把配对码、账号密码或设备凭据写进仓库或反馈截图。
@@ -21,7 +21,7 @@ alpha.3 包仍须手动安装。源码中已有“我的 → 版本与更新说�
 Get-FileHash -Algorithm SHA256 -LiteralPath '.\desktop-remote-lite-0.1.0-alpha.3-debug.apk'
 ```
 
-预备发布的 APK 已实际下载复验：**11,771,316 字节**，SHA-256 为 `d188ed0522f8fc36361565495536cdda141e36160443ededee314dbb843107f6`，`versionCode` 3，包内版本说明与 Git `e7602ec` 内容字节一致；JVM 测试 87/87，lint 0 错误、45 警告。这些是构件与检查证据，**不是 Release 已创建、手机已安装或真机 OTA 成功**。正式下载后仍须按上述哈希核对文件；哈希不代替签名。安装现成 APK 不需要 Git、JDK、Android SDK 或自行编译。
+归档 APK 已实际下载复验：**11,771,316 字节**，SHA-256 为 `d188ed0522f8fc36361565495536cdda141e36160443ededee314dbb843107f6`，`versionCode` 3，包内版本说明与 Git `e7602ec` 内容字节一致；JVM 测试 87/87，lint 0 错误、45 警告。这些是构件与检查证据，**不是手机已安装或真机 OTA 成功**。正式下载后仍须按上述哈希核对文件；哈希不代替签名。安装现成 APK 不需要 Git、JDK、Android SDK 或自行编译。
 
 | 现象 | 从哪里排查 |
 | --- | --- |
