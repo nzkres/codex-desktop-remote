@@ -2,6 +2,8 @@
 
 这个独立项目包含三个可迭代原型：沿用原界面的 Android 遥控 App、Windows 连接器、服务器中继。目标是让手机在**用户明确选择的一条 Codex Desktop 原生任务**中看文字、发文字，并看到 Desktop 后续在同一任务中的内容。Desktop 仍拥有任务和执行权限。源码布局及各原型边界见 [PROJECT.md](PROJECT.md) 和 [原型说明](docs/PROTOTYPES.md)；实际通过与未验收项以 [STATUS.md](STATUS.md) 为准。
 
+首个开发预览：[v0.1.0-alpha.1](https://github.com/nzkres/codex-desktop-remote/releases/tag/v0.1.0-alpha.1)。登录有权限的 GitHub 账号后，可下载独立 Android 测试 APK、校验值和测试报告；源码可克隆或从该版本页面下载。Windows 目前运行 Python 窗口源码，尚无安装器。建议先看 [原型关系图](docs/ARCHITECTURE.md)，再运行下面的合成自测/窗口预览，最后按 [测试指南](docs/TESTING.md) 做专用任务联调。遇到问题可用 [测试反馈](https://github.com/nzkres/codex-desktop-remote/issues/new?template=test-feedback.yml) 记录版本、步骤和结果。
+
 ## 先安全自测
 
 合成自测需要 Python 3.12、Node 20.19；Windows 上会额外验证真实 Job 进程树，窗口演示还需 Tkinter。只有实际连接才需要 FRP 0.71 和指定版本 Desktop。工具须由使用者自行可靠取得；仓库不会自动下载安装。Node 无外部 npm 依赖；Android 构建另需 JDK 17、Android SDK 36 与 Gradle/Maven 依赖。
@@ -11,7 +13,7 @@
 python windows/demo.py
 ```
 
-前一命令运行 Node、Windows Python 和 relay 的合成测试；后一命令只预览 Windows 窗口，使用纯合成状态，不保存身份、不连接服务器或 Desktop。具体测试与失败边界见 [docs/TESTING.md](docs/TESTING.md)。新仓库 CI、Android 新包和真机联调仍须独立复验；不能把原仓库或 Lite 的通过记录算作本仓库通过。
+前一命令运行 Node、Windows Python 和 relay 的合成测试；后一命令只预览 Windows 窗口，使用纯合成状态，不保存身份、不连接服务器或 Desktop。具体测试与失败边界见 [docs/TESTING.md](docs/TESTING.md)。本仓库核心 CI 与 Android 编译已通过；新包安装和真机联调仍待独立验收，不能把原仓库或 Lite 的通过记录算作本仓库通过。
 
 ## 准备一条真实测试任务
 
@@ -21,7 +23,7 @@ python windows/demo.py
 python scripts/configure.py --thread-id '<TASK_UUID>' --project '<PROJECT_PATH>' --desktop-root '<PACKAGE_ROOT>' --node '<NODE_EXE_PATH>' --frpc '<FRPC_EXE_PATH>'
 ```
 
-脚本新建被 Git 忽略的 `fixture.local.json`，随后对 Desktop 只读探测该任务 marker 和权限摘要，并写入本地配置；不发模型消息、不配对、不覆盖已有配置。探测失败时配置会保留，需先查明原因，不要改 pin 或重放未知操作。只有通过准备检查、确认旧运行实例的安全边界并由测试设备**重新手动配对**后，才进入真实联调：
+脚本新建被 Git 忽略的 `fixture.local.json`，随后对 Desktop 只读探测该任务 marker 和权限摘要，并写入本地配置；不发模型消息、不配对、不覆盖已有配置。探测失败时配置会保留，需先查明原因，不要改 pin 或重放未知操作。通过准备检查并确认不会接管旧运行实例后，打开连接窗口，填写服务器地址并与手机**重新手动配对**：
 
 ```powershell
 pythonw windows/controller.py fixture.local.json

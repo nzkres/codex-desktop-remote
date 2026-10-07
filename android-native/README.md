@@ -9,7 +9,7 @@ cd android-native
 .\gradlew.bat :app:testDebugUnitTest :app:lintDebug :app:assembleDebug :app:assembleDebugAndroidTest
 ```
 
-On Unix, use `./gradlew` for the same tasks. The self-contained wrapper is pinned to Gradle 8.13 with its distribution SHA-256 in `gradle/wrapper/gradle-wrapper.properties`; its wrapper JAR SHA-256 is `81a82aaea5abcc8ff68b3dfcb58b3c3c429378efd98e7433460610fecd7ae45f`. Android Gradle Plugin is 8.11.1. The first build downloads Gradle and Maven dependencies.
+On Unix, use `bash ./gradlew` for the same tasks. The self-contained wrapper is pinned to Gradle 8.13 with its distribution SHA-256 in `gradle/wrapper/gradle-wrapper.properties`; its wrapper JAR SHA-256 is `81a82aaea5abcc8ff68b3dfcb58b3c3c429378efd98e7433460610fecd7ae45f`. Android Gradle Plugin is 8.11.1. The first build downloads Gradle and Maven dependencies.
 
 The debug APK uses Android's normal local or CI-generated debug key, has application ID `dev.codex.desktopremote.lite`, and is version `0.1.0-alpha.1` (code 1). It can coexist with the old app. Different debug keys may prevent updating an earlier build of this *new* package on another machine; uninstall that test build first if necessary. This does not claim signing compatibility with the old app.
 

@@ -18,4 +18,4 @@ Android 源码测试与构建另需 JDK 17/Android SDK 36，在 `android-native/
 
 真实联调先在 Desktop 建专用任务并取得 `DESKTOP_REMOTE_READY` 回复。从该任务链接读取线程 UUID，独立核实工作目录与所需本机可执行文件路径；执行 README 中的 `scripts/configure.py` 命令。它创建忽略的 `fixture.local.json`，对 Desktop 只读核对 marker、固定版本/两文件哈希和权限摘要，并写入本地配置；不发模型请求，不覆盖已有文件。失败会保留配置，不能改 pin 绕过。新测试设备必须手动配对；旧配对状态不可迁入。
 
-在已确认不会接管旧实例后，用 `pythonw windows/controller.py fixture.local.json` 打开连接窗口，手动填写新服务器地址。只在明确的测试范围内依次核对：目标电脑与任务匹配、手机可读原生历史、一次文字发送得到明确回执、Desktop 在同任务接续、手机读到该接续。发送结果未知时停止，不换消息 ID 重发。连接/探针成功与模型执行成功分别记录；审批、提问、新建任务和模式设置仍在 Desktop 操作。实测结果写入根 [STATUS.md](../STATUS.md) 与 [WORKLOG.md](../WORKLOG.md)。
+在已确认不会接管旧实例后，用 `pythonw windows/controller.py fixture.local.json` 打开连接窗口，手动填写拟用于测试的 HTTPS 中继地址。已有中继只有在协议匹配且允许新增独立测试设备时才能使用；此步骤不要求替换现用服务器，也不代表本仓库已经部署中继。只在明确的测试范围内依次核对：目标电脑与任务匹配、手机可读原生历史、一次文字发送得到明确回执、Desktop 在同任务接续、手机读到该接续。发送结果未知时停止，不换消息 ID 重发。连接/探针成功与模型执行成功分别记录；审批、提问、新建任务和模式设置仍在 Desktop 操作。实测结果写入根 [STATUS.md](../STATUS.md) 与 [WORKLOG.md](../WORKLOG.md)。
