@@ -37,6 +37,9 @@ print(json.dumps({"idle": GOOD, "version": version, "permissionsVerified": GOOD,
 '''
 OLD_GUI = r'''import hashlib, json, os, pathlib, re, shutil, sys, time, tkinter as tk
 home, metadata, archive, slot = map(pathlib.Path, sys.argv[1:5])
+def mark(value):
+    (home.parent / 'wrapper-stage.txt').write_text(value, encoding='ascii')
+mark('imports')
 sys.path.insert(0, str(slot))
 sys.path.insert(0, str(slot / 'windows'))
 sys.path.insert(0, str(slot / 'windows/vendor'))
@@ -61,19 +64,27 @@ def local_download(payload, destination, progress=None, context=None):
 
 engine.fetch = local_fetch
 engine.download = local_download
+mark('controller')
 controller = controller_for(home)
 controller.update_home = home
+mark('tk_root')
 root = tk.Tk(); root.withdraw()
+mark('window')
 window = _Window(root, controller)
+mark('window_ready')
 
 def begin():
     stage = 'check'
     try:
+        mark(stage)
         engine.check(home)
         stage = 'stage'
+        mark(stage)
         engine.stage(home)
         stage = 'handoff'
+        mark(stage)
         handoff(home)
+        mark('handoff_complete')
         print(json.dumps({'schema':1,'handoff':True}),flush=True)
     except Exception as error:
         code = error.code if isinstance(error, UpdateError) and isinstance(error.code, str) and re.fullmatch(r'[a-z0-9_]{1,80}', error.code) else 'smoke_operation_failed'
@@ -171,11 +182,15 @@ def _run_case(base, bad_candidate=False):
     try:
         try:
             message = old.read(timeout=40)
-        except Exception:
+        except Exception as failure:
             diagnostic = home.parent / "wrapper-error.txt"
             if diagnostic.exists():
                 raise RuntimeError("wrapper:" + diagnostic.read_text(encoding="utf-8")[-800:]) from None
-            raise
+            stage_path = home.parent / 'wrapper-stage.txt'
+            stage = stage_path.read_text(encoding='ascii') if stage_path.exists() else 'pre_wrapper'
+            from updates.security import UpdateError
+            code = failure.code if isinstance(failure, UpdateError) else 'fixture_response_failed'
+            raise RuntimeError('gui_response_unverified:' + stage + ':' + code) from None
         if message != {"schema": 1, "handoff": True}:
             if (isinstance(message, dict) and message.get("schema") == 1
                     and message.get("handoff") is False
