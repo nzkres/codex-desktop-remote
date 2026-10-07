@@ -10,7 +10,7 @@
 | Python 连接器与版本校验测试 | 本机 38/38 通过；含版本记录缺字段/重复/倒序、版本码倒退、跨组件独立版本及生成文档过期检查 |
 | 中继自动测试 | 本机 49/49 通过；版本查询鉴权/启动快照/CLI 无数据库副作用也有合成测试 |
 | Windows 说明窗口 | 合成 UI 冒烟通过，说明只读、保留新旧版本，打开/返回不触发断开；没有使用真实身份 |
-| 核心 CI | alpha.2 待运行；alpha.1 基线 Windows/Linux [run 37608868813](https://github.com/nzkres/codex-desktop-remote/actions/runs/37608868813) 曾成功，不能代替本版 |
+| 核心 CI | alpha.2 Windows/Linux [run 37614853486](https://github.com/nzkres/codex-desktop-remote/actions/runs/37614853486) 均成功，源码 `8b5d982`；Linux 跳过 Windows 专属测试 |
 | Android 单元测试/编译 | alpha.2 新增 2 项解析测试，等待 CI；alpha.1 [run 37608678246](https://github.com/nzkres/codex-desktop-remote/actions/runs/37608678246) 曾有 70 项单测和主/测试 APK 编译通过 |
 | Android Lint | alpha.2 待运行；alpha.1 为 0 errors、39 warnings |
 | 可下载构件 | 当前已发布 [v0.1.0-alpha.1](https://github.com/nzkres/codex-desktop-remote/releases/tag/v0.1.0-alpha.1)；alpha.2 构件待 CI，未覆盖旧版本 |

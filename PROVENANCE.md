@@ -1,8 +1,8 @@
 # 复用清单
 
-本独立仓库的 Windows/Node 起点为 Desktop Remote Lite `2fcf9e22ba28923cbbd36afd56ac34d0d0ee7652`（原版本 `0.0.2-test.1`）。新仓库版本从 `0.1.0-alpha.1` 开始，保留协议、安全检查和退出机制；根 package.json 统一提供 Node 与窗口显示版本，服务器地址改为用户填写。
+本独立仓库的 Windows/Node 起点为 Desktop Remote Lite `2fcf9e22ba28923cbbd36afd56ac34d0d0ee7652`（原版本 `0.0.2-test.1`）。新仓库版本从 `0.1.0-alpha.1` 开始，保留协议、安全检查和退出机制，服务器地址由用户填写。自 alpha.2 起，Windows/Node/心跳版本来自 `windows/releases.json`，根 package.json 由校验器保持一致；Android 与 relay 各自维护同名记录文件，详见 [迭代规则](docs/ITERATION.md)。
 
-Android 与中继直接提取自下述旧提交：`android-native/` 保留源码、测试、字体；独立 wrapper 替代旧 HAPI 子模块构建依赖，使用新应用标识，删除旧签名私钥/OTA；`relay/` 保留 registry、control_server、frp_policy、forwarder、gateway_link、transport_settings，`relay/auth/` 保留单账号 auth_server；仅合成测试依赖按新目录调整。Android/HAPI/字体许可见 `third-party/licenses/` 与 `android-native/FONTS.md`。
+Android 与中继起初直接提取自下述旧提交：`android-native/` 保留源码、测试、字体；独立 wrapper 替代旧 HAPI 子模块构建依赖，使用新应用标识，删除旧签名私钥/OTA；`relay/` 保留 registry、control_server、frp_policy、forwarder、gateway_link、transport_settings，`relay/auth/` 保留单账号 auth_server。提取后 alpha.2 新增 Android 离线版本入口、中继版本命令及账号认证后的版本查询，改动与旧协议复用分别见组件版本历史。Android/HAPI/字体许可见 `third-party/licenses/` 与 `android-native/FONTS.md`。
 
 未迁入真实 DPAPI 身份、账号/设备令牌、数据库、APK、运行日志、服务器配置、旧安装器或升级执行器。
 
