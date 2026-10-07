@@ -1,6 +1,10 @@
-# 变更记录
+# 仓库版本更新总览
 
-每个软件的完整历史、体验入口和验证方法分别见 [手机](docs/versions/ANDROID.md)、[Windows](docs/versions/WINDOWS.md)、[中继](docs/versions/RELAY.md)。这里记录仓库组合版本；组件可以独立升级。
+这里按版本记录仓库更新。每个软件的完整历史、体验入口和验证方法分别见 [手机](docs/versions/ANDROID.md)、[Windows](docs/versions/WINDOWS.md)、[中继](docs/versions/RELAY.md)，也可从 [全部版本索引](docs/versions/README.md) 查找。每次软件发布必须同时更新本总览与相应组件文档；组件可以独立升级，旧记录保留。
+
+## 未发布 — 文档维护
+
+- 2026-10-07：将仓库版本说明提升为 README 的主要入口，增加三个软件的版本文档索引，并明确“每次软件更新必须随代码提交对应说明”的维护要求。本次仅整理文档，三个软件仍为 `0.1.0-alpha.2`，已发布构件不变。
 
 ## 0.1.0-alpha.2 — 2026-10-07（开发预览）
 

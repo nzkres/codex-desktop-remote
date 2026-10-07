@@ -2,11 +2,25 @@
 
 这个独立项目包含三个可迭代原型：沿用原界面的 Android 遥控 App、Windows 连接器、服务器中继。目标是让手机在**用户明确选择的一条 Codex Desktop 原生任务**中看文字、发文字，并看到 Desktop 后续在同一任务中的内容。Desktop 仍拥有任务和执行权限。源码布局及各原型边界见 [PROJECT.md](PROJECT.md) 和 [原型说明](docs/PROTOTYPES.md)；实际通过与未验收项以 [STATUS.md](STATUS.md) 为准。
 
+## 版本更新记录
+
+**仓库文档是查看每次更新的主要入口。** 三个软件分别保存完整历史，按版本从新到旧排列：
+
+| 软件 | 版本说明文档 | 可以查到什么 |
+| --- | --- | --- |
+| Android 手机 App | [手机端版本更新记录](docs/versions/ANDROID.md) | 每版日期、功能变化、体验步骤、验证方法与限制 |
+| Windows 连接器 | [电脑端版本更新记录](docs/versions/WINDOWS.md) | 每版连接器变化、体验步骤、验证方法与限制 |
+| 服务器中继 | [中继服务版本更新记录](docs/versions/RELAY.md) | 每版服务变化、验证方法与部署限制 |
+
+[全部版本索引](docs/versions/README.md) · [仓库更新总览](CHANGELOG.md) · [后续维护规则](docs/ITERATION.md)
+
+以后每次软件版本更新，都必须把更新内容追加到对应文档并随代码提交；已发布记录持续保留。目前三份文档均包含 `0.1.0-alpha.1` 和 `0.1.0-alpha.2`。
+
 最新开发预览：[v0.1.0-alpha.2](https://github.com/nzkres/codex-desktop-remote/releases/tag/v0.1.0-alpha.2)。登录有权限的 GitHub 账号后，可下载独立 Android 测试 APK、校验值和测试报告；源码可克隆或从该版本页面下载，旧 alpha.1 仍保留。Windows 目前运行 Python 窗口源码，尚无安装器。建议先看 [原型关系图](docs/ARCHITECTURE.md)，再运行下面的合成自测/窗口预览，最后按 [测试指南](docs/TESTING.md) 做专用任务联调。遇到问题可用 [测试反馈](https://github.com/nzkres/codex-desktop-remote/issues/new?template=test-feedback.yml) 记录版本、步骤和结果。
 
 ## 先安全自测
 
-三个原型都有独立版本历史，每项更新附带体验位置和验证步骤：手机“我的 → 版本与更新说明”、Windows 窗口底部“版本与更新说明”、中继 `python relay/control_server.py --release-notes`。仓库对应 [手机](docs/versions/ANDROID.md)、[Windows](docs/versions/WINDOWS.md)、[中继](docs/versions/RELAY.md) 三份历史；维护方法见 [迭代规则](docs/ITERATION.md)。本地说明与已部署服务版本分别记录，不能相互推定。
+软件内也显示同一份说明：手机“我的 → 版本与更新说明”、Windows 窗口底部“版本与更新说明”、中继 `python relay/control_server.py --release-notes`。实际安装或部署版本需单独核对，不能从仓库版本推定。
 
 合成自测需要 Python 3.12、Node 20.19；Windows 上会额外验证真实 Job 进程树，窗口演示还需 Tkinter。只有实际连接才需要 FRP 0.71 和指定版本 Desktop。工具须由使用者自行可靠取得；仓库不会自动下载安装。Node 无外部 npm 依赖；Android 构建另需 JDK 17、Android SDK 36 与 Gradle/Maven 依赖。
 
