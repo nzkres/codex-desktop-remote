@@ -132,7 +132,16 @@ class MaintenanceTests(unittest.TestCase):
             gate = MaintenanceGate()
             api = make_server(registry, account=lambda _: "owner", gate=gate)
             plugin = make_server(registry, plugin=True, gate=gate)
-            auth = ThreadingHTTPServer(("127.0.0.1", 0), make_managed_auth_handler(gate))
+            auth_finished = threading.Event()
+            class AuthFixture(make_managed_auth_handler(gate)):
+                def do_GET(self):
+                    try:
+                        super().do_GET()
+                    finally:
+                        # A received HTTP body precedes the handler's finally
+                        # block on some schedules. Wait for actual gate release.
+                        auth_finished.set()
+            auth = ThreadingHTTPServer(("127.0.0.1", 0), AuthFixture)
             servers = (api, plugin, auth)
             threads = [threading.Thread(target=server.serve_forever) for server in servers]
             for thread in threads:
@@ -147,6 +156,8 @@ class MaintenanceTests(unittest.TestCase):
                     connection.close()
             try:
                 self.assertEqual(request(auth, "GET", "/auth/status")[0], 200)
+                self.assertTrue(auth_finished.wait(3), "auth handler did not release admission")
+                self.assertEqual(gate.snapshot()["active"], 0)
                 gate.prepare(lambda: None)
                 self.assertEqual(request(api, "GET", "/control-api/version")[0], 503)
                 status, body = request(plugin, "POST", "/internal/frp?version=0.1.0&op=Login")

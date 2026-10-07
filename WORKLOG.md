@@ -89,3 +89,8 @@
 - 命令：`gh run download 37646940566 --name desktop-remote-source-Windows --dir artifacts/ota-alpha3/Windows`、同 run 的 Linux artifact，以及 `gh run download 37644338199 --name desktop-remote-android-debug --dir artifacts/ota-alpha3/android`。下载后使用 `updates.security.unpack/verify_tree` 校验每个原始包哈希、文件清单与内容，再逐文件对比 Git 构建输入。Windows 仅 AGPL TXT 与 requirements TXT 的 text=auto checkout 换行不同；校验未忽略任何文件或包哈希。
 - `v0.1.0-alpha.3` 私有开发预览归档主 APK、两个源码 ZIP、Android 报告、逐包核对报告与 SHA256SUMS；哈希和大小写入 STATUS。此记录仅交付源码与构件，签名首装、长期更新源、手机覆盖安装、真实 Desktop/手机升级和现用中继部署均未执行。
 - 下一步：确认独立测试更新源及受控首装签名资源，在新安装完成真实 HTTPS N→N+1；任何现用 Gateway/FRP、身份或公网服务切换仍依用户先前约定另行批准。后续版本继续在三个 releases.json 与生成历史记录变化。
+
+### alpha.3 标签后的测试同步修正
+
+- alpha.3 六个归档文件均已上传，服务端大小/SHA 与验收文件逐一匹配。PR #1 已建立；自动审批拒绝直接快进 main，原因是未明确授权绕过 PR 修改默认分支，因此保持独立分支并向用户请求 PR 合并确认，未操作现用服务。
+- 标签重复 CI 37648259999 的 Windows relay 门禁测试出现时序失败：客户端读完 HTTP body，不代表服务线程已执行 admit 的 finally。产品正确拒绝仍 active 的维护请求；测试现通过 handler 完成 Event 等待真正释放后再 prepare，没有改产品门禁、增加盲重试或改写已发布构件。产品包仍对应已成功的 169b449 CI；修正后的 PR 检查继续核验。
