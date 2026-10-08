@@ -1,5 +1,7 @@
 # OTA 交接
 
+**配对恢复停点：** 用户手机已登录并生成申请，电脑地址误填 `:944`，首次安装身份停在claim_pending/connection_unavailable。保留原CodexDesktopRemoteTest全部状态，不重置、不改身份端点重放。另一个物理目录CodexDesktopRemoteTest9443已完成原签名包首装和只读任务probe、权限一致性核对。用户已关闭旧窗口并取消手机申请；取得原应用/运行/操作锁、核对pending状态未变后，新目录的原Start.pyw已实际打开alpha.5窗口。当前等待用户手动填写完整 `https://106.53.126.69:9443` 和新配对码，在手机确认后电脑连接。具体路径仅在本机忽略报告windows-retry-install.json；账号显示工具仍在原目录operator，不迁移秘密。新配对、手机任务与OTA尚未验收。
+
 **最新停点（2026-10-08 实机阶段）：** 主电脑全新安装原始签名 alpha.5，用户手动完成 `OTA_ALPHA5_READY` 后，原任务 `01a1158c-72ea-7db3-84d1-b47471220252`「回复 DESKTOP_REMOTE_READY」的实时历史/权限/空闲探针通过。图形窗口已打开，当前等手机登录、配对；用户报告APK已安装并在登录页。先读[设备基线记录](OTA-DEVICE-BASELINE-20261008.md)：AppX重定向曾导致逻辑home启动失败，当前使用已核验物理home的原Start.pyw，不能重复bootstrap/configure或修改签名槽。新账号在本机DPAPI辅助窗口交接，不要求用户在聊天发送口令/配对码。以下部署记录是历史阶段证据；尚未真实任务N基线或alpha.6 OTA验收。
 
 2026-10-08：用户已批准并完成PR #1合并、专用测试签名、六项Android Secrets、alpha.5构建/复验，以及现有服务器上的**独立隔离测试部署**。服务器内安装与验收、主电脑公网 `9443` HTTPS 鉴权下载和 `17443` FRPS 合成夹具连接已通过；现用服务和身份保持原样。手机安装、真实身份迁移和真实任务N→N+1仍未获本轮授权或验收。详细证据见[隔离部署记录](OTA-ISOLATED-DEPLOYMENT-20261008.md)。
