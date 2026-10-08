@@ -71,6 +71,17 @@ def signed(base, version, sequence, key, good):
     return archive, metadata
 
 
+def wait_empty_group(group, timeout=5):
+    # Waiting on the original helper handle is not tree-exit proof. Observe
+    # its retained outer test Job until Windows reports zero active members;
+    # never terminate it to make this assertion pass or reopen a process PID.
+    deadline = time.monotonic() + timeout
+    while group.active():
+        if time.monotonic() >= deadline:
+            raise AssertionError('maintenance fixture tree exit unconfirmed')
+        time.sleep(0.02)
+
+
 def run_case(base, bad=False, resume=False):
     # CI TEMP can use an 8.3 username. Production requires a physical home and
     # a dataDir under that same spelling; make the fixture match that contract.
@@ -164,7 +175,7 @@ def run_case(base, bad=False, resume=False):
         if bad:
             assert outcome['success'] is False and primary['phase'] == 'needs_review', outcome
             assert read(home / 'current.json') == old_pointer
-            assert helper.group.active() == 0  # candidate and all descendants gone
+            wait_empty_group(helper.group)  # candidate and all descendants gone
             with lock(home / 'state/application.lock'):
                 pass
             try:

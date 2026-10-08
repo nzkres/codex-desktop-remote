@@ -2,6 +2,8 @@
 
 ## 2026-10-08 — alpha.7 配对错误提示与 Windows 在线 OTA 准备
 
+- 首轮 ab738c0 的 Core push37779857781 两平台通过；PR37779946976 的 Linux通过、Windows在既有maintenance第4例失败：原helper句柄退出后立即读取外层Job仍非零。保留失败结果，未签发该轮候选。夹具改为同一原Job最多5秒观测，必须实际归零才能通过；不终止进程制造通过、不按旧PID重开、不改产品树清理或保护，持续残留/观测错误仍失败。后续定向实测与两轮CI结果单独补记。
+- 上述夹具修正根代理复验：`python -B scripts/windows_maintenance_smoke.py` 六例全部通过，初次/等待续审/正常关闭续审各 committed 与 needs_review；`python -B -m unittest discover -s test -p test_maintenance_smoke.py -v` 三项通过，包含持续残留超时和观测异常失败。版本目录检查、diff检查通过。真实安装只读校验仍为alpha.6、ledger2、transaction committed、签名槽有效；未解密身份、未改变连接或状态。
 - 根代理独立执行`python -B scripts/windows_https_ota_smoke.py`两例通过：synthetic_https_gui_committed / rolled_back，身份与任务保持。随机loopback TLS、临时CA、两项匿名401、真实GUI worker设备鉴权GET、seq2→3、独立helper原句柄与Job、旧primary归档/secondary原字节保持、陈旧candidate/staged替换均验收。新增CI step。代理首次演练漏持旧GUI应用锁，补为与原smoke同样的完整主窗口生命周期后重跑，根复验通过；没有改产品门禁。两版本为当前源码合成包，Desktop/FRP探针替换明确隔离，不使用真实身份/签槽。
 - 用户批准按先Windows、再Android、最后relay的小步方案执行；当前轮只准备alpha.7代码、测试、签名候选与私有源审查，发布和实际切换保持最终确认。远端main为4f50d30，原分支421a4c3和PR #2草稿未变；从该提交建立独立工作树codex-desktop-remote-alpha7 / codex/windows-alpha7，保留原开发与现用安装。
 - 根因在GUI忽略配对返回和status中的lastError，核心并非没有记录网络失败。新增固定文案status_message复用两个显示入口；安全退出保护优先，网络错误有核对项及原申请保留说明，后续成功清除错误，unknown exception/lastError不泄露正文。补固定输入/响应错误白名单，不改Controller、重发/取消策略或DPAPI数据。
