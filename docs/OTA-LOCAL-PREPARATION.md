@@ -67,6 +67,6 @@ FRPS工具来自[官方v0.71.0发布](https://github.com/fatedier/frp/releases/t
 - 新部署单元、FRPS0.71.0配置、容器实际证书挂载、续证事件和云安全组尚未在目标环境验收。不能将模板解析或本地合成验证当作部署成功。
 - 首装运行时、干净电脑安装、真实DPAPI身份保持和手机↔Desktop同任务接续，仍按[三端验收](OTA-ACCEPTANCE.md)单独执行。
 
-以后用户决定开始受控签名时，再核对本地提交/CI与[部署审查](OTA-DEPLOYMENT-REVIEW.md)，固定HTTPS origin、RSA公钥和连续APK证书，完成首装构件后审查具体公网变更。当前发布器仍读取仓库外无口令PEM；DPAPI发行密钥的受控解封接口尚未实现，不能把加密blob直接交给`--private-key`，也不能把临时明文当作已经加密保管。不要为了继续而绕过main-only构建约束或使用临时debug签名。
+以后用户决定开始受控签名时，再核对本地提交/CI与[部署审查](OTA-DEPLOYMENT-REVIEW.md)，固定HTTPS origin、RSA公钥和连续APK证书，完成首装构件后审查具体公网变更。后续签名工具增量已新增`--signing-home`内存解封入口，使用说明与尚未完成的密钥备份边界见[发行说明](OTA-PUBLISH.md#windows发行密钥与受控android构建)。旧`--private-key`仍读取外部PEM，不能把DPAPI blob直接传给它。不要为了继续而绕过main-only构建约束或使用临时debug签名。
 
 连续APK签名的理由与证书要求见[Android官方签名说明](https://developer.android.com/studio/publish/app-signing)。密钥、密码和实际账号信息不进入本文或Git。

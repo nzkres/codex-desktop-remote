@@ -48,7 +48,7 @@ Windows/手机只能把新地址用于新隔离安装；不能把现用账号 to
 
 ## 签名和执行顺序
 
-1. 先确定入口与密钥保管。建议本机受控目录保存专用 RSA 发布密钥和 Android 连续签名证书，并做独立加密备份；Android CI 仅通过仓库 Secrets 注入证书/口令/trust，RSA 私钥不上传中继。现有发布器读取受控 PEM，并未实现 DPAPI 密钥库，不能声称已经加密保管或备份。尚未创建本项目发行密钥或配置签名 Secrets。
+1. 先确定入口与密钥保管。建议本机受控目录保存专用 RSA 发布密钥和 Android 连续签名证书，并做独立加密备份；Android CI 仅通过仓库 Secrets 注入证书/口令/trust，RSA 私钥不上传中继。发布器已新增Windows DPAPI RSA库与内存解封入口，外部PEM入口仍保留，详见[发行工具](OTA-PUBLISH.md#windows发行密钥与受控android构建)。目前只有临时合成密钥验证，跨电脑备份/恢复尚未实现或验收；没有创建本项目发行密钥或配置签名Secrets。
 2. 复核并批准合并 [PR #1](https://github.com/nzkres/codex-desktop-remote/pull/1)。受控 Android 工作流要求 main；不绕过该限制。私有 alpha.4 归档保留不变。准备新的 alpha.5 受控首装包与 alpha.6 在线候选，分别完整核验提交、catalog、APK证书、签名、大小/哈希和有效期。
 3. 提交最终安装清单后批准实际部署：仅创建上述新资源；云安全组和 UFW 仅增加 TCP9443/17443（先核对来源限制可行性）。新版本目录/账号/库都由首次 bootstrap/configure 创建，不从旧库恢复，不挪用旧 FRP token。先内网验证、再开放新入口。
 4. 在新服务 UID 下验证真实 cgroup 归属、控制 socket、候选树清理/回退、持久重启与保护标志。验证证书续期钩子只影响新容器，再通过正常校验的外部 HTTPS 检查匿名拒绝、账号允许三组件、设备仅Windows、暂停/撤销拒绝新请求和跨源不转发凭据。

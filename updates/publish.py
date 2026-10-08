@@ -174,16 +174,19 @@ def _notes(release):
     return notes
 
 
-def sign(component, artifact, output, *, private_key, key_id, source, url, sequence,
+def sign(component, artifact, output, *, private_key=None, signing_home=None, key_id, source, url, sequence,
          channel="test", issued_at=None, expires_at=None, apk_version_code=None,
          apk_package_id=None, min_sdk=None, apk_verified=False, root=ROOT):
     """Sign metadata for a previously built artifact; never build or deploy it."""
     root, artifact, output = Path(root).resolve(), _safe_local(artifact), _safe_local(output)
-    key_path = _safe_local(private_key)
-    if not Path(private_key).is_absolute() or not key_path.is_file():
-        _fail("external_private_key_required")
-    if key_path.resolve(strict=True).is_relative_to(root):
-        _fail("external_private_key_required")
+    if (private_key is None) == (signing_home is None):
+        _fail("one_publisher_key_source_required")
+    if private_key is not None:
+        key_path = _safe_local(private_key)
+        if not Path(private_key).is_absolute() or not key_path.is_file():
+            _fail("external_private_key_required")
+        if key_path.resolve(strict=True).is_relative_to(root):
+            _fail("external_private_key_required")
     if (component not in TARGETS or not artifact.is_file() or artifact.is_symlink()
             or not output.parent.is_dir() or output.exists() or output.is_symlink()):
         _fail("invalid_publish_path")
@@ -229,7 +232,11 @@ def sign(component, artifact, output, *, private_key, key_id, source, url, seque
         with tempfile.TemporaryDirectory(prefix="ota-sign-") as directory:
             unpack(artifact, Path(directory) / "package", payload)
     try:
-        key = serialization.load_pem_private_key(key_path.read_bytes(), password=None)
+        if signing_home is not None:
+            from updates.signing import load_key
+            key = load_key(signing_home, key_id=key_id, root=root)
+        else:
+            key = serialization.load_pem_private_key(key_path.read_bytes(), password=None)
         if not isinstance(key, rsa.RSAPrivateKey) or key.key_size < 3072:
             _fail("invalid_publisher_key")
     except UpdateError:
@@ -260,8 +267,11 @@ def main(argv=None):
     package.add_argument("--output", type=Path, required=True)
     publisher = commands.add_parser("sign", help="Sign metadata for an existing ZIP or checked APK")
     publisher.add_argument("component", choices=tuple(TARGETS))
-    for option in ("artifact", "output", "private-key"):
+    for option in ("artifact", "output"):
         publisher.add_argument("--" + option, type=Path, required=True)
+    key_source = publisher.add_mutually_exclusive_group(required=True)
+    key_source.add_argument("--private-key", type=Path, help="External controlled PEM (legacy/offline tooling)")
+    key_source.add_argument("--signing-home", type=Path, help="External Windows CurrentUser-DPAPI publisher vault")
     for option in ("key-id", "source", "url"):
         publisher.add_argument("--" + option, required=True)
     publisher.add_argument("--sequence", type=int, required=True)
@@ -278,6 +288,7 @@ def main(argv=None):
             pack(args.component, args.output)
         else:
             sign(args.component, args.artifact, args.output, private_key=args.private_key,
+                 signing_home=args.signing_home,
                  key_id=args.key_id, source=args.source, url=args.url, sequence=args.sequence,
                  channel=args.channel, issued_at=args.issued_at, expires_at=args.expires_at,
                  apk_version_code=args.apk_version_code, apk_package_id=args.apk_package_id,

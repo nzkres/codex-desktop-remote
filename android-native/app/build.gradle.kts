@@ -67,6 +67,7 @@ android {
             require(keyFile.isFile && !keyFile.canonicalFile.toPath()
                 .startsWith(rootProject.projectDir.canonicalFile.toPath())) { "android_signing_keystore_must_be_external" }
             storeFile = keyFile
+            storeType = "PKCS12"
             storePassword = signingValues[1]
             keyAlias = signingValues[2]
             keyPassword = signingValues[3]

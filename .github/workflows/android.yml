@@ -7,6 +7,7 @@ on:
       - 'third-party/licenses/**'
       - 'scripts/check_versions.py'
       - 'scripts/check_android_apk.py'
+      - 'scripts/check_android_trust.py'
       - '.github/workflows/android.yml'
   pull_request:
     paths:
@@ -14,6 +15,7 @@ on:
       - 'third-party/licenses/**'
       - 'scripts/check_versions.py'
       - 'scripts/check_android_apk.py'
+      - 'scripts/check_android_trust.py'
       - '.github/workflows/android.yml'
   workflow_dispatch:
     inputs:
@@ -47,6 +49,9 @@ jobs:
       - name: Install Android SDK 36
         run: sdkmanager 'platforms;android-36' 'build-tools;36.0.0'
       - uses: gradle/actions/setup-gradle@v4
+      - name: Install controlled-signing verification dependency
+        if: github.event_name == 'workflow_dispatch' && inputs.signed_ota
+        run: python -m pip install -r updates/requirements.txt
       - name: Prepare externally provisioned OTA trust and signer
         if: github.event_name == 'workflow_dispatch' && inputs.signed_ota
         env:
@@ -76,22 +81,14 @@ jobs:
           private_dir=$(mktemp -d "$RUNNER_TEMP/android-ota.XXXXXX")
           trust_file="$private_dir/update-trust.json"
           keystore_file="$private_dir/signing.p12"
-          printf '%s' "$UPDATE_TRUST_JSON" > "$trust_file"
-          printf '%s' "$SIGNING_KEYSTORE_BASE64" | base64 --decode > "$keystore_file"
-          python - "$trust_file" <<'PY'
-          import json, pathlib, sys
-          value = json.loads(pathlib.Path(sys.argv[1]).read_text(encoding='utf-8'))
-          if (set(value) != {'schema','product','channel','keys','sources'}
-                  or value['schema'] != 1 or value['product'] != 'codex-desktop-remote'
-                  or value['channel'] != 'test' or not isinstance(value['keys'], dict)
-                  or not value['keys'] or not isinstance(value['sources'], dict)
-                  or not value['sources'].get('android')):
-              raise SystemExit('Controlled OTA trust document is incomplete.')
-          PY
+          # Register cleanup paths even if decoding or preflight subsequently fails.
           {
             echo "DESKTOP_REMOTE_ANDROID_UPDATE_TRUST=$trust_file"
             echo "DESKTOP_REMOTE_ANDROID_KEYSTORE=$keystore_file"
           } >> "$GITHUB_ENV"
+          printf '%s' "$UPDATE_TRUST_JSON" > "$trust_file"
+          printf '%s' "$SIGNING_KEYSTORE_BASE64" | base64 --decode > "$keystore_file"
+          python -B -m scripts.check_android_trust --trust "$trust_file"
       # Branch/PR output has empty OTA trust and an ephemeral debug signer; it is never a production OTA artifact.
       - name: Unit tests, lint, and untrusted debug APKs
         if: github.event_name != 'workflow_dispatch' || !inputs.signed_ota
@@ -125,6 +122,9 @@ jobs:
               raise SystemExit('Controlled APK signing verification failed.')
           print('Controlled APK signing certificate verified.')
           PY
+      - name: Verify approved trust bytes inside controlled APK
+        if: github.event_name == 'workflow_dispatch' && inputs.signed_ota
+        run: python -B -m scripts.check_android_trust --trust "$DESKTOP_REMOTE_ANDROID_UPDATE_TRUST" --apk android-native/app/build/outputs/apk/debug/app-debug.apk
       - name: Save untrusted debug APK and reports
         if: always() && (github.event_name != 'workflow_dispatch' || !inputs.signed_ota)
         uses: actions/upload-artifact@v4

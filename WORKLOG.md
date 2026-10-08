@@ -1,5 +1,13 @@
 # 工作记录
 
+## 2026-10-08 — 受控首装签名工具准备
+
+- 用户要求继续下一阶段。只读核对PR #1仍OPEN/head aa757cf、main b7db21e、仓库Secrets列表为空；上一轮明确的暂缓合并/真实签名边界尚未按具体执行清单解除。先补实际签名工具，不触碰服务或真实身份。
+- 主代理实现`updates.signing`：新建仓库外专用目录、CurrentUser DPAPI RSA3072、仅加密私钥与公钥记录落盘；load核对keyId、公钥、DER摘要及文件类型/链接/大小，失败保留现场。`updates.publish sign --signing-home`仅内存解封，和原外部PEM二选一；没有自动落明文降级。工具不随三端运行包分发。
+- GPT-6 Sol medium负责签名库测试及Android trust预检工具，主代理验收并接入CI。复核发现Python可解析PKCS#1而手机要求SPKI，补规范SPKI及拼接/尾随拒绝回归；Android构建前验证RSA3072和准确test/android源，构建后比对APK内trust原始字节。Gradle明确PKCS12，保留main-only和apksigner单签名者/指纹校验。
+- 本机最终测试：固定Node20.19 `--test` 33/33；Python3.12 `-B -m unittest discover -s test -p 'test_*.py' -q` 共119项，113通过/6跳过；relay相同入口共77项，73通过/4跳过；版本校验和diff检查通过。DPAPI沙箱定向初测不具备正常用户保护上下文，获准在本机合成范围运行后签名/验签通过；未放宽DPAPI或改为机器作用域。
+- 当前仅发行工具/构建门禁变化；三端版本保留alpha.4，不替换已发布包，不将普通PR调试构建当受控首装。已更新发行说明与准确执行范围；跨电脑密钥备份/恢复、真实密钥和六项Secrets仍未完成。CI待推送后单独记录。
+
 ## 2026-10-08 — 本地准备推送与三平台 CI 验收
 
 - 用户继续推进；保持“暂不合并或配置签名”的最新边界。先核对远端PR #1为OPEN，分支head为3277a8a，本机工作区干净且仅领先be5a01c；执行`git push origin codex/ota-implementation`成功，无force、无main改动。

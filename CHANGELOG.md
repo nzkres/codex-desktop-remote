@@ -4,6 +4,8 @@
 
 ## 0.1.0-alpha.4 — 私有 OTA 下载鉴权 — 2026-10-08
 
+发行工具维护：新增Windows DPAPI RSA密钥库与`--signing-home`内存签名；Android受控构建严格核对公钥/私有更新路径及APK实际嵌入的trust，明确PKCS12格式。临时密钥回归通过；没有生成本项目真实签名或受控首装包。三端版本和已发布alpha.4资产保持原样，后续实际首装使用新版本。
+
 验证记录更新：本地准备提交`be5a01c`已推送，Windows/Linux核心CI及Android CI全部成功；新增发布路径与续证钩子回归、实际进程升级/回退证据见[本次CI记录](docs/OTA-LOCAL-PREPARATION.md#推送与-ci-验证2026-10-08)。仅更新开发分支与证据，不更改三端版本或alpha.4资产；签名首装、部署和真实OTA仍待执行。
 
 本地发行准备：新增隔离 systemd/FRPS/Caddy/续证钩子草稿；发行工具签名前强制校验私有组件目录、渠道、版本文件名和扩展名，防止已签地址在服务器返回404。补拒绝回归和规范夹具，Windows真实GUI/helper及WSL非root cgroup升级/回退通过；验证边界见[本地准备记录](docs/OTA-LOCAL-PREPARATION.md)。发行工具和部署草稿不随三端应用包分发，本次不更改三端版本、不重发alpha.4。按用户最新要求暂不合并或配置真实签名，不部署。
