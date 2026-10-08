@@ -24,7 +24,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 from updates import bootstrap, publish
-from updates.processes import OwnedChild
+from updates.processes import OwnedChild, PinnedProcess
 from updates.storage import read
 
 
@@ -48,6 +48,7 @@ from updates.storage import lock
 from updates.security import UpdateError
 from update_driver import controller_for
 from update_ui import handoff
+from updates.processes import PinnedProcess
 from gui import _Window
 
 def local_fetch(source, context=None):
@@ -84,8 +85,15 @@ def begin():
         stage = 'handoff'
         mark(stage)
         handoff(home)
+        # Pin the exact helper created by handoff while its original Popen is
+        # still held by this GUI. Keep the GUI alive until the parent confirms
+        # it has independently pinned that same process.
+        with PinnedProcess({'pid': handoff.helper.pid}, current=True) as helper:
+            print(json.dumps({'schema':1,'handoff':True,'helperOwner':helper.identity}),flush=True)
+        acknowledgement = json.loads(sys.stdin.buffer.readline(4097))
+        if acknowledgement != {'schema':1,'helperPinned':True}:
+            raise RuntimeError('helper_pin_unconfirmed')
         mark('handoff_complete')
-        print(json.dumps({'schema':1,'handoff':True}),flush=True)
     except Exception as error:
         code = error.code if isinstance(error, UpdateError) and isinstance(error.code, str) and re.fullmatch(r'[a-z0-9_]{1,80}', error.code) else 'smoke_operation_failed'
         if stage == 'handoff' and code == 'update_handoff_unverified':
@@ -179,6 +187,7 @@ def _run_case(base, bad_candidate=False):
     gui_python = pythonw if pythonw.is_file() else python
     old = OwnedChild([gui_python, "-B", wrapper, home, candidate_metadata,
                       candidate_archive, home / old_pointer["path"]], cwd=base)
+    helper_pin = None
     try:
         try:
             message = old.read(timeout=40)
@@ -191,13 +200,17 @@ def _run_case(base, bad_candidate=False):
             from updates.security import UpdateError
             code = failure.code if isinstance(failure, UpdateError) else 'fixture_response_failed'
             raise RuntimeError('gui_response_unverified:' + stage + ':' + code) from None
-        if message != {"schema": 1, "handoff": True}:
+        if (not isinstance(message, dict) or message.get("schema") != 1
+                or message.get("handoff") is not True
+                or not isinstance(message.get("helperOwner"), dict)):
             if (isinstance(message, dict) and message.get("schema") == 1
                     and message.get("handoff") is False
                     and message.get("stage") in ("startup", "check", "stage", "handoff")
                     and isinstance(message.get("code"), str)):
                 raise RuntimeError("gui_handoff_unverified:" + message["stage"] + ":" + message["code"])
             raise RuntimeError("gui_handoff_unverified:invalid_response")
+        helper_pin = PinnedProcess(message["helperOwner"])
+        old.write({"schema": 1, "helperPinned": True})
         old.wait(timeout=30)
         expected_phase = "rolled_back" if bad_candidate else "committed"
         deadline = time.monotonic() + 150
@@ -217,6 +230,10 @@ def _run_case(base, bad_candidate=False):
         if journal["phase"] != expected_phase:
             raise RuntimeError("unexpected_transaction_phase:" + journal["phase"] +
                                ":" + journal.get('cause', 'unavailable'))
+        # Terminal journal can precede helper-result.json and the helper's
+        # final file close. Wait on the originally pinned helper handle before
+        # considering TemporaryDirectory eligible for cleanup.
+        helper_pin.wait(timeout=30)
         current = read(home / "current.json")
         expected_version = "0.0.1" if bad_candidate else "0.0.2"
         if current["version"] != expected_version:
@@ -239,9 +256,13 @@ def _run_case(base, bad_candidate=False):
         return {"phase": journal["phase"], "version": current["version"],
                 "pythonw": gui_python == pythonw}
     finally:
-        old.stop_tree(timeout=15)
-        if not old.tree_stopped or old.group.handle is not None:
-            raise RuntimeError("fixture_job_cleanup_unconfirmed")
+        try:
+            old.stop_tree(timeout=15)
+            if not old.tree_stopped or old.group.handle is not None:
+                raise RuntimeError("fixture_job_cleanup_unconfirmed")
+        finally:
+            if helper_pin is not None:
+                helper_pin.close()
         # Windows can retain a just-exited process's file handle briefly even
         # after the original Job reports zero active processes. The bounded
         # unlink proves this exact temporary lease is no longer held.

@@ -8,6 +8,9 @@
 - 命令：固定 Node20.19 `--test`45/45；Python3.12 `-B -m unittest discover -s test -p 'test_*.py' -q`124项中118通过/6跳过。Node初次沙箱子进程遇用户目录EPERM，正常用户上下文重跑同一套通过；不是产品错误，也未放宽产品检查。
 - 忽略目录中的只读诊断使用新源码 Follower/Service/手机协议，限制只能加载历史；原摘要仍不同、别名比较通过、两条精确回复都在同一 mobile-sync 数据中、更新状态 idle/permissionsVerified/receiptsCertain通过。current/install/trust/ledger/fixture/加密身份/回执逐文件摘要前后相同，模型输入0。报告 reviewer-alias-source-verification.json；诊断脚本首轮语法错误未执行任何读取动作，修正后通过。
 - 当前运行的仍是原签名 alpha.5；新版代码验证不代表手机已恢复。旧版更新预检和回退健康也会因同一缺陷拒绝，维护切换须先有完整审查与安全停点，不能强改权限摘要或绕过预检。CI、签名/安装与实际手机重试结果后续单独记录。
+- 修复提交67302e7已推送到原独立分支和草稿PR #2，未合并main。Core push37756849170的Windows/Linux全部通过并产出包；但同提交PR37756853884的Windows GUI演练在两种事务通过后清理临时目录失败，WinError32指向 `.update-*`。检查发现终态journal可早于独立helper收尾写入完成，测试不应立即终止其Job；本次失败保留，不仅采用另一组绿色结果。
+- 下载push两平台源码包并用updates.security解包/清单/SHA核验，逐文件对比Git67302e7原字节。Linux产Windows alpha.6 ZIP为92767字节、SHA256 d0d32f2b6f062f0252411dcc34c763793d2feeb9199ab2fd62f57d9372e11f3d，43文件完全相同；Windows checkout仅两项TXT换行不同。均未签名、安装或上传feed；CI重打的relay alpha.5 ZIP仅作验证，不能替换已发同版本旧包。
+- GPT-6 Sol medium仅修scripts/windows_ota_smoke.py，主代理验收：旧合成GUI交接后提供自有helper身份；父测试先固定该进程原始句柄并回ACK，旧GUI才正常退出；终态journal后再wait同一helper退出，才清理原合成Job与临时目录。没有扩大删除重试或吞掉异常，没有改产品进程/版本。实际 `python -B scripts/windows_ota_smoke.py` 两例各一次：committed0.0.2、坏候选rolled_back0.0.1，退出码0；新CI仍待复验。
 
 ## 2026-10-08 — 错误端口导致配对申请未送达，准备全新重试安装
 
