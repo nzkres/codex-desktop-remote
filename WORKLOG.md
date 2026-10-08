@@ -1,5 +1,17 @@
 # 工作记录
 
+## 2026-10-08 — 主电脑 alpha.5 全新安装、任务恢复与图形启动
+
+- 在预先确认不存在的 `%LOCALAPPDATA%\CodexDesktopRemoteTest` 使用原始签名 alpha.5/bootstrap 完成全新安装与账本校验。读取旧专用测试配置仅限任务 UUID/项目路径/Desktop 路径等白名单；重新创建新配置与独立端口，未复制旧身份或旧配置文件。
+- Python3.12.14/Tk8.6/cryptography50.0.1、Node20.19.0、FRP0.71.0 和 Desktop26.930.7945.0 两项固定文件指纹通过。只读 CIM 进一步确认当前主进程是该包内 ChatGPT.exe，不读取进程命令行。
+- 安装槽 `scripts/configure.py --home ...` 保留新配置并报 `desktop_fixture_unverified_config_retained`。直接运行同槽 `scripts/probe.mjs` 得到 `owner_unavailable`，模型输入0；用户表示已打开原测试任务后仍失败。结构化只读 IPC 诊断握手成功、owner discovery 约17ms远端no-handler，应用查询准确UUID为notLoaded；没有改协议、另建执行器或删除现场。
+- 请用户在原任务手动发送 `OTA_ALPHA5_READY` 的无工具测试提示，等执行端恢复后只重跑 probe；不能重复配置、代发或重放未知操作。连接器尚未启动、未配对，手机受控APK首装结果待用户回复。
+- 新隔离测试账号仅经进程内存转入本机CurrentUser DPAPI及CurrentUser/SYSTEM私有operator目录；无明文文件、秘密命令行或聊天输出。独立本机账号显示窗口已启动，按需45秒显示口令；是维护辅助工具，不是签名产品功能。旧账号、签名库、服务和真实身份未迁移。
+- GPT-6 Sol medium核对历史说明，主代理保留失败证据并新增 `docs/OTA-DEVICE-BASELINE-20261008.md`。本轮仅安装/诊断/文档，无产品修改、换包或新版本，未把旧CI成功当作实机联调通过。
+- 后续用户确认收到OTA_ALPHA5_READY，应用读取相同UUID最新回合completed且内容吻合、线程idle；安装槽probe passed/httpHistoryVerified=true/modelTurnsStarted=0，update_probe的idle/permissionsVerified/receiptsCertain均true。
+- 首次启动真实图形入口后用户看到错误；启动预检定位`managed_data_directory_required`。原因是AppX重定向：configure写物理home，启动器传逻辑home，词法包含检查拒绝。同一安装六文件samefile、拒链接、全槽签名清单及unpaired状态核对后，改为从物理home调用原Start.pyw，未改槽或配置。实际自有子进程显示alpha.5窗口标题且窗口句柄非0，stderr0。GPT-6 Sol medium复核根因与现有smoke覆盖缺口，后续alpha.6候选需统一规范home并补回归；当前不重签换包。
+- 用户报告手机alpha.5已安装并停在登录页；已给出新服务器登录与新身份配对步骤，等待用户完成。未取得手机任务或OTA成功证据。维护命令与两次失败现场、恢复边界见设备基线记录。
+
 ## 2026-10-08 — 云端放行后公网私有源与FRP验收通过
 
 - 用户亲自放行9443/17443并回复完成。主电脑以正常系统TLS验证访问新origin，六项metadata/包匿名401；新测试账号登录后使用产品updates.security.fetch/download/verify实际下载三端alpha.5包，RSA/大小/SHA全部与发布一致，跨origin在生成鉴权头前拒绝。退出登录后旧token401，17443TCP连通。没有打印口令/token或将其放入参数。

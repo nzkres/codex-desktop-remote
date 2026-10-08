@@ -1,4 +1,8 @@
-# 当前验证状态：alpha.5 隔离服务与公网私有源验收通过
+# 当前验证状态：alpha.5 电脑窗口已启动，等待手机登录配对
+
+2026-10-08 实机阶段增量：主电脑已全新安装原始签名 alpha.5，实际 Desktop 26.930.7945.0 与固定指纹、Python/Node/FRP 依赖通过。原任务起初无执行端；用户手动完成 `OTA_ALPHA5_READY` 后，同 UUID 实时历史、权限、空闲及回执确定性探针全部通过。Windows 图形窗口已实际打开；发现 AppX 重定向导致逻辑/物理 home 不一致，核对同文件与全槽后以物理路径启动原包，未放宽保护。用户报告手机 APK 已安装、停在登录页，当前等待登录配对。详见[设备基线记录与启动缺陷](docs/OTA-DEVICE-BASELINE-20261008.md)。旧身份、Gateway/FRP 和服务保持原样；新手机任务闭环与 alpha.6 OTA 尚未完成。
+
+## 隔离部署阶段验收记录
 
 用户已批准在106.53.126.69新建隔离用户/目录/数据库，部署alpha.5中继、FRPS、HTTPS与私有OTA源，开放TCP9443/17443并验证续证/鉴权/回退。**不含手机安装、真实身份迁移或停止现用服务。** 下方“暂不部署”是先前阶段的历史限制，已由本次具体授权解除。
 
@@ -15,11 +19,11 @@
 | 本轮CI | b107726的Core push37744798752/PR37744901531 Windows/Linux成功，含真实GUI/helper和cgroup升级/回退；三端原包不变 |
 | 尚未完成 | 手机首装、真实Windows接入、真实三端alpha.5→alpha.6、证书实际轮换和独立签名密钥恢复 |
 
-详细资源、命令、故障修正、保护和下一接手点见[隔离部署记录](docs/OTA-ISOLATED-DEPLOYMENT-20261008.md)。程序仍是已发布的alpha.5原包，alpha.6尚未构建；本轮仅变更部署配置和记录。下一步是用户手机首装、全新Windows测试身份及原生同任务N基线；本轮未执行这些实机操作。
+详细资源、命令、故障修正和保护见[隔离部署记录](docs/OTA-ISOLATED-DEPLOYMENT-20261008.md)。这张表记录隔离部署阶段完成时的证据；后续主电脑安装和任务探针停点以本页顶部及[设备基线记录](docs/OTA-DEVICE-BASELINE-20261008.md)为准。程序仍是已发布的alpha.5原包，alpha.6尚未构建。
 
-## alpha.5 受控构建与发布基线
+## alpha.5 受控构建与发布基线（发布时历史快照）
 
-用户已明确批准：合并PR #1，固定测试origin `https://106.53.126.69:9443`，创建本项目专用RSA/APK测试签名并加密保存，配置本私有仓库六项Android Secrets，构建并验证alpha.5首装包。**不包含公网部署、停止现用服务、真实身份迁移或手机安装。** PR #1已合并为`1e405ad`；受控构件输入为`1a4b4c0ced91d1a384e723374a6141d84e43de9e`，经分支CI通过后main非强制快进到同一提交。
+以下记录 alpha.5 发布时的授权和构件证据，不代表当前部署状态；最新隔离服务、公网验收与实机待测项以本页顶部为准。当时用户已明确批准：合并PR #1，固定测试origin `https://106.53.126.69:9443`，创建本项目专用RSA/APK测试签名并加密保存，配置本私有仓库六项Android Secrets，构建并验证alpha.5首装包。**当时授权不包含隔离服务器部署、停止现用服务、真实身份迁移或手机安装；隔离部署后来另获批准并已完成。** PR #1已合并为`1e405ad`；受控构件输入为`1a4b4c0ced91d1a384e723374a6141d84e43de9e`，经分支CI通过后main非强制快进到同一提交。
 
 签名工具提交`755fe14`的Core [push37734382112](https://github.com/nzkres/codex-desktop-remote/actions/runs/37734382112) / [PR37734386777](https://github.com/nzkres/codex-desktop-remote/actions/runs/37734386777) Windows/Linux，以及Android [push37734382114](https://github.com/nzkres/codex-desktop-remote/actions/runs/37734382114) / [PR37734386832](https://github.com/nzkres/codex-desktop-remote/actions/runs/37734386832)均通过。主Python119项：Windows113通过/6跳过、Linux101通过/18跳过；Android的普通PR构建未执行真实受控签名步骤。
 
@@ -27,7 +31,7 @@
 
 公开签名标识：keyId `cdr-ota-test-20261008-v1`；RSA SPKI SHA-256 `c3835e3e59b362e0b356d3a7b3589c255187ddce34692167f5160b0e5f5e3a4d`；APK证书SHA-256 `ffcb12d413ee58613576b7914350ad4df887bf29d50d97f2b20c4e17dcebcf1a`；Android trust文件SHA-256 `e271d06db56cc508b27911c7f37a30e0ffe6671d0c9b6bce46718c061aa67134`。只记录公开指纹，不记录私钥、口令或Secrets值。签名材料的独立备份/跨电脑恢复尚未验收。
 
-| 层次 | alpha.5 当前证据 |
+| 层次 | alpha.5 发布时证据 |
 | --- | --- |
 | 核心 CI | [分支37736389583](https://github.com/nzkres/codex-desktop-remote/actions/runs/37736389583)与[main37736836192](https://github.com/nzkres/codex-desktop-remote/actions/runs/37736836192)成功。Node Windows33通过、Linux31通过/2跳过；Python124项：Windows118通过/6跳过、Linux104通过/20跳过；relay77项：Windows73通过/4跳过、Linux77通过；续证钩子Linux3通过、Windows3跳过 |
 | 隔离运行事务 CI | 真实Windows GUI/pythonw独立helper升级0.0.2及坏候选回退0.0.1；Linux委派cgroup服务升级0.0.2、坏候选回退0.0.2及4棵自有树清理通过。合成数据/探针，不等于真实Desktop任务验收 |
@@ -36,8 +40,8 @@
 | 源码运行包 | 使用Linux CI构件：Windows43/relay29源码文件、完整manifest、逐文件SHA与Git `1a4b4c0`原始字节全部一致；没有运行时或发行私钥 |
 | 已签首装资料 | 三组件test元数据均使用专用RSA签名并复验，sequence=1；`bootstrap-0.1.0-alpha.5.zip`含各组件`trust.json`/`latest.json`及README。有效至2026-10-15 06:33:03 UTC（北京时间14:33:03）；过期需新序号重新签发相同包，不能关闭验证 |
 | 实际临时首装 | Windows Python3.12.14、WSL Linux Python3.14.4新临时home：实际alpha.5签名/清单/ledger/current通过；重复安装拒绝且原文件未变。未配置账号/任务、未启动运行服务；WSL不是目标服务器Python3.12验收 |
-| 私有归档 | [v0.1.0-alpha.5](https://github.com/nzkres/codex-desktop-remote/releases/tag/v0.1.0-alpha.5)已发布为私有prerelease，7个附件全部uploaded，服务端大小/SHA与本地一致；标签输入1a4b4c0。GitHub归档不是已部署的私有HTTPS更新源 |
-| 尚未执行 | 公网源部署、手机首装、真实Windows连接/身份迁移、真实三端alpha.5→alpha.6与失败演练。没有EXE安装器或托盘，Windows/relay仍需外部依赖；独立密钥恢复未验收 |
+| 私有归档 | [v0.1.0-alpha.5](https://github.com/nzkres/codex-desktop-remote/releases/tag/v0.1.0-alpha.5)已发布为私有prerelease，7个附件全部uploaded，服务端大小/SHA与本地一致；标签输入1a4b4c0。GitHub归档不能替代私有HTTPS更新源；后续隔离源部署证据见本页顶部 |
+| 发布时尚未执行 | 当时尚未部署公网源，也未做手机首装、真实Windows连接/身份迁移、真实三端alpha.5→alpha.6与失败演练；后续隔离源已部署并完成公网合成验收。没有EXE安装器或托盘，Windows/relay仍需外部依赖；独立密钥恢复未验收 |
 
 | alpha.5 程序包 | 字节数 | SHA-256 |
 | --- | ---: | --- |
@@ -45,7 +49,7 @@
 | windows-0.1.0-alpha.5.zip | 92,070 | `572c81a414b14f920c48e01007b85f73e29403e75ab25b97fdedcd7d95b1bb17` |
 | relay-0.1.0-alpha.5.zip | 74,465 | `21b970e91df34bac9e74737b749f082cfacc379771db6e15d9d8caefc7795fe0` |
 
-下一阶段按[部署审查](docs/OTA-DEPLOYMENT-REVIEW.md)重新核对现场与短期TLS证书，确认具体公网部署后才建立隔离环境。alpha.6尚未构建；先完成真实N基线，再逐组件升级。安装输入与步骤见[安装起点](docs/install/README.md)。
+发布时的下一步曾是按[部署审查](docs/OTA-DEPLOYMENT-REVIEW.md)核对现场并另行确认隔离部署；该步骤后来已获批准并完成服务器及主电脑公网合成验收，见本页顶部和[隔离部署记录](docs/OTA-ISOLATED-DEPLOYMENT-20261008.md)。alpha.6尚未构建；真实N基线仍须另行验收后才逐组件升级。安装输入与步骤见[安装起点](docs/install/README.md)。
 
 ## alpha.4 与签名工具的阶段归档
 
