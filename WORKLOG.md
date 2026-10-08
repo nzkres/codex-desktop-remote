@@ -1,5 +1,14 @@
 # 工作记录
 
+## 2026-10-08 — 已批准的 Windows alpha.7 私有源发布
+
+- 用户明确回复“批准发布 Windows 私有更新源”；本轮不执行当前电脑安装、手机/relay升级或服务停止。最初正常SSH执行自动审批两次超时，受限环境被拒；随后取得本轮网络及SSH目录只读权限，正常用户上下文成功连接，StrictHostKeyChecking保持，无跳过指纹、无私钥打印/复制。此执行权限问题已解决。
+- 原目录cdrtest/0700，latest cdrtest/0600；只读签名/包核对原源alpha.5 seq1，metadata SHA `c67f65f67a32b42a4e1c8ea5444146aaa3d97159bedf130ba9dd0d8e8f020db2`。记录Android/relay全部feed摘要、relay current、旧Caddy配置和测试relay/FRPS原进程身份。GPT-6 Sol medium只读审查发布助手，指出root导入源码/审计目录权限必须先证实；根代理补所有相关祖先/root源码树root-owned且不可由group/other写的断言，并用Python -B -I执行，复验通过。
+- 命令入口均为忽略目录一次性本机助手：`python -B artifacts/alpha7-preparation-20261008/publish-feed.local.py inspect`（只读）；`verify-feed-https.local.py before`使用产品for_installation遭`identity_or_runtime_requires_review`拒绝。源码确认连接运行期保留此保护，未绕过或删除、未断开连接。改为已有隔离测试账号临时会话：`verify-feed-https.local.py before --account`通过，凭据只在内存；只注销本次会话、不影响手机会话。
+- 执行`publish-feed.local.py publish`成功：原包95,085字节/固定SHA及原metadata签名复验、磁盘检查、root-only审计、独占发布锁、旧完整快照比较、独立暂存和43文件校验；新ZIP无覆盖落位、再次核对旧索引原字节后原子替换latest并fsync。仅Windows seq1→3，旧alpha.5包保留，其他feed/relay当前槽/旧Caddy/服务进程均未变。发布者私钥未上传，源包未重新构建。
+- 独立`publish-feed.local.py verify-server`只读复验通过；`verify-feed-https.local.py after --account`从主电脑公网正常TLS下载alpha.7，metadata/ZIP匿名401，原信任/兼容档/seq3/95,085字节/SHA `91676bd9b0e1526c5808fb6a8d8156c2511f38ea4f306b1069d20d95d0412266`及43文件清单全部通过，临时会话注销后拒绝。客户端install/current/trust/ledger/transaction前后原字节相同，仍alpha.6/ledger2，未调用engine check/stage/apply。
+- 服务器root-only审计`/opt/codex-desktop-remote-test/operator/windows-alpha7-feed-20261008/`保留旧新索引、固定ZIP、前后报告；本机final/feed-{preflight,published,server-verification,https-after}.json脱敏报告保留在忽略目录。本轮只更新仓库发布/安装/交接证据，不改软件版本或重跑不相关产品测试；检查版本文档与diff。下一步安排用户正常断开后的真实设备下载、alpha.6→7 GUI安装及同任务验证，未将账号下载冒充设备OTA。
+
 ## 2026-10-08 — alpha.7 配对错误提示与 Windows 在线 OTA 准备
 
 - 最终代码`c20c2036e6319f9dca1ef108f7e8830f893c7f89`的Core push37781824455/PR37781829558均Windows/Linux成功，Windows六种维护与HTTPS GUI提交/健康回退均通过。日志核对Windows Node64、Python146通过/6跳过、relay73通过/4跳过；Linux Node62通过/2跳过、Python132通过/20跳过、relay77通过、deploy3通过。根代理额外完整Python152项146通过/6跳过，耗时122.354s。原生GUI、Linux cgroup演练均成功。

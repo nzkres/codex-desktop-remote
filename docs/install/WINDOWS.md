@@ -6,7 +6,7 @@
 
 **当前测试边界：** alpha.6 已通过限定维护路径安装，`guardian_subagent`/`auto_review` 别名造成的手机权限误报在同一任务接续后恢复；这条维护路径不是普通 GUI OTA，历史故障与保护见[设备基线记录](../OTA-DEVICE-BASELINE-20261008.md)和[维护说明](../WINDOWS-ALPHA5-MAINTENANCE.md)。alpha.7 已实现连接窗口的配对失败提示修正：提交结果或重开状态若为 `claim_pending` 且 `lastError=connection_unavailable`，应明确显示“申请尚未确认”，提示核对网络、HTTPS 地址、端口和证书；原申请保留，编辑输入框不能改变已提交申请，也不自动重新配对或删除身份。固定输入与服务器响应错误给出可理解的原因，未知错误不回显原始内容。AppX 路径问题和取消失败申请仍未解决。
 
-alpha.7 的目标验收是从**已实际安装的 alpha.6** 在连接窗口走正常 HTTPS 检查、下载和安装，再核对真实运行版本、原身份/任务数据及手机同任务显示。候选现已通过两平台CI、43文件匹配及本机原密钥签名/验签；固定包、有效期和操作顺序见[alpha.7审查](../WINDOWS-ALPHA7-OTA-REVIEW.md)。**尚未发布到feed、未在线安装或手机验收，先等待维护者完成获批后的更新源核验。** Android 与中继仍为 alpha.5，Windows 仍需外部运行时，未提供一体化 EXE 或托盘。
+alpha.7 的目标验收是从**已实际安装的 alpha.6** 在连接窗口走正常 HTTPS 检查、下载和安装，再核对真实运行版本、原身份/任务数据及手机同任务显示。候选现已通过两平台CI、43文件匹配及本机原密钥签名/验签；固定包、有效期和操作顺序见[alpha.7审查](../WINDOWS-ALPHA7-OTA-REVIEW.md)。**Windows私有feed已发布alpha.7/sequence3，公网账号下载验收通过；本机仍alpha.6，真实设备下载、在线安装与升级后手机验收尚未完成。** 当前设备更新入口因运行保护拒绝，下一阶段应先正常断开；若断开后仍要求复核，保留现场交由维护者处理。 Android 与中继仍为 alpha.5，Windows 仍需外部运行时，未提供一体化 EXE 或托盘。
 
 - 同一个完整的 **Python 3.12 + Tkinter + `cryptography`** 环境用于 bootstrap、配置和启动；源码根目录的 `updates/requirements.txt` 声明 `cryptography>=41,<51`。本源码包不带 Python。
 - Windows x64 **Node 20.19.0** 和 **FRP 0.71.0** 的独立可执行文件；脚本固定其 SHA-256，不能用新文件悄悄替换。它们不随源码 ZIP 自动安装。
@@ -50,6 +50,6 @@ $PythonwExe = Join-Path (Split-Path -Parent $PythonExe) 'pythonw.exe'
 
 **alpha.5 实机启动注意：** 2026-10-08 已在主电脑新目录完成签名安装、原任务只读探针与实际窗口启动。由 Microsoft Store 打包的 Codex 环境操作 `%LOCALAPPDATA%` 时，可能发生 AppX 路径重定向：配置记录物理路径，但启动器收到逻辑别名，报 `managed_data_directory_required`。保留现场，由维护者核对两路径同一文件、拒链接及完整安装清单后，统一从已核验的**物理安装目录**调用原 `Start.pyw`；不要重装、重复配置或改保护。具体证据、恢复命令及后续版本修复项见[设备基线记录](../OTA-DEVICE-BASELINE-20261008.md)。真实手机任务与 OTA 升级仍需另行验收。
 
-受管窗口底部可检查和下载签名更新。**本轮alpha.7私有源发布并验证前，请先不要点“检查更新”**：已安装alpha.6账本为sequence2，旧公网源仍可能为alpha.5/sequence1，防重放拒绝属预期保护，不能删除账本。发布就绪后，先正常断开，再“检查更新”并阅读说明，最后“下载并安装”；下载校验与助手交接成功后旧窗口才退出。弹窗中的“将验证并重开”描述成功路径，候选或回退失败仍可能停在需维护者复核状态，不能以窗口关闭证明升级成功。维护者可在源码根目录只读调用 `& $PythonExe -B -m updates.cli --home $InstallRoot status`，`check` 和 `stage` 会访问已配置的 HTTPS source，**普通 Windows OTA 的 `apply`/`stop` 命令会拒绝，应使用窗口安装按钮**。alpha.5 的旧审核别名误报曾使普通窗口预检拒绝，因此 alpha.5→alpha.6 使用仓库专用的[维护切换路径](../WINDOWS-ALPHA5-MAINTENANCE.md)；alpha.6→alpha.7 仍须以实际 GUI 在线事务验收，不可从此前维护切换推定成功。发生 `needs_review` 时保留 `data/`、`state/` 与版本目录，见 [恢复说明](../OTA-RECOVERY.md)。
+受管窗口底部可检查和下载签名更新。**本轮alpha.7私有源已发布，下一阶段按维护者安排验收本机在线升级**：确认专用任务空闲，先正常断开，再“检查更新”并阅读说明，最后“下载并安装”。已安装alpha.6账本仍为sequence2，新源为sequence3；如检查仍报保护/防重放错误，保留现场，不能删除账本或runtimeNeedsReview。下载校验与助手交接成功后旧窗口才退出。弹窗中的“将验证并重开”描述成功路径，候选或回退失败仍可能停在需维护者复核状态，不能以窗口关闭证明升级成功。维护者可在源码根目录只读调用 `& $PythonExe -B -m updates.cli --home $InstallRoot status`，`check` 和 `stage` 会访问已配置的 HTTPS source，**普通 Windows OTA 的 `apply`/`stop` 命令会拒绝，应使用窗口安装按钮**。alpha.5 的旧审核别名误报曾使普通窗口预检拒绝，因此 alpha.5→alpha.6 使用仓库专用的[维护切换路径](../WINDOWS-ALPHA5-MAINTENANCE.md)；alpha.6→alpha.7 仍须以实际 GUI 在线事务验收，不可从此前维护切换推定成功。发生 `needs_review` 时保留 `data/`、`state/` 与版本目录，见 [恢复说明](../OTA-RECOVERY.md)。
 
 alpha.4 增加私有下载：首次应先在手机完成新设备确认，再检查更新。它读取本安装已有 DPAPI 身份，不新增更新账号或复制其他电脑身份；缺失身份只提示未配对。更新 source 必须位于已配对 relay 的同 HTTPS origin 的 `/desktop-remote-updates/test/windows/`（stable 独立配置），否则在发凭据前拒绝。设备暂停、撤销或凭据无效时服务器拒绝下载。旧 alpha.3 中继不能提供此私有路由；新的受管 relay 已在隔离环境安装，主电脑公网合成设备 Windows 下载及权限/暂停/撤销拒绝已验证，真实电脑配对和 App 内下载仍待验收。

@@ -1,4 +1,16 @@
-# 当前验证状态：Windows alpha.7 已签候选就绪，待确认发布与真实在线升级
+# 当前验证状态：Windows alpha.7 私有源已发布，本机仍 alpha.6
+
+## 2026-10-08 — 已批准并完成 Windows 私有源发布
+
+用户明确批准“发布 Windows 私有更新源”，本轮只发布，不启动本机安装。已在原隔离服务器Windows目录落位原签名alpha.7包并原子切换`latest.json`至sequence3；服务端签名/95,085字节/SHA/43源文件清单全部通过。旧alpha.5包及原索引审计副本保留；Android/relay feed逐文件摘要、relay当前槽、旧Caddy配置与测试relay/FRPS进程身份均保持，未重启服务。固定包及metadata哈希如下方候选记录，未重新打包或签发。
+
+主电脑正常TLS公网验收通过：metadata和ZIP匿名均401；**已有隔离测试管理员临时会话**取得alpha.7索引并下载完整包，RSA/平台/兼容档/序号/大小/SHA和清单通过；会话注销后再次访问被拒。验证前后本机install/current/trust/ledger/transaction原字节相同，实际仍alpha.6/ledger2，未调用check/stage/apply。
+
+**设备端真实下载与在线安装尚未验收。** 原设备更新鉴权返回`identity_or_runtime_requires_review`；连接核心运行期间会设置该保护，正常断开并证明自有树退出后才清除。没有绕过、删除该标记或停止连接，改用上述账号完成本次源发布验收。下一步是用户准备好后安排本机正常断开、设备鉴权检查及alpha.6→alpha.7 GUI在线升级，再核对同一Desktop任务。不能把本次账号下载当作设备OTA成功。
+
+本机脱敏报告：忽略目录`artifacts/alpha7-preparation-20261008/final/feed-preflight.json`、`feed-published.json`、`feed-server-verification.json`、`feed-https-after.json`。服务器root-only审计：`/opt/codex-desktop-remote-test/operator/windows-alpha7-feed-20261008/`，包含旧/新索引、固定包、前后快照；没有发布私钥或身份。alpha.7仍未创建GitHub Release、PR #3未合并；私有feed已可下载，不依赖14天CI artifact。
+
+## 以下为候选准备记录（发布停点已由上方取代）
 
 2026-10-08用户同意按“Windows alpha.6→alpha.7，然后 Android，再 relay”顺序推进。此次先完成源码、测试、签名候选和发布审查；实际私有feed发布和当前电脑在线升级仍为准备完成后的确认步骤。新独立工作树/分支`codex/windows-alpha7`基于已验收的`421a4c3`，原PR #2与已安装alpha.6保留。
 

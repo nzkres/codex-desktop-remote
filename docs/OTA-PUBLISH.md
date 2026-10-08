@@ -1,6 +1,6 @@
 # OTA 打包、签名与发布交接
 
-2026-10-08 当前状态：PR #1已合并，专用测试签名及六项Secrets已配置，alpha.5 main受控构建、实际包复验和隔离服务器部署已完成。手机现为alpha.5；Windows已用同一已签alpha.6包维护升级，用户确认手机原任务同步恢复。**Windows普通HTTPS OTA及Android/relay的真实N→N+1尚未完成。**下一步是Windows alpha.6→alpha.7，候选和发布边界见[alpha.7审查](WINDOWS-ALPHA7-OTA-REVIEW.md)；公开指纹与分层结果见[STATUS](../STATUS.md)。原alpha.5/alpha.6包保持不变。
+2026-10-08 当前状态：PR #1已合并，专用测试签名及六项Secrets已配置，alpha.5 main受控构建、实际包复验和隔离服务器部署已完成。手机现为alpha.5；Windows已用同一已签alpha.6包维护升级，用户确认手机原任务同步恢复。**Windows普通HTTPS OTA及Android/relay的真实N→N+1尚未完成。**Windows alpha.7私有源已获批发布sequence3，正常TLS公网账号下载/签名/哈希及匿名401通过；真实设备下载和本机alpha.6→alpha.7安装尚未执行，发布证据与后续边界见[alpha.7审查](WINDOWS-ALPHA7-OTA-REVIEW.md)；公开指纹与分层结果见[STATUS](../STATUS.md)。原alpha.5/alpha.6包保持不变。
 
 2026-10-08 本地准备增量：`sign` 现在强制 source 为 `/desktop-remote-updates/{channel}/{component}/latest.json`，包 URL 必须是同目录的 `component-{catalog.version}.apk|zip`，渠道/组件/版本/扩展名须一致；拒绝时不生成元数据，避免签出私有服务无法提供的地址。该发行工具不随三端运行包分发，本次不重发 alpha.4、不递增三个软件版本。该段为前期准备记录；暂缓签名/合并已由后续明确批准替代，见[当前状态](../STATUS.md)。
 

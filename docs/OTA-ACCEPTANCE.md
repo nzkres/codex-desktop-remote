@@ -1,6 +1,6 @@
 # 三端 OTA 落地与首轮验收
 
-**2026-10-08最新增量：** Windows已用签名本地包维护安装alpha.6，用户确认手机原任务两条回复均显示；Android/relay仍alpha.5。此次维护交接没有走普通HTTPS OTA，故下一轮Windows的实际N/N+1改为**alpha.6→alpha.7**，之后再逐端Android和relay。alpha.7准备与待确认发布范围见[审查清单](WINDOWS-ALPHA7-OTA-REVIEW.md)和STATUS。下方alpha.5→alpha.6统一组合为历史初始计划，不应据此降级或重复首装。
+**2026-10-08最新增量：** Windows已用签名本地包维护安装alpha.6，用户确认手机原任务两条回复均显示；Android/relay仍alpha.5。此次维护交接没有走普通HTTPS OTA，故下一轮Windows的实际N/N+1改为**alpha.6→alpha.7**，之后再逐端Android和relay。Windows alpha.7私有feed现已发布sequence3，服务器及公网隔离账号下载验收通过；设备入口受现用运行保护阻止，未断开或安装，本机仍alpha.6/ledger2。设备下载与GUI升级待下一阶段验收。固定发布输入与边界见[审查清单](WINDOWS-ALPHA7-OTA-REVIEW.md)和STATUS。下方alpha.5→alpha.6统一组合为历史初始计划，不应据此降级或重复首装。
 
 2026-10-08最新授权与结果：用户已批准PR #1合并、专用测试签名，以及在现有服务器部署**独立隔离**的alpha.5 relay/FRPS/HTTPS/私有OTA。服务器内安装、鉴权、合成更新/回退、受管启停均通过；主电脑公网 `9443` HTTPS 鉴权下载及 `17443` FRPS 合成夹具亦通过。现用服务和身份未接管；真实身份迁移、手机安装和真实任务N→N+1不在本次授权范围。分层证据见[STATUS](../STATUS.md)与[隔离部署记录](OTA-ISOLATED-DEPLOYMENT-20261008.md)。
 

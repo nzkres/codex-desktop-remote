@@ -1,6 +1,6 @@
 # Windows alpha.6 → alpha.7 在线升级审查
 
-2026-10-08。本轮只准备 Windows alpha.7：连接失败时显示配对申请未确认、可核对的原因与下一步，保留原申请。版本说明见 [WINDOWS](versions/WINDOWS.md)，实现和验证结果见 [STATUS](../STATUS.md)。Android、relay 保持 alpha.5。公网发布和当前电脑实际升级须在候选准备完成后由用户确认；本页不是已经发布的证明。
+2026-10-08。Windows alpha.7修正连接失败时的配对申请状态和恢复提示，版本说明见[WINDOWS](versions/WINDOWS.md)。**用户已批准源发布，本表原签名包已发布到Windows私有test源，sequence3；本机安装尚未执行，仍alpha.6。** 服务器和公网验收证据见[STATUS](../STATUS.md)。Android、relay保持alpha.5；本次没有升级它们或重启服务。
 
 ## 基线与发行输入
 
@@ -8,8 +8,8 @@
 - 原 alpha.6 ZIP 为 93,986 字节，SHA-256 `4df87881c5d0f704a4b2ac0a1a2d12e022f5b11062a8740d7ad43f96ca7811cf`，发布元数据 sequence 2。不得重新构建或替换此文件。
 - alpha.7 已在本机使用同一 `cdr-ota-test-20261008-v1` 发布密钥签发 sequence **3**，test/windows-x64、数据格式 1，兼容档和外部 Python/Node/FRP/Desktop 不变。私钥继续只在本机 DPAPI 保护；签发后已按真实安装公钥及sequence2账本复验，未写入现用安装。发布时再次核对账本及最新源，序号有变化即停止重审。
 - 固定源：`https://106.53.126.69:9443/desktop-remote-updates/test/windows/latest.json`。新包：同目录 `windows-0.1.0-alpha.7.zip`。两项请求均由已有设备身份鉴权，不添加公开文件路由，不嵌入 PAT。
-- 已部署源的上次核对仍为 alpha.5/sequence 1，已安装 alpha.6 的账本为 sequence 2。发布新候选前，点检查更新可能被防重放规则拒绝；不能删除账本解决。
-- 本轮所有真实安装内容保持不变；下表为已核验的固定候选，不是已经发布或安装的证明。
+- 已部署源已从alpha.5/sequence1切换至alpha.7/sequence3；本机仍alpha.6/ledger2。此前检查旧源可能被防重放拒绝的停点已结束，仍不得删除账本或保护来更新。
+- 下表为已发布的固定输入；真实Windows安装内容保持不变，发布成功不代表本机升级成功。
 
 | 发行输入 | 已核验值 |
 | --- | --- |
@@ -21,7 +21,7 @@
 | 有效期 | 北京时间 **2026-10-08 21:12:09 至 2026-10-15 21:12:09**；`issuedAt=1791465129`、`expiresAt=1792069929` |
 | 本机固定候选 | 工作树忽略目录 `artifacts/alpha7-preparation-20261008/final/` 下的 ZIP、`windows-latest.json`、`candidate-verification.json`、`signed-candidate-verification.json` |
 
-ZIP中43个源文件均逐字节匹配上述Git提交，完整清单校验通过。与实际已签alpha.6包相比，只有`windows/gui.py`和`windows/releases.json`两项源文件变化，更新引擎和独立助手不变。首次CI的未签候选保留作证据，未发布；本次只使用`final/`中的已签固定包，不能混用。CI artifact仅保留14天，不是长期更新源；尚未创建alpha.7 Release或上传私有feed。
+ZIP中43个源文件均逐字节匹配上述Git提交，完整清单校验通过。与实际已签alpha.6包相比，只有`windows/gui.py`和`windows/releases.json`两项源文件变化，更新引擎和独立助手不变。首次CI的未签候选保留作证据，未发布；本次只使用`final/`中的已签固定包，不能混用。CI artifact仅保留14天，不是长期更新源；固定包现已上传私有feed，尚未创建alpha.7 GitHub Release。
 
 ## 本地验收门槛
 
@@ -31,7 +31,7 @@ ZIP中43个源文件均逐字节匹配上述Git提交，完整清单校验通过
 
 本机Node64通过，Python152项中146通过/6平台跳过；原生Tk配对错误/状态重读/后续恢复、六种维护交接、HTTPS GUI提交/健康回退通过。最终两轮CI含上述演练均通过。首次PR CI出现旧维护夹具在原helper句柄退出后立即断言外层Job清空的时序问题；改为对同一Job有界等待，并新增残留超时/观测错误必须失败的测试。没有放宽产品清理门槛，失败记录见WORKLOG。
 
-**下一步待用户确认：** 仅发布本表Windows test候选并进入当前alpha.6→alpha.7的正常GUI在线升级。确认后先完成步骤1—4，再通知用户按步骤5操作；此时不要提前关闭现用窗口或检查旧feed。手机安装、中继程序升级、PR合并与其他运行实例均不在这次切换范围内。
+**当前停点：** 步骤1—3发布完成；步骤4正常TLS、匿名拒绝及账号授权下载通过，但当前设备授权因运行保护拒绝，留到正常断开后单独验收，未绕过保护或宣称已通过。用户本次仅批准源发布；步骤5—6的真实GUI安装与同任务验收留待下一阶段安排。手机安装、中继程序升级、PR合并与其他运行实例均不在本次发布范围内。
 
 ## 获批后的发布和实机步骤
 
