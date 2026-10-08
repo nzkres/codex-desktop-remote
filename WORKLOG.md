@@ -8,6 +8,8 @@
 - 真实只读预检首次拒绝缺省unconfirmedTurnSubmissions。固定Desktop26.930.7945.0/app.asar（原pin不变）源码显示其长度清零后delete该字段，添加时??=[]，空闲判断缺省false；因此仅接受字段不存在或明确空数组，null/自有undefined/其他格式仍拒绝。19项定向回归通过，原任务真实maintenance预检idle/permissionsVerified/receiptsCertain/reviewerAliasOnly全部true。没有发送模型输入或更改权限摘要。
 - 增docs/WINDOWS-ALPHA5-MAINTENANCE.md、安装链接与alpha.6版本体验记录；工具repo-only不打入运行包。当前alpha.5窗口和服务保持，包签发、CI复验、实际维护review/用户切换确认继续单列，不以合成演练宣称真实OTA通过。
 - 首提交ece3eb6的push37762969281/PR37762974145：Linux成功，Windows唯一错误是合成GUI命令行单测使用未规范化的TEMP短路径；生产review已要求physical_home，夹具未遵守。将单测与新维护烟测的临时根resolve后重验，不改产品路径归属比较；未采用失败运行的包进行签发。
+- 修正56f488e的push37763446214/PR37763453724两平台全部成功；Windows实际维护两例committed/needs_review，原GUI/helper与Linux cgroup演练均通过。下载Linux Windows包逐43文件对比Git56f488e原字节，ZIP93986字节/SHA256 4df87881c5d0f704a4b2ac0a1a2d12e022f5b11062a8740d7ad43f96ca7811cf。
+- 原项目DPAPI签名库仅内存解封、签发本地Windows候选sequence2；公钥按当前安装trust复验，未发Release或部署feed，未重新生成密钥。元数据/报告在忽略目录artifacts/alpha6-maintenance-20261008。实际`python -B -m updates.windows_maintenance review ...`成功（只读现用身份/进程/任务）：reviewHash e19672fa6647a6aec018f64d545ad2acfa65204fe7f2f0212fa823be663e5ff9 / expiresAt1791457239。实际apply仍待用户确认；过期须重新review。没有重发测试回复、停止连接、迁移身份或切换三端版本。
 
 ## 2026-10-08 — 同任务回复已完成，手机同步被审批别名误判阻断
 

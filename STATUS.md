@@ -1,4 +1,12 @@
-# 当前验证状态：Windows alpha.6 维护路径已隔离验证，待签发与实际切换
+# 当前验证状态：Windows alpha.6 本地签名候选与维护审查通过，等待实际切换确认
+
+最终维护输入 `56f488eb3fbeb752d21d8af87b5fb5dd02ab3016` 的Core [push37763446214](https://github.com/nzkres/codex-desktop-remote/actions/runs/37763446214) / [PR37763453724](https://github.com/nzkres/codex-desktop-remote/actions/runs/37763453724) 均Windows/Linux成功。Windows Node64、Python135通过/6跳过、relay73通过/4跳过；Linux Node62通过/2跳过、Python121通过/20跳过、relay77通过。新维护Tk/helper合成两例committed/needs_review和既有GUI/helper、cgroup升级回退均通过。
+
+已下载Linux产Windows候选，43个源码文件与Git输入逐字节相同，清单/解包校验通过；ZIP **93986字节**、SHA256 **`4df87881c5d0f704a4b2ac0a1a2d12e022f5b11062a8740d7ad43f96ca7811cf`**。原测试keyId `cdr-ota-test-20261008-v1`在本机签发sequence2，元数据SHA256 `5710fe23a9781b632f02ef1caea1fb56d7941b6ecbb39a45807b8adcdac9c2de`，issuedAt1791455409/expiresAt1792060209，按当前安装trust/ledger验签通过。**只在本地准备，未创建Release、上传feed、暂存进真实安装或切换版本。** CI重打relay alpha.5包不用于替换已发布资产。
+
+对当前配对安装执行`review`成功：新包别名探针、原GUI归属、稳定身份/配置/回执/current/ledger/启动器前后绑定一致；审查哈希 `e19672fa6647a6aec018f64d545ad2acfa65204fe7f2f0212fa823be663e5ff9`，expiresAt1791457239。审查有时效，过期需只读重做，不能直接apply旧结果。输出仅在忽略目录`artifacts/alpha6-maintenance-20261008/`，原身份等不入Git。**已向用户请求本机alpha.5→alpha.6维护切换确认，尚未收到；当前仍运行alpha.5，手机显示未验收。**
+
+## 维护实现与本地验证
 
 2026-10-08维护增量：仓库新增仅用于 alpha.5→alpha.6 审批别名故障的 `updates/windows_maintenance.py`。审查绑定完整稳定身份、配置、任务/回执文件、当前槽、trust、ledger和启动器；签名候选从本地独立暂存，固定同用户/会话原GUI句柄，等待正常退出，再经原事务做保全与健康校验。等待退出前先写旧启动器识别的持久屏障；过期、预检失败、断电或候选不健康均保留需复核状态。alpha.5仍有已知探针缺陷，失败时不启动它或宣称健康回退。工具不随产品包交付，不是通用冷恢复器。操作与边界见[维护指南](docs/WINDOWS-ALPHA5-MAINTENANCE.md)。
 

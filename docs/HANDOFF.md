@@ -1,5 +1,7 @@
 # OTA 交接
 
+**可执行停点（晚于下方实现记录）：** 56f488e的Core push37763446214/PR37763453724两平台成功；43文件Windows CI包逐字节匹配Git，已用原测试keyId在本地签发sequence2。包`artifacts/alpha6-maintenance-20261008/windows-0.1.0-alpha.6.zip`，SHA256 `4df87881c5d0f704a4b2ac0a1a2d12e022f5b11062a8740d7ad43f96ca7811cf`；元数据`windows-latest.json`。真实review成功，审查文件同目录`maintenance-review.json`，hash `e19672fa6647a6aec018f64d545ad2acfa65204fe7f2f0212fa823be663e5ff9` / expiresAt1791457239。原GUI PID20032只作当时证据，必须重新核实原句柄、不可按旧PID杀进程。用户实际切换确认已询问但尚未收到；未apply/部署feed/新Release。先检查审查时效和最新用户答复，过期则只读重做review到新文件；批准后助手独立运行，输出waitingNormalExit后再请用户正常关闭连接器（不关Desktop），按工具验证结果推进手机原任务同步，禁止重发已完成的两条消息。若不批准就保留现用alpha.5连接。
+
 **维护路径最新增量：** `updates/windows_maintenance.py` 的review/apply已实现，限alpha.5→alpha.6/test/已核实审批别名；用户正常退出前持久primary启动屏障，完整绑定/原句柄/签名与原事务健康校验，失败保留needs_review。Node64通过、Python135通过/6跳过，Windows合成身份真实GUI/helper提交和坏候选保留现场通过。真实原任务只读alias预检已通过；没有停止现用窗口、改身份/配置或发送消息。先读[维护指南](WINDOWS-ALPHA5-MAINTENANCE.md)和STATUS最新段，完成受控候选签发与review后再请求实际切换确认。下面“工具尚未实现”属于此前停点，不应据此重写工具或重建身份。
 
 ## 此前停点与基线
