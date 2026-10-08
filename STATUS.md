@@ -1,10 +1,14 @@
-# 当前验证状态：alpha.5 电脑窗口已启动、手机已登录，等待配对
+# 当前验证状态：手机同步误报已定位，Windows alpha.6 修复待安装
 
-配对最新停点：电脑把服务器端口填成944，DPAPI记录claim_pending/connection_unavailable，手机因此一直等待申请；不是顶部旧任务404导致。原失败安装完整保留，独立新目录CodexDesktopRemoteTest9443已通过原包签名安装、任务probe与权限一致性核对。用户已关闭旧窗口并取消手机申请；原应用/运行/操作锁和pending状态核对后，新图形窗口已打开，等待用户以正确9443地址和新码完成配对。详见[设备基线恢复记录](docs/OTA-DEVICE-BASELINE-20261008.md#配对申请停在提交中电脑端口误填恢复进行中)。
+2026-10-08最新实机证据：用户完成手机发送与 Desktop 接续，两条回复 PHONE_ALPHA5_OK、DESKTOP_ALPHA5_CONTINUE_OK 均已在同一个原生任务完成；手机没有同步，截图明确报“Desktop 任务权限已变化”。活动 alpha.5 登记仍 connected、适配器健康200，但 update-status 和 mobile-sync 均409/permissions_changed，不能宣称闭环通过。
 
-手机最新反馈：已登录正确9443入口，首页顶部HTTP404。已定位为尚未选择电脑时仍请求旧任务路由；新中继没有此旧入口。正常TLS复验与继续配对/选择电脑步骤见[设备基线记录](docs/OTA-DEVICE-BASELINE-20261008.md#手机首次登录后顶部-http-404已定位未修包)。程序包尚未修复，不将关闭错误条视为验收完成。
+根因已隔离为审批名称从 guardian_subagent 变为 auto_review；只替换这一字段后摘要准确等于原保存值，官方协议也将二者定义为兼容别名。Windows alpha.6 源码保留原摘要算法和配置，仅在完整权限比较时兼容这两个顶层值；真实权限差异仍拒绝。Node45项通过，Python124项118通过/6跳过；修复源码只读连接真实选定任务后，手机协议数据已同时包含两条测试回复，idle/permissionsVerified/receiptsCertain通过，身份文件、配置、账本和回执前后未变。自动模型输入0。
 
-2026-10-08 实机阶段增量：主电脑已全新安装原始签名 alpha.5，实际 Desktop 26.930.7945.0 与固定指纹、Python/Node/FRP 依赖通过。原任务起初无执行端；用户手动完成 `OTA_ALPHA5_READY` 后，同 UUID 实时历史、权限、空闲及回执确定性探针全部通过。Windows 图形窗口已实际打开；发现 AppX 重定向导致逻辑/物理 home 不一致，核对同文件与全槽后以物理路径启动原包，未放宽保护。用户报告手机 APK 已安装、停在登录页，当前等待登录配对。详见[设备基线记录与启动缺陷](docs/OTA-DEVICE-BASELINE-20261008.md)。旧身份、Gateway/FRP 和服务保持原样；新手机任务闭环与 alpha.6 OTA 尚未完成。
+**当前运行三端仍是原 alpha.5。** alpha.6 尚未签名发行、安装或获得手机显示验收；CI与构件证据待补充。旧版更新预检也使用同一错误比较，普通 OTA 会被拒绝；须先完成可审查的维护切换与失败恢复方案，再确认停用这条新配对连接。不得改原 permissionsHash、删除 runtimeNeedsReview 或覆盖已签 alpha.5 槽。详见[设备基线记录](docs/OTA-DEVICE-BASELINE-20261008.md)。
+
+本轮发现并保留记录的缺口：未选择电脑时请求旧任务路由导致顶部404；AppX逻辑/物理home不一致导致启动拒绝；错误端口944造成申请失败但界面仍显示提交中，且无受控重新配对入口。旧失败目录CodexDesktopRemoteTest完整保留，用户取消申请后另建新安装完成配对；未重置身份或保护。alpha.5原包没有修改，后续版本修复项见[设备基线记录](docs/OTA-DEVICE-BASELINE-20261008.md)。
+
+实际 Desktop26.930.7945.0、两项固定指纹及Python/Node/FRP依赖通过。用户恢复原任务后，只读历史与权限探针通过，所有自动诊断模型输入数为0；旧项目身份、Gateway/FRP和服务未迁移或停止。下方是此前各阶段的历史证据。
 
 ## 隔离部署阶段验收记录
 

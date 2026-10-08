@@ -26,6 +26,18 @@ export const permissionDigest = state => {
   };
   return createHash('sha256').update(JSON.stringify(canonical(state.currentPermissions))).digest('hex');
 };
+export const permissionsMatch = (state, expectedDigest) => {
+  if (permissionDigest(state) === expectedDigest) return true;
+  // Codex names this reviewer auto_review; guardian_subagent is its legacy
+  // serialization alias. Keep persisted hashes valid without rebasing any
+  // other permission, and never change the observed snapshot or saved config.
+  const current = state.currentPermissions;
+  const alias = current.approvalsReviewer === 'guardian_subagent' ? 'auto_review'
+    : current.approvalsReviewer === 'auto_review' ? 'guardian_subagent' : null;
+  return alias !== null && permissionDigest({
+    currentPermissions: { ...current, approvalsReviewer: alias },
+  }) === expectedDigest;
+};
 export class Service {
   constructor(config, follower, receipts, { drainTimeoutMs = 5000, quarantine = false } = {}) {
     if (!Number.isSafeInteger(drainTimeoutMs) || drainTimeoutMs < 1 || drainTimeoutMs > 30000)
@@ -37,7 +49,7 @@ export class Service {
   }
   target(id) { if (id !== this.config.threadId) throw new ControlError('outside_scope', '未开放这个任务。', 403); }
   permissions(state) {
-    if (permissionDigest(state) !== this.config.permissionsHash)
+    if (!permissionsMatch(state, this.config.permissionsHash))
       throw new ControlError('permissions_changed', 'Desktop 任务权限已变化，请在电脑端重新核对。');
   }
   async read(id) {

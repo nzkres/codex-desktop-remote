@@ -4,6 +4,8 @@
 
 ## 已完成与当前停点
 
+**最新结果：** 用户已经完成手机发送与 Desktop 接续，两条测试回复都在原任务完成，但手机截图显示“Desktop 任务权限已变化”，任务闭环未通过。原因与 alpha.6 源码修复见本页末尾；前面的成功探针是接续发生前的历史证据。
+
 | 项目 | 实际证据 |
 | --- | --- |
 | Windows 全新安装 | 使用原始签名 alpha.5 Windows 包与 bootstrap，安装到主电脑 `%LOCALAPPDATA%\CodexDesktopRemoteTest`；包签名、大小、SHA、清单、current 和 ledger 已验证，未复制旧身份或配置 |
@@ -63,4 +65,24 @@ alpha.5 在发送前持久化申请，已有pending身份时再次点击配对�
 
 本轮保留 `CodexDesktopRemoteTest` 整个失败安装，不重置或迁移其中状态，另在同一已核验物理父目录创建 `CodexDesktopRemoteTest9443`。使用同一个原始签名alpha.5包/bootstrap，全新安装与只读任务probe通过，新权限摘要与先前选定任务一致；没有复制身份、回执或发送模型输入。用户已确认正常关闭旧电脑窗口并在手机取消当前配对；随后取得原应用锁、运行锁和操作锁，核对错误端点及未确认状态未变、无pairingId/terminalId/runtime绑定。新窗口已实际打开，标题alpha.5、主窗口句柄非0、stderr为空。等待用户手动输入正确地址和新配对码、手机确认后连接；账号仍用原本机DPAPI显示窗口，手机不重装。
 
-新的脱敏安装记录在忽略目录 `artifacts/isolated-deploy-20261008/windows-retry-install.json`。首次失败目录继续保留供复核；本段不表示新配对、通道或手机任务已验收。
+新的脱敏安装记录在忽略目录 `artifacts/isolated-deploy-20261008/windows-retry-install.json`。首次失败目录继续保留供复核；随后新配对验收结果如下。
+
+## 正确端点的新配对与实时通道已通过
+
+用户报告手机已确认新电脑、电脑已点击连接。独立脱敏核验：身份存在且服务器精确匹配9443，state=connected、lastError=null、terminal已分配、adapterBinding存在。本机LoopbackHealthProbe验证实例身份通过；使用现有幂等tunnel_probe经正常HTTPS令中继探测既定私有端口，publicTunnelProbe=true。活动适配器GET update-status为200，返回alpha.5、idle=true、permissionsVerified=true、receiptsCertain=true；诊断前后relay/deviceToken/terminalId/pairingId/adapterBinding完全相同，没有自动发送模型输入。
+
+运行中的runtimeNeedsReview为true是连接器持锁启动前写下的保护，不等于这次探针失败；不能为消除提示删除它。没有断开、重启或迁移这条新连接。脱敏证据在忽略目录 `artifacts/isolated-deploy-20261008/windows-live-connection.json`。
+
+随后用户完成了这两个操作，但手机未同步；故障和修复证据如下，不能再重发这两条测试消息。
+
+## Desktop 接续后手机权限误报（alpha.6 源码已修，未安装）
+
+用户截图明确显示“Desktop 任务权限已变化，请在电脑端重新核对”。原 UUID 的手机回合与 Desktop 接续回合均 completed，分别包含 PHONE_ALPHA5_OK、DESKTOP_ALPHA5_CONTINUE_OK。活动 alpha.5 的登记仍 connected、health200，但 update-status 和 mobile-sync 都返回409/permissions_changed。这次不是配对、TLS或转发断线。
+
+接入就绪回合记录 approvalsReviewer=guardian_subagent，后续手机与 Desktop 回合为 auto_review。对最新只读快照仅替换这一字段，完整 permissionDigest 恰好等于原配置保存值；其余权限无需改动。官方 [Codex 协议类型](https://github.com/openai/codex/blob/main/codex-rs/protocol/src/config_types.rs)用 `serde(rename = "auto_review", alias = "guardian_subagent")` 定义兼容；本机固定26.930.7945.0的 app.asar 中 `app-shared-e32c0e36d554.js` 也通过 SM 同时接受两者。外部源码作为含义佐证，实机差异判断来自固定安装和精确旧摘要匹配；未修改 Desktop 文件。
+
+Windows alpha.6 的 permissionsMatch 先按原算法比较，失败后只尝试这一顶层值的另一兼容名称并重新比较所有权限；没有重建或改写 saved hash。read/updateStatus/send/stop 和 probe 统一使用；真正的 reviewer、审批方式、网络、目录、profile 或嵌套扩展差异仍拒绝，不能全局替换字符串或忽略审批字段。
+
+验证：Node45/45（含旧摘要正反方向及10类差异拒绝、实际快照与完整配置不变），Python124项118通过/6跳过。新源码只读跟随真实原任务，用同一 mobile-sync 转换取得两条精确回复；原始摘要仍不同而 aliasMatch=true，实时 idle/permissionsVerified/receiptsCertain=true，模型输入0。current/install/trust/ledger/fixture/加密身份及回执文件摘要前后相同。脱敏报告在忽略目录 reviewer-alias-source-verification.json；它是候选源码验证，不是运行安装升级或手机屏幕验收。
+
+当前不重复配对、不重发消息，也不改已签 alpha.5。普通 OTA 的旧 GUI/helper 会先执行旧版本 update_probe，仍因同一缺陷拒绝；回退旧版也无法保证其权限健康检查通过。维护切换必须单独验证签名候选、原进程正常退出、独占锁、原身份/配置/回执保持和失败停点，再由用户确认实际切换；不能用修改 permissionsHash、删除保护或强停进程绕开。

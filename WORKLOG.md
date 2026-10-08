@@ -1,11 +1,21 @@
 # 工作记录
 
+## 2026-10-08 — 同任务回复已完成，手机同步被审批别名误判阻断
+
+- 用户回报电脑已回复但手机未同步，截图明确 permissions_changed。应用查询与原生历史只读核对：PHONE_ALPHA5_OK、DESKTOP_ALPHA5_CONTINUE_OK 均在原 UUID 完成；活动 alpha.5 health200，但 update-status/mobile-sync409，仍保持新配对连接，没有重发消息或重配对。
+- 仅把当前 currentPermissions.approvalsReviewer 的 auto_review 换成就绪回合的 guardian_subagent，原始完整摘要就精确匹配已保存值。OpenAI protocol/config_types.rs 的 serde alias 及本机固定 app.asar 的 SM 判断均把两者视为同一模式；没有真实权限扩张。未改 Desktop 内部文件、配置、摘要或任何保护。
+- src/service.js 新增 permissionsMatch，保留 permissionDigest 原算法；只兼容顶层两个精确值，读/更新预检/发/停及 scripts/probe.mjs 共用。Windows 迭代 alpha.6，Android/relay 不变。GPT-6 Sol medium 补回归和版本记录，主代理检查后要求补 live snapshot/config 逐次不变、嵌套字段变化拒绝，最终验收。
+- 命令：固定 Node20.19 `--test`45/45；Python3.12 `-B -m unittest discover -s test -p 'test_*.py' -q`124项中118通过/6跳过。Node初次沙箱子进程遇用户目录EPERM，正常用户上下文重跑同一套通过；不是产品错误，也未放宽产品检查。
+- 忽略目录中的只读诊断使用新源码 Follower/Service/手机协议，限制只能加载历史；原摘要仍不同、别名比较通过、两条精确回复都在同一 mobile-sync 数据中、更新状态 idle/permissionsVerified/receiptsCertain通过。current/install/trust/ledger/fixture/加密身份/回执逐文件摘要前后相同，模型输入0。报告 reviewer-alias-source-verification.json；诊断脚本首轮语法错误未执行任何读取动作，修正后通过。
+- 当前运行的仍是原签名 alpha.5；新版代码验证不代表手机已恢复。旧版更新预检和回退健康也会因同一缺陷拒绝，维护切换须先有完整审查与安全停点，不能强改权限摘要或绕过预检。CI、签名/安装与实际手机重试结果后续单独记录。
+
 ## 2026-10-08 — 错误端口导致配对申请未送达，准备全新重试安装
 
 - 手机截图为配对码已生成、等待电脑申请；用户确认电脑显示正在提交配对。仅对本轮新安装DPAPI状态做白名单诊断：claim_pending/connection_unavailable，服务器公开端口实际是944，正确应为9443；未输出码或token。
 - 现有GUI忽略lastError，持久化pending申请又无法从界面撤销；修改文本框无法重新begin。保留失败安装与全部身份状态，未删除任何保护、改端点重放或替换凭据。
 - 在物理父目录下全新安装CodexDesktopRemoteTest9443，原alpha.5签名包/bootstrap核验与专用任务probe通过，权限摘要和原测试一致，未复制身份/回执。等用户正常关闭旧窗口、手机取消配对后再启动新窗口；此时尚未启动、配对或取得手机任务结果。具体恢复停点见设备基线记录。
 - 用户随后确认旧窗口关闭且手机取消。取得旧application/runtime/operation锁并核对原pending错误地址与无绑定状态后，使用物理新home的Start.pyw打开原签名窗口；实际窗口标题alpha.5、句柄非0、stderr0，原状态保持。已给出完整9443地址和重新生成配对码的操作步骤，等待新配对结果。
+- 用户确认手机已批准、电脑已点击连接后，独立核验新身份connected/lastError=null/正确9443，LoopbackHealthProbe和现有幂等tunnel_probe均true；活动适配器GET update-status200、alpha.5/idle/permissionsVerified/receiptsCertain通过，诊断前后完整核心身份与adapterBinding一致，模型输入0。运行期runtimeNeedsReview按原保护保留；没有停止连接。已请求用户执行PHONE_ALPHA5_OK和DESKTOP_ALPHA5_CONTINUE_OK同任务双向验收，当前结果待回复。
 
 ## 2026-10-08 — 手机登录后首页404诊断
 

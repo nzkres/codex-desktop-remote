@@ -4,6 +4,7 @@
 
 | 仓库版本 | 日期 | 本版更新摘要 | 下载 |
 | --- | --- | --- | --- |
+| Windows `0.1.0-alpha.6`（待发行） | 2026-10-08 | 修复同一审批模式名称切换引发的手机同步权限误报；Android/relay仍alpha.5 | 尚无受控发行包；源码与实机只读验证进度见 [STATUS](../../STATUS.md) |
 | `0.1.0-alpha.5` | 2026-10-08 | 三端受控测试首装包：固定发布 trust、Android 连续测试证书，Windows/relay 在全新临时目录验签引导；更新源与实机验收尚未完成 | [已发布的私有 prerelease](https://github.com/nzkres/codex-desktop-remote/releases/tag/v0.1.0-alpha.5)，七项资产及复验证据见 [STATUS](../../STATUS.md) |
 | `0.1.0-alpha.4` | 2026-10-08 | 三端私有下载鉴权；账号/配对身份复用、严格同源与组件授权；新增落地验收步骤 | [开发预览](https://github.com/nzkres/codex-desktop-remote/releases/tag/v0.1.0-alpha.4) |
 | `0.1.0-alpha.3` | 2026-10-07 | 三端签名 OTA、独立更新助手、事务和隔离升级/回退验证 | [开发预览](https://github.com/nzkres/codex-desktop-remote/releases/tag/v0.1.0-alpha.3) |

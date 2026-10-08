@@ -1,10 +1,12 @@
 # OTA 交接
 
-**配对恢复停点：** 用户手机已登录并生成申请，电脑地址误填 `:944`，首次安装身份停在claim_pending/connection_unavailable。保留原CodexDesktopRemoteTest全部状态，不重置、不改身份端点重放。另一个物理目录CodexDesktopRemoteTest9443已完成原签名包首装和只读任务probe、权限一致性核对。用户已关闭旧窗口并取消手机申请；取得原应用/运行/操作锁、核对pending状态未变后，新目录的原Start.pyw已实际打开alpha.5窗口。当前等待用户手动填写完整 `https://106.53.126.69:9443` 和新配对码，在手机确认后电脑连接。具体路径仅在本机忽略报告windows-retry-install.json；账号显示工具仍在原目录operator，不迁移秘密。新配对、手机任务与OTA尚未验收。
+**最新停点：** 两条 PHONE_ALPHA5_OK、DESKTOP_ALPHA5_CONTINUE_OK 已在原 Desktop UUID 完成，但手机因 permissions_changed 无法读取；不得重发。根因是 guardian_subagent/auto_review 兼容别名切换。Windows alpha.6 已实现最小修复，45项Node、118项Python通过（另6跳过）；新源码只读实机能返回这两条手机协议消息，原权限摘要/身份/配置/回执未改。运行中的三端仍为 alpha.5，手机恢复及 OTA 未验收。具体物理路径见忽略报告windows-retry-install.json，故障与新源码证据见alpha5-sync-failure.json、reviewer-alias-source-verification.json。
 
-**最新停点（2026-10-08 实机阶段）：** 主电脑全新安装原始签名 alpha.5，用户手动完成 `OTA_ALPHA5_READY` 后，原任务 `01a1158c-72ea-7db3-84d1-b47471220252`「回复 DESKTOP_REMOTE_READY」的实时历史/权限/空闲探针通过。图形窗口已打开，当前等手机登录、配对；用户报告APK已安装并在登录页。先读[设备基线记录](OTA-DEVICE-BASELINE-20261008.md)：AppX重定向曾导致逻辑home启动失败，当前使用已核验物理home的原Start.pyw，不能重复bootstrap/configure或修改签名槽。新账号在本机DPAPI辅助窗口交接，不要求用户在聊天发送口令/配对码。以下部署记录是历史阶段证据；尚未真实任务N基线或alpha.6 OTA验收。
+下一步先核对 CI/构件，再完成维护切换的审查与合成验证。alpha.5 的 GUI/helper 仍会执行旧 update_probe，原生 OTA 会被同一比较缺陷阻断；候选失败后的 alpha.5 健康检查也不能保证通过。不要简单点击安装后宣称成功，不改 permissionsHash、已签槽或 runtimeNeedsReview；保持当前实例，实际停用/切换需按已有用户边界确认。
 
-2026-10-08：用户已批准并完成PR #1合并、专用测试签名、六项Android Secrets、alpha.5构建/复验，以及现有服务器上的**独立隔离测试部署**。服务器内安装与验收、主电脑公网 `9443` HTTPS 鉴权下载和 `17443` FRPS 合成夹具连接已通过；现用服务和身份保持原样。手机安装、真实身份迁移和真实任务N→N+1仍未获本轮授权或验收。详细证据见[隔离部署记录](OTA-ISOLATED-DEPLOYMENT-20261008.md)。
+原任务UUID为`01a1158c-72ea-7db3-84d1-b47471220252`「回复 DESKTOP_REMOTE_READY」。先读[设备基线记录](OTA-DEVICE-BASELINE-20261008.md)：早期逻辑home因AppX重定向启动失败，随后原安装误填944端口；失败目录CodexDesktopRemoteTest完整保留，用户取消申请后另建当前新安装，未重置或迁移身份。账号显示工具仍在原目录operator；不要重复bootstrap/configure、删除保护或修改签名槽。alpha.6仅Windows修复，Android和中继未改版本。
+
+2026-10-08部署阶段已批准并完成PR #1合并、专用测试签名、六项Android Secrets、alpha.5构建/复验，以及现有服务器上的**独立隔离测试部署**。服务器内安装与验收、主电脑公网 `9443` HTTPS 鉴权下载和 `17443` FRPS 合成夹具连接已通过；现用服务和身份保持原样。后续用户已自行完成手机安装、登录与全新身份配对，最新状态以上方为准；真实身份迁移和现用服务切换未获批准，真实N→N+1尚未验收。部署证据见[隔离部署记录](OTA-ISOLATED-DEPLOYMENT-20261008.md)。
 
 先读[STATUS](../STATUS.md)、[隔离部署记录](OTA-ISOLATED-DEPLOYMENT-20261008.md)、[落地验收](OTA-ACCEPTANCE.md)、[部署审查](OTA-DEPLOYMENT-REVIEW.md)、[发布](OTA-PUBLISH.md)、[安装起点](install/README.md)和[恢复](OTA-RECOVERY.md)。保留旧alpha.4资产，核对当前远端、分支及未提交改动后再继续；不要只凭本页旧提交猜测最新状态。
 

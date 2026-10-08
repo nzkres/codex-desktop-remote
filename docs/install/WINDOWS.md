@@ -4,6 +4,8 @@
 
 ## 前置条件
 
+**alpha.6 修复进度：** 仓库源码已修复 guardian_subagent/auto_review 审批名称切换造成的手机权限误报，目前仍没有 alpha.6 受控发行包或实机升级结论。已配对的 alpha.5 发生该错误时，保留安装和两端任务，不重复配对、不改配置摘要；旧版本自身 OTA 预检也受该缺陷影响，需要维护切换审查。详见[实机故障记录](../OTA-DEVICE-BASELINE-20261008.md#desktop-接续后手机权限误报alpha6-源码已修未安装)。
+
 - 同一个完整的 **Python 3.12 + Tkinter + `cryptography`** 环境用于 bootstrap、配置和启动；源码根目录的 `updates/requirements.txt` 声明 `cryptography>=41,<51`。本源码包不带 Python。
 - Windows x64 **Node 20.19.0** 和 **FRP 0.71.0** 的独立可执行文件；脚本固定其 SHA-256，不能用新文件悄悄替换。它们不随源码 ZIP 自动安装。
 - 原生 Codex Desktop **26.930.7945.0**，并匹配 [兼容检查](../../src/compatibility.js)内固定的 `app.asar` 与 `app/resources/codex.exe` 指纹；Desktop 是外部执行器，本项目不升级它。还需一条已完成 `DESKTOP_REMOTE_READY` 的专用测试任务及其 UUID、项目路径、Desktop 包根目录。
