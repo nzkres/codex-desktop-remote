@@ -1,9 +1,9 @@
 name: Core self-test
 on:
   push:
-    paths: ['updates/**', 'src/**', 'windows/**', 'test/**', 'relay/**', 'scripts/**', 'package.json', 'android-native/releases.json', 'docs/versions/**', '.github/workflows/core.yml']
+    paths: ['updates/**', 'src/**', 'windows/**', 'test/**', 'relay/**', 'scripts/**', 'deploy/test/**', 'package.json', 'android-native/releases.json', 'docs/versions/**', '.github/workflows/core.yml']
   pull_request:
-    paths: ['updates/**', 'src/**', 'windows/**', 'test/**', 'relay/**', 'scripts/**', 'package.json', 'android-native/releases.json', 'docs/versions/**', '.github/workflows/core.yml']
+    paths: ['updates/**', 'src/**', 'windows/**', 'test/**', 'relay/**', 'scripts/**', 'deploy/test/**', 'package.json', 'android-native/releases.json', 'docs/versions/**', '.github/workflows/core.yml']
   workflow_dispatch:
 permissions:
   contents: read
@@ -28,6 +28,7 @@ jobs:
       - run: node --test
       - run: python -B -m unittest discover -s test -p "test_*.py" -v
       - run: python -B -m unittest discover -s relay -p "test_*.py" -v
+      - run: python -B -m unittest discover -s deploy/test -p "test_*.py" -v
       - name: Real Windows GUI and independent helper upgrade and rollback
         if: runner.os == 'Windows'
         run: python -B scripts/windows_ota_smoke.py

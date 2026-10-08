@@ -35,11 +35,12 @@ class WindowsBootstrapTests(unittest.TestCase):
             serialization.Encoding.PEM, serialization.PrivateFormat.PKCS8,
             serialization.NoEncryption()))
         publish.pack("windows", self.archive)
-        source = "https://updates.example.test/test/windows/latest.json"
+        source = "https://updates.example.test/desktop-remote-updates/test/windows/latest.json"
+        version = read(publish.ROOT / "windows" / "releases.json")["releases"][0]["version"]
         publish.sign("windows", self.archive, self.metadata,
                      private_key=self.private_key, key_id="synthetic-bootstrap",
                      source=source,
-                     url="https://updates.example.test/test/windows/synthetic-windows.zip",
+                     url=source.rsplit("/", 1)[0] + f"/windows-{version}.zip",
                      sequence=7)
         public = self.key.public_key().public_bytes(
             serialization.Encoding.PEM,

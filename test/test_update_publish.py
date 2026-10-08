@@ -15,7 +15,7 @@ from updates import publish
 from updates.security import COMPATIBILITY, TARGETS, UpdateError, unpack, verify, verify_tree
 
 
-SOURCE = "https://updates.example.test/test/windows/latest.json"
+SOURCE = "https://updates.example.test/desktop-remote-updates/test/windows/latest.json"
 
 
 def _catalog(component):
@@ -63,15 +63,16 @@ class PublishTests(unittest.TestCase):
                     self.put(name)
 
     def source(self, component):
-        return f"https://updates.example.test/test/{component}/latest.json"
+        return f"https://updates.example.test/desktop-remote-updates/test/{component}/latest.json"
 
     def artifact_url(self, component, extension="zip"):
-        return f"https://updates.example.test/test/{component}/0.1.0-alpha.3.{extension}"
+        return f"https://updates.example.test/desktop-remote-updates/test/{component}/{component}-0.1.0-alpha.3.{extension}"
 
     def sign(self, component, artifact, output, **options):
+        channel = options.get("channel", "test")
         return publish.sign(component, artifact, output, private_key=self.key_path,
-                            key_id="synthetic-1", source=self.source(component),
-                            url=self.artifact_url(component, "apk" if component == "android" else "zip"),
+                            key_id="synthetic-1", source=self.source(component).replace("/test/", f"/{channel}/"),
+                            url=self.artifact_url(component, "apk" if component == "android" else "zip").replace("/test/", f"/{channel}/"),
                             sequence=3, root=self.root, **options)
 
     def verify_signed(self, envelope, component):
@@ -197,6 +198,42 @@ class PublishTests(unittest.TestCase):
         with self.assertRaises(UpdateError):
             self.sign("windows", artifact, metadata, channel="stable")
         self.assertFalse(metadata.exists())
+
+    def test_rejects_unservable_feed_paths_before_creating_metadata(self):
+        self.make_source("windows")
+        artifact = self.base / "windows.zip"
+        publish.pack("windows", artifact, root=self.root)
+        valid_source = self.source("windows")
+        valid_url = self.artifact_url("windows")
+        cases = (
+            (valid_source.replace("desktop-remote-updates", "public-updates"),
+             valid_url.replace("desktop-remote-updates", "public-updates")),
+            (valid_source.replace("latest.json", "windows.json"), valid_url),
+            (valid_source.replace("/test/", "/stable/"), valid_url.replace("/test/", "/stable/")),
+            (valid_source.replace("/windows/", "/relay/"), valid_url.replace("/windows/", "/relay/")),
+            (valid_source, valid_url.replace("windows-0.1", "relay-0.1")),
+            (valid_source, valid_url.replace("alpha.3", "alpha.2")),
+            (valid_source, valid_url.replace(".zip", ".apk")),
+        )
+        for source, url in cases:
+            with self.subTest(source=source, url=url):
+                metadata = self.base / "latest.json"
+                with self.assertRaisesRegex(UpdateError, "private_feed_path_required"):
+                    publish.sign("windows", artifact, metadata, private_key=self.key_path,
+                                 key_id="synthetic-1", source=source, url=url,
+                                 sequence=3, root=self.root)
+                self.assertFalse(metadata.exists())
+
+    def test_relay_custom_https_port_uses_exact_private_route(self):
+        self.make_source("relay")
+        artifact = self.base / "relay.zip"
+        publish.pack("relay", artifact, root=self.root)
+        source = self.source("relay").replace(".test/", ".test:9443/")
+        url = self.artifact_url("relay").replace(".test/", ".test:9443/")
+        envelope = publish.sign("relay", artifact, self.base / "latest.json",
+                                private_key=self.key_path, key_id="synthetic-1",
+                                source=source, url=url, sequence=3, root=self.root)
+        self.assertEqual(json.loads(base64.b64decode(envelope["payload"]))["url"], url)
 
 
 if __name__ == "__main__":

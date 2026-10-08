@@ -14,7 +14,7 @@
 
 ## 版本更新记录
 
-下一步是已选定的现有服务器隔离部署。只读预检、候选入口、签名首装顺序和撤回步骤见[部署审查清单](docs/OTA-DEPLOYMENT-REVIEW.md)；尚未部署，不影响现用环境。
+最新阶段是[OTA本地准备](docs/OTA-LOCAL-PREPARATION.md)：用户暂不合并或配置签名，先完成部署草稿、发布前校验与合成演练。服务器预检、候选入口和撤回步骤见[部署审查清单](docs/OTA-DEPLOYMENT-REVIEW.md)；尚未部署。
 
 **alpha.4 在三端 OTA 上增加私有下载鉴权。** 手机复用账号登录，Windows 复用配对身份，中继管理员交互登录后更新。元数据与包都受控，仅向同源 HTTPS 的固定目录发送凭据，发布签名仍独立验证。正式更新源、稳定签名首装与真实设备升级尚未配置/验收，普通 CI 包不能直接成为正式 OTA 基线。按 [三阶段落地与验收](docs/OTA-ACCEPTANCE.md)逐项推进；[实现边界](docs/OTA.md)、[发布](docs/OTA-PUBLISH.md)和[恢复](docs/OTA-RECOVERY.md)提供具体说明。
 

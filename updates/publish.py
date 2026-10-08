@@ -25,6 +25,7 @@ from cryptography.hazmat.primitives.asymmetric import padding, rsa
 
 from updates.security import (COMPATIBILITY, LIMIT, TARGETS, UpdateError, _safe_local, _url,
                               unpack, verify, verify_tree)
+from updates.authorization import SOURCE_PATH
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -192,6 +193,13 @@ def sign(component, artifact, output, *, private_key, key_id, source, url, seque
     if urlsplit(url).path.rsplit("/", 1)[0] != urlsplit(source).path.rsplit("/", 1)[0]:
         _fail("untrusted_update_url")
     release = _catalog(root, component)
+    # A valid signature must not advertise a path the private server cannot serve.
+    match = SOURCE_PATH.fullmatch(urlsplit(source).path)
+    extension = "apk" if component == "android" else "zip"
+    filename = f"{component}-{release['version']}.{extension}"
+    if (match is None or match.groups() != (channel, component)
+            or url != source.rsplit("/", 1)[0] + "/" + filename):
+        _fail("private_feed_path_required")
     size = artifact.stat().st_size
     if not 0 < size <= LIMIT:
         _fail("archive_limits_exceeded")

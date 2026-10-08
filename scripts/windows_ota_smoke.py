@@ -28,7 +28,7 @@ from updates.processes import OwnedChild
 from updates.storage import read
 
 
-SOURCE = "https://updates.example.test/test/windows/latest.json"
+SOURCE = "https://updates.example.test/desktop-remote-updates/test/windows/latest.json"
 PROBE = '''import json
 from pathlib import Path
 root = Path(__file__).resolve().parents[1]
@@ -140,7 +140,7 @@ def _signed(base, version, sequence, key_path, bad_probe=False):
     publish.pack("windows", archive, root=root)
     publish.sign("windows", archive, metadata, private_key=key_path,
                  key_id="synthetic-gui-smoke", source=SOURCE,
-                 url=f"https://updates.example.test/test/windows/package-{sequence}.zip",
+                 url=SOURCE.rsplit("/", 1)[0] + f"/windows-{version}.zip",
                  sequence=sequence, root=root)
     return archive, metadata
 

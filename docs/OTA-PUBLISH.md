@@ -1,5 +1,7 @@
 # OTA 打包、签名与发布交接
 
+2026-10-08 本地准备增量：`sign` 现在强制 source 为 `/desktop-remote-updates/{channel}/{component}/latest.json`，包 URL 必须是同目录的 `component-{catalog.version}.apk|zip`，渠道/组件/版本/扩展名须一致；拒绝时不生成元数据，避免签出私有服务无法提供的地址。该发行工具不随三端运行包分发，本次不重发 alpha.4、不递增三个软件版本。用户已选择暂不合并或配置真实签名，见[本地准备记录](OTA-LOCAL-PREPARATION.md)。
+
 以下是 **alpha.4 起支持的私有 OTA** 操作范式，构建与归档证据见 [STATUS](../STATUS.md)；尚未签发受控首装、部署源或完成实机验收。既有开发预览不以同版本重签或换包。[验收计划](OTA-ACCEPTANCE.md)拟用新 alpha.5 首装、alpha.6 在线升级，下面文件名以将来 alpha.5 为例，必须先更新对应 catalog。当前 `updates.publish` 只在本地打包 Windows/relay 源码 ZIP、对已有 APK/ZIP 签发布元数据，**不构建 APK、不上传文件、不部署中继**。正式发布须有受控 RSA 3072 位以上私钥、经审核的公钥/trust、Android 连续 APK 签名证书，以及与登录/配对中继同源的受鉴权 HTTPS 下载入口。私钥路径、口令与凭据不得进入仓库、日志或命令示例。
 
 先在仓库根目录更新发生变化组件的 `releases.json` 与版本说明，运行 `python scripts/check_versions.py --write` 及只读校验和相关测试。`pack` 从当前源码按固定白名单生成新文件，输出路径必须尚不存在。以下 PowerShell **占位符必须按已审核的真实资源替换**，`$PythonExe` 为带 `cryptography` 的 Python 3.12；本仓库不提供密钥或部署主机：

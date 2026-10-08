@@ -1,0 +1,31 @@
+#!/bin/sh
+# Review-only Certbot-style deploy hook. Install only after renewal ownership is confirmed.
+set -eu
+
+lineage=/etc/letsencrypt/live/codex-remote-ip
+container=codex-desktop-remote-test-caddy
+image=caddy@sha256:4c6e91c6ed0e2fa03efd5b44747b625fec79bc9cd06ac5235a779726618e530d
+if [ "${RENEWED_LINEAGE:-}" != "$lineage" ]; then
+    exit 0
+fi
+
+id=$(docker inspect --format '{{.Id}}' "$container")
+case "$id" in
+    *[!0-9a-f]*|'') echo 'invalid test Caddy container ID' >&2; exit 1 ;;
+esac
+if [ "${#id}" -ne 64 ]; then
+    echo 'invalid test Caddy container ID' >&2
+    exit 1
+fi
+
+service=$(docker inspect --format '{{ index .Config.Labels "com.docker.compose.service" }}' "$id")
+project=$(docker inspect --format '{{ index .Config.Labels "com.docker.compose.project" }}' "$id")
+actual_image=$(docker inspect --format '{{.Config.Image}}' "$id")
+running=$(docker inspect --format '{{.State.Running}}' "$id")
+if [ "$service" != cdrtest-caddy ] || [ "$project" != codex-desktop-remote-test ] ||
+   [ "$actual_image" != "$image" ] || [ "$running" != true ]; then
+    echo 'test Caddy container identity mismatch' >&2
+    exit 1
+fi
+
+docker exec "$id" caddy reload --config /etc/caddy/Caddyfile --adapter caddyfile --address 127.0.0.1:22019

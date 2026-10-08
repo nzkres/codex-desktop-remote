@@ -1,5 +1,16 @@
 # 工作记录
 
+## 2026-10-08 — 本地部署准备与发布路径修正
+
+- 用户在“继续下一步”后明确选择“先完成本地准备，暂不合并或配置签名”；本轮不创建项目真实发行密钥、不配置Secrets、不合并或公网部署。只读核对PR3277a8a三平台检查全成功，仓库Secrets/Variables列表为空；没有读取秘密值。本轮没有新CI或新发布。
+- GPT-6 Sol medium准备deploy/test下独立systemd/FRPS/Caddy/续证钩子草稿，主代理复核。主代理要求证书挂载只限指定lineage，续证以固定容器ID/项目/镜像和明确22019地址重载，保持旧2019隔离；无ExecStop假门禁，relay拒绝手动stop且Restart=no。另由Sol复核发布器精确路由与服务端一致。
+- 修复本地发行工具可能签出私有服务器无法提供的URL：现在签名前要求准确渠道/组件/latest.json与catalog版本文件名/扩展，拒绝不写metadata；规范bootstrap/Windows smoke夹具URL，新增7类拒绝和HTTPS9443正常用例。工具不随应用运行包分发，因此三个软件版本仍为alpha.4，旧发布不可换包；alpha.5/alpha.6仍未签发。
+- Node33通过（沙箱EPERM在加载测试前发生，获准本机复验通过）；Python3.12主套件107项通过、5Linux跳过；relay77项通过、4Linux跳过。真实Windows pythonw/helper在临时身份下committed0.0.2、坏探针rolled_back0.0.1。无真实Desktop探针/手机/身份切换。
+- 新发现本机已有Ubuntu WSL：Python3.14.4/cryptography46.0.5/systemd259/cgroupv2。用一次性systemd单元、User=sheng/Delegate=yes/RefuseManualStop=yes/Restart=no/NoNewPrivileges=yes运行实际relay_ota_smoke：committed0.0.2、坏0.0.3回退0.0.2、4棵树退出，单元已回收。另一12秒sleep单元实际拒绝root的systemctl stop，随后自行退出。此附加本机证据不替代目标Python3.12/systemd255或公网验收。
+- 记录实际结果于docs/OTA-LOCAL-PREPARATION.md，同步STATUS/验收/发布/交接。具体WSL参数、合成密钥边界、尚未执行项都有说明；没有把签名准备、下载或自动测试当成三端OTA已完成。
+- 续证钩子Linux合成3/3通过、Windows3项显式skip；最终Compose解析、shell语法、TOML解析和版本校验通过。Core加入deploy/test触发与测试，审核文件强制LF；本轮只保留本地改动和提交，未推送/触发新CI。GitHub官方FRP发布工具下载初次无进度已取消，再以60秒上限重试，只有摘要匹配才允许运行。
+- FRPS官方0.71.0工具经有界同源续传最终完整下载，13,932,092字节/SHA256 `84f27e39f11169f7adcef8e8b70c9329de17747b1f14dad9fb95eef5682ea716`与官方API一致；WSL以临时TLS/token替换配置路径，真实`frps verify -c`返回0。不启动监听，不创建项目真实签名；临时材料随验证退出清理，只有脱敏报告/工具缓存留在ignored artifacts。
+
 ## 2026-10-08 — 现有中继隔离部署预检
 
 - 用户选择“现有中继服务器上新增隔离环境”。从旧本机部署审查定位ubuntu@106.53.126.69，而非把不相关SSH配置当作目标；当前实际SSH只读核对Python3.12.3/cryptography41.0.7/systemd255/cgroup2、磁盘、现用服务、Caddy挂载/摘要、FRPS0.71.0与端口池、UFW、候选路径和用户。未写服务器文件、未开端口、未停服/reload。
