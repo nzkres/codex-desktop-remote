@@ -1,4 +1,14 @@
-# 当前验证状态：Windows alpha.7 私有源已发布，本机仍 alpha.6
+# 当前验证状态：Windows alpha.6→alpha.7 真实 OTA 与手机同任务接续验收通过
+
+## 2026-10-08 — 用户点击下载并安装，alpha.6→alpha.7 实际事务完成
+
+用户明确回报已点击“下载并安装”。只读核对实际current为alpha.7、ledger3、主事务`committed/success=true`，old为alpha.6；staged原签名metadata、releaseDigest、目标槽和95,085字节原发布包绑定全部一致，实际暂存ZIP重新验SHA通过。不是仅下载或仅准备记录。
+
+独立验收通过：签名alpha.7槽有效、原alpha.6槽完整保留；重新计算完整稳定身份、配置/权限和任务目录逐文件摘要，与事务preserved完全相同；应用锁持有。唯一实际新GUI标题为「Desktop 手机联调 · 0.1.0-alpha.7」、窗口句柄有效，准确签名槽路径及可信child_gate父子归属一致。当前真实Desktop只读探针`idle=true/permissionsVerified=true/receiptsCertain=true/version=alpha.7`，自动模型输入0；核验前后安装及事务记录原字节未变。
+
+脱敏证据位于忽略目录`artifacts/alpha7-preparation-20261008/final/installed-alpha7-verification.json`和`installed-alpha7-gui.json`。**Windows真实GUI升级及升级后手机/电脑同任务双向接续均已通过。** 用户按要求重新连接，于手机发送PHONE_ALPHA7_OK并在Desktop同一任务接续DESKTOP_ALPHA7_CONTINUE_OK后，明确回复“手机两条回复都能看到”。这一层证据来自用户实机确认，与自动事务/探针核验分开记录；不要重发这两条已完成消息。Android/relay仍alpha.5，无本轮更新或服务切换。
+
+下方“本机仍alpha.6/安装未执行”均为此前发布阶段记录，已由本段实际安装结果取代。
 
 ## 2026-10-08 — 已批准并完成 Windows 私有源发布
 

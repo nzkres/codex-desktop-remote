@@ -1,5 +1,7 @@
 # OTA 交接
 
+**最高优先级停点：用户已在原窗口点击下载并安装，Windows alpha.6→alpha.7 GUI在线事务现已committed/success、ledger3；不是待安装。** 根代理只读独立验收实际签名槽/发布包绑定、原alpha.6保留、完整身份/配置/权限/任务摘要保持、应用锁及唯一新GUI与可信启动门归属全部通过；真实Desktop探针idle/permissionsVerified/receiptsCertain与版本alpha.7通过，自动模型输入0。用户随后在新窗口连接，在同一原测试任务完成PHONE_ALPHA7_OK与DESKTOP_ALPHA7_CONTINUE_OK，并明确确认“手机两条回复都能看到”。**Windows真实OTA及升级后同任务接续闭环已通过**；下一阶段才准备Android alpha.5的独立OTA，不捎带更新relay。不要重试安装、重跑维护或重复未知消息；先读STATUS最新段。本机脱敏证据final/installed-alpha7-{verification,gui}.json。下面发布前/待安装停点均属历史。
+
 **最新停点优先：Windows alpha.7 test私有源已按用户明确授权发布sequence3；本机未安装，仍alpha.6/ledger2。** 服务器旧包保留、其他feed/服务保持，正常TLS公网匿名metadata/ZIP均401，隔离测试管理员会话完整下载并验签/大小/SHA/43文件通过，注销后拒绝。设备鉴权曾因现用连接的`runtimeNeedsReview`保护拒绝，未清标记、未断开或改身份；故不声称真实设备下载或OTA通过。用户本次仅批准源发布，实际客户端安装留到下一阶段安排。先读STATUS最新段及[发布审查](WINDOWS-ALPHA7-OTA-REVIEW.md)，不要重发sequence3或重跑发布助手；未知状态先只读检查。下一步正常断开后验证设备入口，再按原GUI执行检查/下载/独立助手和同任务验收，不重跑alpha.5维护器。公网可用包为原`91676bd9...412266`，有效至北京时间2026-10-15 21:12:09。
 
 以下保留发布前候选记录，其“待发布”已由上方完成状态取代。

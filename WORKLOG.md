@@ -1,5 +1,12 @@
 # 工作记录
 
+## 2026-10-08 — 用户主动完成 Windows alpha.7 GUI 在线安装
+
+- 用户回报“我已经点击下载并安装了”。没有再触发安装、重发任务或停止窗口；立即只读核对current alpha.7、ledger3、主事务committed/success、old alpha.6，签名槽有效。
+- 执行忽略目录`python -B artifacts/alpha7-preparation-20261008/verify-installed-alpha7.local.py`：staged envelope与原发布metadata一致、事务releaseDigest和candidate/old指针匹配；原信任/兼容档/seq3签名通过，暂存ZIP95,085字节/SHA与发布包一致，旧alpha.6槽重验保留。用产品snapshot重新计算完整稳定身份、配置/权限、任务目录所有文件摘要，与事务preserved完全相同；应用锁持有。只读专用Desktop探针idle/permissionsVerified/receiptsCertain=true、version alpha.7。install/current/trust/ledger/transaction核验前后原字节相同，自动模型输入0。
+- 只读CIM与窗口核对仅限本安装精确路径：唯一非gate GUI标题「Desktop 手机联调 · 0.1.0-alpha.7」、窗口句柄有效，其父进程为同一签名槽启动命令的可信child_gate；两者创建身份记录仅存忽略目录。脱敏报告final/installed-alpha7-verification.json和installed-alpha7-gui.json。没有按PID或名称终止任何进程。
+- 已请用户在新窗口连接，于手机原任务发送一次PHONE_ALPHA7_OK，收到后由Desktop同一任务发送一次DESKTOP_ALPHA7_CONTINUE_OK，确认手机两条均显示。用户随后明确回复“手机两条回复都能看到”；实际GUI在线升级和升级后同任务接续闭环验收通过，手机结果来自用户确认，不把探针当完成。Android/relay仍alpha.5；本轮只写验收记录，无产品代码/版本变化。
+
 ## 2026-10-08 — 已批准的 Windows alpha.7 私有源发布
 
 - 用户明确回复“批准发布 Windows 私有更新源”；本轮不执行当前电脑安装、手机/relay升级或服务停止。最初正常SSH执行自动审批两次超时，受限环境被拒；随后取得本轮网络及SSH目录只读权限，正常用户上下文成功连接，StrictHostKeyChecking保持，无跳过指纹、无私钥打印/复制。此执行权限问题已解决。

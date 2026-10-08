@@ -1,6 +1,6 @@
 # Windows alpha.6 → alpha.7 在线升级审查
 
-2026-10-08。Windows alpha.7修正连接失败时的配对申请状态和恢复提示，版本说明见[WINDOWS](versions/WINDOWS.md)。**用户已批准源发布，本表原签名包已发布到Windows私有test源，sequence3；本机安装尚未执行，仍alpha.6。** 服务器和公网验收证据见[STATUS](../STATUS.md)。Android、relay保持alpha.5；本次没有升级它们或重启服务。
+2026-10-08。Windows alpha.7修正连接失败时的配对申请状态和恢复提示，版本说明见[WINDOWS](versions/WINDOWS.md)。**用户已批准源发布，本表原签名包已发布到Windows私有test源，sequence3；用户随后已在原GUI点击下载并安装，实际alpha.6→alpha.7事务committed/success，独立保全/新窗口/探针验收通过；用户已确认升级后手机显示两条新测试回复，同任务接续验收通过。** 服务器和公网验收证据见[STATUS](../STATUS.md)。Android、relay保持alpha.5；本次没有升级它们或重启服务。
 
 ## 基线与发行输入
 
@@ -8,8 +8,8 @@
 - 原 alpha.6 ZIP 为 93,986 字节，SHA-256 `4df87881c5d0f704a4b2ac0a1a2d12e022f5b11062a8740d7ad43f96ca7811cf`，发布元数据 sequence 2。不得重新构建或替换此文件。
 - alpha.7 已在本机使用同一 `cdr-ota-test-20261008-v1` 发布密钥签发 sequence **3**，test/windows-x64、数据格式 1，兼容档和外部 Python/Node/FRP/Desktop 不变。私钥继续只在本机 DPAPI 保护；签发后已按真实安装公钥及sequence2账本复验，未写入现用安装。发布时再次核对账本及最新源，序号有变化即停止重审。
 - 固定源：`https://106.53.126.69:9443/desktop-remote-updates/test/windows/latest.json`。新包：同目录 `windows-0.1.0-alpha.7.zip`。两项请求均由已有设备身份鉴权，不添加公开文件路由，不嵌入 PAT。
-- 已部署源已从alpha.5/sequence1切换至alpha.7/sequence3；本机仍alpha.6/ledger2。此前检查旧源可能被防重放拒绝的停点已结束，仍不得删除账本或保护来更新。
-- 下表为已发布的固定输入；真实Windows安装内容保持不变，发布成功不代表本机升级成功。
+- 已部署源已从alpha.5/sequence1切换至alpha.7/sequence3；本机已实际alpha.7/ledger3。此前检查旧源可能被防重放拒绝的停点已结束，仍不得删除账本或保护来更新。
+- 下表为已发布的固定输入；本机真实安装事务也已独立验收；手机同任务接续结果另记STATUS，发布/探针不能代替它。
 
 | 发行输入 | 已核验值 |
 | --- | --- |
@@ -31,7 +31,7 @@ ZIP中43个源文件均逐字节匹配上述Git提交，完整清单校验通过
 
 本机Node64通过，Python152项中146通过/6平台跳过；原生Tk配对错误/状态重读/后续恢复、六种维护交接、HTTPS GUI提交/健康回退通过。最终两轮CI含上述演练均通过。首次PR CI出现旧维护夹具在原helper句柄退出后立即断言外层Job清空的时序问题；改为对同一Job有界等待，并新增残留超时/观测错误必须失败的测试。没有放宽产品清理门槛，失败记录见WORKLOG。
 
-**当前停点：** 步骤1—3发布完成；步骤4正常TLS、匿名拒绝及账号授权下载通过，但当前设备授权因运行保护拒绝，留到正常断开后单独验收，未绕过保护或宣称已通过。用户本次仅批准源发布；步骤5—6的真实GUI安装与同任务验收留待下一阶段安排。手机安装、中继程序升级、PR合并与其他运行实例均不在本次发布范围内。
+**当前停点：** 步骤1—3发布与公网账号下载验收完成；发布阶段设备入口因运行保护拒绝且未绕过。用户随后自行在原GUI完成下载并安装，步骤5实际事务committed/success、ledger3，新GUI及身份/权限/任务保持独立验收通过。步骤6用户已完成手机发送PHONE_ALPHA7_OK及Desktop同任务接续DESKTOP_ALPHA7_CONTINUE_OK，并明确确认手机两条均显示；Windows实际OTA闭环通过。不要重复安装或重发已完成消息。手机安装、中继程序升级、PR合并与其他实例均未操作。
 
 ## 获批后的发布和实机步骤
 
