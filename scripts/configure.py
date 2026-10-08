@@ -22,8 +22,10 @@ def main():
     parser.add_argument('--desktop-root', required=True, type=Path)
     parser.add_argument('--node', required=True, type=Path)
     parser.add_argument('--frpc', required=True, type=Path)
+    parser.add_argument('--home', type=Path, help='Fresh managed OTA installation home')
     args = parser.parse_args()
-    output = ROOT / 'fixture.local.json'
+    base = args.home.resolve(strict=True) / 'data' if args.home else ROOT
+    output = base / 'fixture.local.json'
     if output.exists():
         raise ValueError('configuration_already_exists')
     paths = {key: getattr(args, key).resolve(strict=True) for key in ('project', 'desktop_root', 'node', 'frpc')}
@@ -36,7 +38,7 @@ def main():
     with socket.socket() as sock:
         sock.bind(('127.0.0.1', 0))
         port = sock.getsockname()[1]
-    data = ROOT / 'data' / ('fixture-' + str(args.thread_id))
+    data = (base if args.home else ROOT / 'data') / ('fixture-' + str(args.thread_id))
     cfg = {'schema': 1, 'threadId': str(args.thread_id), 'projectPath': str(paths['project']),
            'desktopRoot': str(paths['desktop_root']), 'title': 'Desktop 手机测试',
            'permissionsHash': '', 'port': port, 'dataDir': str(data)}

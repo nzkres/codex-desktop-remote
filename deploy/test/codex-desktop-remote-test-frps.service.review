@@ -1,0 +1,16 @@
+[Unit]
+Description=Isolated Codex Desktop Remote test FRPS 0.71.0
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=exec
+User=cdrtest
+Group=cdrtest
+ExecStart=/opt/codex-desktop-remote-test/frps -c /etc/codex-desktop-remote-test/frps.toml
+Restart=no
+UMask=0077
+NoNewPrivileges=yes
+
+[Install]
+WantedBy=multi-user.target

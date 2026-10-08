@@ -91,12 +91,14 @@ class LiteRuntime:
 
 
 class Controller:
-    def __init__(self, config_file):
+    def __init__(self, config_file, data_root=None, quarantine=False):
         self.config_file = Path(config_file).resolve()
         no_links(self.config_file)
         self.config = json.loads(self.config_file.read_text(encoding='utf-8'))
         # Only a new application-local identity. Never accept a legacy state path.
-        self.store = CredentialStore(ROOT / 'data' / 'identity')
+        self.data_root = Path(data_root) if data_root else ROOT / 'data'
+        self.quarantine = quarantine
+        self.store = CredentialStore(self.data_root / 'identity')
 
     def status(self):
         report = Connector(self.store).status()
@@ -155,7 +157,7 @@ class Controller:
             device_token=state['deviceToken'], transport_token=settings['transportToken'])
         frp_config = public_asset(store.root, '.toml', template.encode())
         identity = {'schema': 1, 'token': secrets.token_hex(32), 'instance': secrets.token_hex(16),
-                    'controlToken': secrets.token_hex(32)}
+                    'controlToken': secrets.token_hex(32), 'quarantine': self.quarantine}
         # Secret stays in protected local state and a one-shot inherited pipe.
         with store.lock():
             current = store.read()

@@ -1,0 +1,21 @@
+# Review only: independent container, pinned to the previously reviewed image.
+name: codex-desktop-remote-test
+services:
+  cdrtest-caddy:
+    image: caddy@sha256:4c6e91c6ed0e2fa03efd5b44747b625fec79bc9cd06ac5235a779726618e530d
+    container_name: codex-desktop-remote-test-caddy
+    network_mode: host
+    restart: "no"
+    read_only: true
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=16m
+    volumes:
+      - /etc/codex-desktop-remote-test/Caddyfile:/etc/caddy/Caddyfile:ro
+      - /etc/letsencrypt/live/codex-remote-ip:/etc/letsencrypt/live/codex-remote-ip:ro
+      - /etc/letsencrypt/archive/codex-remote-ip:/etc/letsencrypt/archive/codex-remote-ip:ro
+      - /var/lib/codex-desktop-remote-test-caddy/data:/data
+      - /var/lib/codex-desktop-remote-test-caddy/config:/config

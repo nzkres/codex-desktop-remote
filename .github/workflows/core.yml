@@ -1,9 +1,9 @@
 name: Core self-test
 on:
   push:
-    paths: ['src/**', 'windows/**', 'test/**', 'relay/**', 'scripts/**', 'package.json', 'android-native/releases.json', 'docs/versions/**', '.github/workflows/core.yml']
+    paths: ['updates/**', 'src/**', 'windows/**', 'test/**', 'relay/**', 'scripts/**', 'deploy/test/**', 'package.json', 'android-native/releases.json', 'docs/versions/**', '.github/workflows/core.yml']
   pull_request:
-    paths: ['src/**', 'windows/**', 'test/**', 'relay/**', 'scripts/**', 'package.json', 'android-native/releases.json', 'docs/versions/**', '.github/workflows/core.yml']
+    paths: ['updates/**', 'src/**', 'windows/**', 'test/**', 'relay/**', 'scripts/**', 'deploy/test/**', 'package.json', 'android-native/releases.json', 'docs/versions/**', '.github/workflows/core.yml']
   workflow_dispatch:
 permissions:
   contents: read
@@ -14,7 +14,7 @@ jobs:
       matrix:
         os: [ubuntu-latest, windows-latest]
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 10
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -23,7 +23,33 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
+      - run: python -m pip install -r updates/requirements.txt
       - run: python -B scripts/check_versions.py
       - run: node --test
       - run: python -B -m unittest discover -s test -p "test_*.py" -v
       - run: python -B -m unittest discover -s relay -p "test_*.py" -v
+      - run: python -B -m unittest discover -s deploy/test -p "test_*.py" -v
+      - name: Real Windows GUI and independent helper upgrade and rollback
+        if: runner.os == 'Windows'
+        run: python -B scripts/windows_ota_smoke.py
+      - name: Real Linux cgroup relay upgrade and rollback
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          set -euo pipefail
+          cg="/sys/fs/cgroup/desktop-remote-ci-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          sudo mkdir "$cg"
+          trap 'sudo rmdir "$cg"' EXIT
+          sudo env DESKTOP_REMOTE_TEST_CGROUP="$cg" "$(command -v python)" -B scripts/relay_ota_smoke.py
+      - name: Package immutable source distributions
+        shell: bash
+        run: |
+          mkdir -p dist
+          python -B -m updates.publish pack windows --output dist/desktop-remote-windows-source.zip
+          python -B -m updates.publish pack relay --output dist/desktop-remote-relay-source.zip
+      - uses: actions/upload-artifact@v4
+        with:
+          name: desktop-remote-source-${{ runner.os }}
+          path: dist/*.zip
+          retention-days: 14
+          if-no-files-found: error

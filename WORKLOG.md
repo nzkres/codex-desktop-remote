@@ -1,5 +1,64 @@
 # 工作记录
 
+## 2026-10-08 — 受控首装签名工具准备
+
+- 用户要求继续下一阶段。只读核对PR #1仍OPEN/head aa757cf、main b7db21e、仓库Secrets列表为空；上一轮明确的暂缓合并/真实签名边界尚未按具体执行清单解除。先补实际签名工具，不触碰服务或真实身份。
+- 主代理实现`updates.signing`：新建仓库外专用目录、CurrentUser DPAPI RSA3072、仅加密私钥与公钥记录落盘；load核对keyId、公钥、DER摘要及文件类型/链接/大小，失败保留现场。`updates.publish sign --signing-home`仅内存解封，和原外部PEM二选一；没有自动落明文降级。工具不随三端运行包分发。
+- GPT-6 Sol medium负责签名库测试及Android trust预检工具，主代理验收并接入CI。复核发现Python可解析PKCS#1而手机要求SPKI，补规范SPKI及拼接/尾随拒绝回归；Android构建前验证RSA3072和准确test/android源，构建后比对APK内trust原始字节。Gradle明确PKCS12，保留main-only和apksigner单签名者/指纹校验。
+- 本机最终测试：固定Node20.19 `--test` 33/33；Python3.12 `-B -m unittest discover -s test -p 'test_*.py' -q` 共119项，113通过/6跳过；relay相同入口共77项，73通过/4跳过；版本校验和diff检查通过。DPAPI沙箱定向初测不具备正常用户保护上下文，获准在本机合成范围运行后签名/验签通过；未放宽DPAPI或改为机器作用域。
+- 当前仅发行工具/构建门禁变化；三端版本保留alpha.4，不替换已发布包，不将普通PR调试构建当受控首装。已更新发行说明与准确执行范围；跨电脑密钥备份/恢复、真实密钥和六项Secrets仍未完成。CI待推送后单独记录。
+
+## 2026-10-08 — 本地准备推送与三平台 CI 验收
+
+- 用户继续推进；保持“暂不合并或配置签名”的最新边界。先核对远端PR #1为OPEN，分支head为3277a8a，本机工作区干净且仅领先be5a01c；执行`git push origin codex/ota-implementation`成功，无force、无main改动。
+- `gh run list`及`gh run view --json`核对同一head：Core push37726150384、PR37726153483的Windows/Linux均success；Android37726153367 success。进一步读取日志中的测试汇总、真实升级/回退标志、APK校验结果；不是仅根据旧绿色状态判断。
+- Core PR日志：Node Windows33通过、Linux31通过/2跳过；Python主套件107项中Windows102通过/5跳过、Linux94通过/13跳过；relay77项中Windows73通过/4跳过、Linux77通过；续证钩子Linux3通过、Windows3跳过。真实pythonw助手升级0.0.2/坏候选回退0.0.1；Linux中继升级0.0.2/坏0.0.3回退0.0.2、4棵树清理。没有放宽检查或忽略失败。
+- Android普通PR构建通过单测/lint、主/测试APK编译及包内说明检查；APK为alpha.4/code4、11,771,608字节、bundledNotesMatchSource=true。未启用受控签名步骤，未安装模拟器/手机；本轮不将CI调试包替换原Release。
+- `gh api .../actions/runs/.../artifacts`核对Windows/Linux源码ZIP与Android debug/报告构件均已上传、未过期，14天保留至2026-10-22 UTC。这里只验证CI和上传状态，没有把临时构件当长期更新服务或声称真实OTA成功。
+- GPT-6 Sol medium只读复核安装/OTA说明，主代理核对结果并更新STATUS、CHANGELOG、README、HANDOFF与本地准备记录；修正本地测试统计为通过与跳过分列。保留上一节推进前记录和早期Windows偶发问题，没有编造新软件版本。
+- 最后仅6份Markdown变化：`python -B scripts/check_versions.py`、62个本地链接目标和`git diff --check`通过。文档提交使用`[skip ci]`避免重跑未变更的产品；上列CI证据精确对应be5a01c，后续文档提交不冒称又执行过一次完整CI。
+- 下一步仍是受控首装信任和连续签名、隔离HTTPS部署、三端真实N→N+1；这些尚未执行。当前签名保管/合并/部署选择未改变，不把“继续”扩张为实际切换授权。
+
+## 2026-10-08 — 本地部署准备与发布路径修正
+
+以下是`be5a01c`推送前的本地准备记录；后续推送与CI结果另立增量，不将当时“未推送”视为当前状态。
+
+- 用户在“继续下一步”后明确选择“先完成本地准备，暂不合并或配置签名”；本轮不创建项目真实发行密钥、不配置Secrets、不合并或公网部署。只读核对PR3277a8a三平台检查全成功，仓库Secrets/Variables列表为空；没有读取秘密值。本轮没有新CI或新发布。
+- GPT-6 Sol medium准备deploy/test下独立systemd/FRPS/Caddy/续证钩子草稿，主代理复核。主代理要求证书挂载只限指定lineage，续证以固定容器ID/项目/镜像和明确22019地址重载，保持旧2019隔离；无ExecStop假门禁，relay拒绝手动stop且Restart=no。另由Sol复核发布器精确路由与服务端一致。
+- 修复本地发行工具可能签出私有服务器无法提供的URL：现在签名前要求准确渠道/组件/latest.json与catalog版本文件名/扩展，拒绝不写metadata；规范bootstrap/Windows smoke夹具URL，新增7类拒绝和HTTPS9443正常用例。工具不随应用运行包分发，因此三个软件版本仍为alpha.4，旧发布不可换包；alpha.5/alpha.6仍未签发。
+- Node33通过（沙箱EPERM在加载测试前发生，获准本机复验通过）；Python3.12主套件107项通过、5Linux跳过；relay77项通过、4Linux跳过。真实Windows pythonw/helper在临时身份下committed0.0.2、坏探针rolled_back0.0.1。无真实Desktop探针/手机/身份切换。
+- 新发现本机已有Ubuntu WSL：Python3.14.4/cryptography46.0.5/systemd259/cgroupv2。用一次性systemd单元、User=sheng/Delegate=yes/RefuseManualStop=yes/Restart=no/NoNewPrivileges=yes运行实际relay_ota_smoke：committed0.0.2、坏0.0.3回退0.0.2、4棵树退出，单元已回收。另一12秒sleep单元实际拒绝root的systemctl stop，随后自行退出。此附加本机证据不替代目标Python3.12/systemd255或公网验收。
+- 记录实际结果于docs/OTA-LOCAL-PREPARATION.md，同步STATUS/验收/发布/交接。具体WSL参数、合成密钥边界、尚未执行项都有说明；没有把签名准备、下载或自动测试当成三端OTA已完成。
+- 续证钩子Linux合成3/3通过、Windows3项显式skip；最终Compose解析、shell语法、TOML解析和版本校验通过。Core加入deploy/test触发与测试，审核文件强制LF；本轮只保留本地改动和提交，未推送/触发新CI。GitHub官方FRP发布工具下载初次无进度已取消，再以60秒上限重试，只有摘要匹配才允许运行。
+- FRPS官方0.71.0工具经有界同源续传最终完整下载，13,932,092字节/SHA256 `84f27e39f11169f7adcef8e8b70c9329de17747b1f14dad9fb95eef5682ea716`与官方API一致；WSL以临时TLS/token替换配置路径，真实`frps verify -c`返回0。不启动监听，不创建项目真实签名；临时材料随验证退出清理，只有脱敏报告/工具缓存留在ignored artifacts。
+
+## 2026-10-08 — 现有中继隔离部署预检
+
+- 用户选择“现有中继服务器上新增隔离环境”。从旧本机部署审查定位ubuntu@106.53.126.69，而非把不相关SSH配置当作目标；当前实际SSH只读核对Python3.12.3/cryptography41.0.7/systemd255/cgroup2、磁盘、现用服务、Caddy挂载/摘要、FRPS0.71.0与端口池、UFW、候选路径和用户。未写服务器文件、未开端口、未停服/reload。
+- 现用443/7443/7000和18081/18091/18092保留；候选9443/17443/22019/28181/28191/28192/28200–28220当时无监听，两个旧FRPS池也不重叠。候选路径和cdrtest用户不存在，云安全组与新服务cgroup委派尚未验证。现有TLS正常校验收到404，只作为握手证据，不能计作登录/OTA成功。
+- 发现现用IP短期证书于2026-10-13 22:07:54 UTC到期；新独立Caddy需独立续证reload钩子，不能只复用证书路径而忽略续期。新增docs/OTA-DEPLOYMENT-REVIEW.md与deploy/test/Caddyfile.review，明确精确资源、私有路由、签名/首装顺序、撤回和待确认事项。候选auth路由覆盖X-Real-IP，避免客户端伪造限流来源。
+- 将候选经stdin送入现有容器中独立的`caddy adapt --config - --adapter caddyfile --validate`进程，返回0；未保存为远端配置、未reload、未创建新监听。没有修改旧Android下载路径，仍禁止新OTA静态公开。GPT-6 Sol medium只读审查源码前提，主代理验收并核对现场。
+- 验证：最终候选Caddy adapt/validate返回0（仅格式提示）；`python -B scripts/check_versions.py`、受影响Markdown本地链接和`git diff --check`通过。未重跑未改变的产品测试，也不把历史CI计作本次候选部署成功。
+- 本轮仅文档/部署候选维护，无软件版本递增；受控alpha.5/alpha.6、发行密钥、CI签名Secrets、手机安装、真实三端OTA仍未完成。下一步确认候选origin与签名保管/合并安排，完成最终受控构件及可审查服务配置后，再按用户要求确认实际公网部署。
+
+## 2026-10-08 — alpha.4 构建复验
+
+- 最终 `c92ea98` Core push 37657708244、PR37657716116 的 Windows/Linux 全成功；Android PR37657716149也成功。发布前目录经过完整清单/Git输入/APK说明/哈希验证，私有 `v0.1.0-alpha.4` 六附件全部 uploaded，服务端 digest/size 与本地相同。发布首次 HEAD 预检遇 EOF，GET确认404未创建后重试成功，未覆盖旧Release。STATUS/安装起点/版本索引已写实际包信息，PR描述同步最终范围。
+
+- 产品提交 `78ff65d` 推送前两次被 GitHub Internal Server Error 拒绝；只读确认远端未变后以 HTTP/1.1 推送成功。main 未修改。
+- 本机最终主套件 105 项（5 Linux 专属跳过），Android CI [37655844718](https://github.com/nzkres/codex-desktop-remote/actions/runs/37655844718) 94 JVM 测试、lint 0 errors / 45 warnings 与 APK 构建通过。下载后 alpha.4/code4、说明、ZIP 完整性及空 trust 均核对。
+- 同 head `78ff65d` Core push 37655845113 的 Windows smoke 等待首条 GUI 响应超时，PR [37655857428](https://github.com/nzkres/codex-desktop-remote/actions/runs/37655857428) 全部通过。仅为 smoke 加固定阶段诊断 `a206d1f`，不增超时或跳过检查；本机三次连续完整演练成功，Core push [37656996876](https://github.com/nzkres/codex-desktop-remote/actions/runs/37656996876) Windows/Linux 全通过。首轮偶发 GUI 超时/本机回退原因仍未定位，保留为待观察问题，不能据此宣布真实设备 OTA 验收。
+- `a206d1f` PR 37657003946 在新 private-feed 测试发现另一条时序：收到 body 早于 handler 退出维护门禁。夹具改为观察实际 handler 返回 Event，产品门禁保持不变；本机私有鉴权定向 5/5 通过，最终 CI 继续验证。
+- 三端包下载后逐文件校验：Windows43文件、relay29文件符合完整 manifest 与 Git 输入（Windows仅两份 text=auto TXT为CI checkout CRLF）；APK包内说明与Git78ff65d原始字节一致。尚未将包发布为已签 feed、部署公网、安装手机或迁移真实身份。
+
+## 2026-10-08 — alpha.4 私有下载鉴权
+
+- 用户确定“保持私有，先补下载鉴权”；主代理拆出服务器、Android 和共享 HTTPS 鉴权给 GPT-6 Sol medium，逐项复核后整合。复用现有账号/DPAPI 配对，不新增登录协议；同 origin 固定私有路径、分组件授权、匿名/过期/暂停/撤销拒绝；保持发布签名和本地事务验证。
+- 主代理修正 Android 鉴权类型与服务器常量不一致、放宽路径范围两处整合问题；新增 Linux 交互 login/logout（密码不落盘、限时会话0600）、Windows 缺身份时无创建副作用、登出同内容换 inode 的 CAS。补发布白名单、实际 CLI/GUI/宿主入口与 smoke 的合成凭据加载。
+- 本机命令：固定 Node 20.19.0 `--test` 33/33；Python 3.12 `-B -m unittest discover -s test -p 'test_*.py'` 104 项通过（5 Linux 跳过），relay 同命令 77 项（4 Linux 跳过）；新增回退脱敏诊断后 `-m unittest test.test_update_engine test.test_update_credentials -v` 21 项通过（5 Linux 跳过）。Node 沙箱先被路径 EPERM 阻断，获准在本机合成范围复验通过。
+- `python -B scripts/windows_ota_smoke.py` 首轮意外 rolled_back，原日志缺失败首因；未操作真实服务，自动回退成功。随后两轮实际 pythonw/helper 均 committed0.0.2 与预期坏探针 rolled_back0.0.1；增加事务 cause 的受限错误码及脱敏测试，保留首轮未定位事实，CI 继续验证。
+- 新增 [OTA-ACCEPTANCE](docs/OTA-ACCEPTANCE.md)：先服务器/固定签名首装，再 Windows→Android→relay 一次一端真实升级，最后故障演练和 BUG 批次。alpha.4 开发预览与将来受控 N/N+1 分开，旧包不换签/换包；三个版本历史、安装和跨电脑交接同步更新。本版 CI/构件下载复验待补；未部署、未合并 main、未迁真实身份。
+
 ## 2026-10-07 — 三个原型增加 OTA 的正式要求
 
 - 用户明确“所有原型必须增加 OTA 的方式更新迭代版本”。在独立分支 `codex/ota-requirements` 将三端 OTA 从此前排除项改为正式必做范围，新增 `docs/OTA.md`，同步项目范围、原型关系、安装/迭代/测试指南与状态；已发布 alpha.1/alpha.2 的记录保持原样。
@@ -54,3 +113,43 @@
 - 使用 `gh run download 37608678246 --repo nzkres/codex-desktop-remote --name desktop-remote-android-debug --dir artifacts/android-ci-37608678246` 下载；核对报告、APK ZIP CRC、文件大小及 SHA-256。APK 和完整测试报告归入私有 `v0.1.0-alpha.1` 开发预览，避免只依赖保留 14 天的 Actions artifact。哈希、来源与未验收项见 STATUS.md。
 - 最后只修订文档：Unix 使用 `bash ./gradlew`；澄清配对顺序、测试服务器选择、开发预览与稳定版本的区别。产品源码未在 CI 后变更，文档提交使用 `[skip ci]` 避免重复相同编译。
 - 下一步由用户按 TESTING.md 自测并反馈。现用手机、Gateway/FRP、公网中继及 DPAPI 身份均未切换；本仓库不宣称已完成新包真机验收。
+
+## 2026-10-07 OTA alpha.3 实现中
+
+- 分支 codex/ota-implementation；基于 main b7db21e。加入 RSA3072 签名元数据、隔离版本目录、持久化事务、独立助手和三端入口；未部署公网、未迁移现用身份。
+- 本机命令：`python -B -m unittest discover -s test -p "test_*.py"` 69 项通过；`node --test` 32 项通过。Windows 原始句柄/Job 子树合成测试通过。中继 agent suite 65 项通过含 2 个 Linux 跳过。
+- 下一步：Windows driver 审查、HTTPS 下载/两版本演练、Linux cgroup 实测 CI、Android 编译与安装文档。此检查点不是完整验收或生产发布。
+
+### OTA 第二轮验证
+
+- 本机 87 项 Python tests 通过（含真实临时 TLS 服务器 3 项）；Windows mock driver 10/10。
+- `python -B scripts/windows_ota_smoke.py` 在隔离临时 home、合成签名包、新 DPAPI unpaired 身份上实际跑过 pythonw/Tk → 独立 helper → 新 GUI，升级 0.0.1→0.0.2 committed；候选探针失败 rolled_back 0.0.1。根代理复验通过。Desktop 探针由签名 fixture 替换，仅测试助手与窗口生命周期，未操作真实任务。
+- 首轮 CI c663a62：Android JSONObject API/可见性编译失败、Windows 临时目录清理时序及私钥路径别名断言失败，已针对修复；不能把首轮记为成功。新增 Linux cgroup 真实服务两版演练等待下一轮 CI。
+
+### OTA 第三轮修正
+
+- Android run 37643173564 / 560bf39 已成功（JVM、lint、APK 构建）。新增安装回执已接 UI，随后又加强 APK minSdk 一致性，需最终构建。
+- Core run 37643173534：Linux 已实际提交新版，但失败候选回退暴露已退出管道关闭的 BrokenPipe 被错误算作树退出失败；现仅在同一原始句柄及空 Job/cgroup 已证明后忽略无效管道关闭错误，增加本机实进程回归。Windows 测试夹具的短路径已统一规范化。
+- Windows 在开放新 GUI 操作前解除助手 Job 的 kill-on-close；事务未 committed/rolled_back 时窗口禁用新连接。中继 needs_review 保留原始句柄；更新期间配置、控制 token、传输配置变化均拒绝。
+
+### OTA 最终候选
+
+- e7602ec：Android run 37644338199 成功；Core run 37644337904 Linux 全部通过（Node33/Python88/relay72 + 真实cgroup服务提交/回退）。Windows Job断言全部通过，但测试空目录最终删除因OS释放延迟WinError32失败。夹具现仅在树退出证明后对自己创建的空目录 rmdir 有界重试3秒，超时仍失败；本机10轮重复通过，未放宽产品树证明。
+- 根代理与子代理已完成实际Windows隔离helper演练，文档记录首次信任配置、源码包依赖、Linux更新宿主正常重启边界。删除重复的纯fake-driver smoke脚本，保留更完整的Windows/relay实际进程演练。
+
+### OTA 分发前复验
+
+- 0c1f37b / Core 37645343523：Windows 全部单元测试通过，GUI smoke 交接未核验；Linux 再次全过。检查发现 helper/candidate 把已核验版本目录的短路径别名与 canonical ROOT 直接比较，现先保留 no-links 检查再规范化比较；新增别名/不同版本拒绝回归，本机 1/1 及两种真实 GUI/helper 演练通过，CI 待复验。烟测补固定阶段/错误码，不输出凭据。
+- Android run 37644338199 构件实际下载后核对：alpha.3/code3、11,771,316 字节、SHA-256 d188ed0522f8fc36361565495536cdda141e36160443ededee314dbb843107f6。包内说明与 `git show e7602ec:android-native/releases.json` 原始字节一致；Windows checkout 的 CRLF 不能直接当作 Linux 构建输入比较。87 JVM 测试、Lint 0 errors / 45 warnings；默认 trust 无 keys/source，没有宣称受控签名发行或真机升级。
+
+### OTA alpha.3 验收与归档
+
+- 最终产品提交 `169b4497f196cc390a333657e98f5fb70519f5b0`，Core [37646940566](https://github.com/nzkres/codex-desktop-remote/actions/runs/37646940566) Windows/Linux 均成功。Node33、Python89（Linux skip13）、relay72（Windows skip4）。Windows 实际 pythonw GUI/helper 两例 committed0.0.2 / rolled_back0.0.1；Linux 实际监听/socket/cgroup 服务 committed0.0.2、坏0.0.3回退0.0.2，4棵树证明清空。Android 源码自通过的 e7602ec 后未变，无需重复同一构建。
+- 命令：`gh run download 37646940566 --name desktop-remote-source-Windows --dir artifacts/ota-alpha3/Windows`、同 run 的 Linux artifact，以及 `gh run download 37644338199 --name desktop-remote-android-debug --dir artifacts/ota-alpha3/android`。下载后使用 `updates.security.unpack/verify_tree` 校验每个原始包哈希、文件清单与内容，再逐文件对比 Git 构建输入。Windows 仅 AGPL TXT 与 requirements TXT 的 text=auto checkout 换行不同；校验未忽略任何文件或包哈希。
+- `v0.1.0-alpha.3` 私有开发预览归档主 APK、两个源码 ZIP、Android 报告、逐包核对报告与 SHA256SUMS；哈希和大小写入 STATUS。此记录仅交付源码与构件，签名首装、长期更新源、手机覆盖安装、真实 Desktop/手机升级和现用中继部署均未执行。
+- 下一步：确认独立测试更新源及受控首装签名资源，在新安装完成真实 HTTPS N→N+1；任何现用 Gateway/FRP、身份或公网服务切换仍依用户先前约定另行批准。后续版本继续在三个 releases.json 与生成历史记录变化。
+
+### alpha.3 标签后的测试同步修正
+
+- alpha.3 六个归档文件均已上传，服务端大小/SHA 与验收文件逐一匹配。PR #1 已建立；自动审批拒绝直接快进 main，原因是未明确授权绕过 PR 修改默认分支，因此保持独立分支并向用户请求 PR 合并确认，未操作现用服务。
+- PR 重复 CI 37648259999 的 Windows relay 门禁测试出现时序失败：客户端读完 HTTP body，不代表服务线程已执行 admit 的 finally。产品正确拒绝仍 active 的维护请求；测试现通过 handler 完成 Event 等待真正释放后再 prepare，没有改产品门禁、增加盲重试或改写已发布构件。产品包仍对应已成功的 169b449 CI；修正后的 PR 检查继续核验。

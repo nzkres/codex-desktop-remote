@@ -1,35 +1,13 @@
-# 三个原型从哪里开始安装
+# 三个原型的安装起点
 
-适用版本：三个组件均为 `0.1.0-alpha.2` 开发预览。先按自己的目标选择入口；安装、启动和手机联通是不同的验收步骤，当前证据见 [STATUS](../../STATUS.md)。
+**下载起点是 [v0.1.0-alpha.4 私有开发预览](https://github.com/nzkres/codex-desktop-remote/releases/tag/v0.1.0-alpha.4)。** Windows/Linux 最终 CI 与 Android 构建已通过；页面为开发预览归档，不是正式 OTA feed。已有 [alpha.2 Release](https://github.com/nzkres/codex-desktop-remote/releases/tag/v0.1.0-alpha.2) 保留为历史归档。实际证据看 [STATUS](../../STATUS.md)，三端 OTA 边界看 [OTA](../OTA.md)。
 
-**三端 OTA 已列为必做要求，当前版本尚未实现。** 目标是首次安装后分别通过手机、电脑窗口和中继管理员工具在线更新，保留身份与数据；具体方案与验收见 [OTA.md](../OTA.md)。以下仍是 alpha.2 的实际安装步骤，不包含尚不存在的 OTA 按钮或命令。
+| 组件 | 第一次使用 | 后续更新入口 |
+| --- | --- | --- |
+| [Android](ANDROID.md) | 从 alpha.4 Release 下载 `desktop-remote-lite-0.1.0-alpha.4-debug.apk` 并手动安装 | App 内有检查入口，但此 debug 包的 trust 为空、无受控连续签名，不能作为生产 OTA 基线 |
+| [Windows](WINDOWS.md) | 下载 `desktop-remote-windows-0.1.0-alpha.4-source.zip`；仍需外部 Python/Node/FRP/Desktop | 受管 OTA 须另有签名 ZIP、元数据与公钥，在**新目录** bootstrap；没有 EXE 安装器 |
+| [Linux 中继](RELAY.md) | 下载 `desktop-remote-relay-0.1.0-alpha.4-source.zip`；仍需外部 Python 与 Linux 运行条件 | 受管 OTA 须另有签名 ZIP、元数据、公钥和委派 cgroup；不接管现用中继 |
 
-| 原型 | 现在能拿到什么 | 第一步 | 详细步骤 |
-| --- | --- | --- | --- |
-| Android 手机 App | 可下载的独立测试 APK | 在手机上下载并安装 `Desktop Remote Lite`，保留旧 App | [手机安装、登录、配对](ANDROID.md) |
-| Windows 连接器 | Python 图形窗口源码；没有 exe 安装器、托盘或自动更新 | 下载源码，准备 Python 3.12 + Tkinter，打开合成预览 | [电脑准备、预览、真实连接](WINDOWS.md) |
-| 服务器中继 | Python 服务源码；没有现成公网安装包 | 下载源码，运行隔离自测，再启动本地认证与控制服务 | [中继本地启动与公网前置条件](RELAY.md) |
+想先看界面，可运行 `python windows/demo.py`，它只用合成数据。实际手机文字闭环需已审核的 HTTPS 中继、独立测试账号、专用 Desktop 原生任务、新连接器配对和手机确认；下载、安装、连通与任务完成是不同证据层。旧 App 包名不同，可并存；不要为了测试卸载旧 App 或复制其凭据。
 
-## 推荐顺序
-
-1. **先体验界面：**安装手机 APK；在 Windows 打开 `windows/demo.py`。手机登录需要服务器，电脑合成预览不需要账号、FRP 或 Desktop，也不代表已经连通。
-2. **再准备连接条件：**由维护者提供一个已经核验的测试 HTTPS 中继地址及账号，或按中继指南先验证本地服务。手机和电脑填同一个 HTTPS 地址；`127.0.0.1`、GitHub 仓库地址和示例域名都不是手机可用的中继。
-3. **最后联调：**按 Windows 指南核对 Desktop、准备专用任务，再由手机生成配对码、电脑申请、手机确认。只验收这一条任务的手机发送与 Desktop 接续；具体项目见 [测试指南](../TESTING.md)。
-
-已有可用的旧服务器，不必为了安装 APK 先重装服务器；只有维护者确认协议兼容并允许新增测试设备后才使用它。新仓库没有自动接管旧 Windows 实例或迁移身份的工具，实际切换应先核对 [恢复说明](../../RECOVERY.md)。
-
-## 下载位置
-
-打开私有 [v0.1.0-alpha.2 发布页](https://github.com/nzkres/codex-desktop-remote/releases/tag/v0.1.0-alpha.2)，先登录有仓库权限的 GitHub 账号。
-
-- **手机用户：**在 Assets 下载 `desktop-remote-lite-0.1.0-alpha.2-debug.apk`。`android-validation-reports.zip` 是测试报告，`Source code (zip)` 是源码，都不能当 APK 安装。
-- **电脑与中继：**下载该页 `Source code (zip)`，解压到新的可写目录，例如自己的“文档”目录下。打开能同时看到 `README.md`、`windows`、`relay`、`scripts` 的目录，它就是后文的“仓库根目录”。无需安装 Git；源码压缩包没有 Python、Node、FRP 或 Desktop。
-- **后续开发：**可克隆仓库并切到对应 tag；`main` 是持续变化的开发分支。发布标签保留当时源码，最新安装说明在本目录，不会改写已发布 tag。
-
-私有发布页显示 404 时先核对登录账号与仓库权限，不要改用来源不明的镜像。校验值用于发现损坏，不替代发布签名。当前 APK 是 debug 测试包，跨构建覆盖安装有签名限制，详见手机指南。
-
-## 测完如何记录
-
-分别记下手机、Windows、中继的实际版本，以及“已下载／已安装或启动／已配对／同一任务文字闭环／断开重连”各项结果。只下载源码不能算安装过，CLI 显示版本不能算公网部署过。反馈中不含密码、配对码、令牌、真实数据库或私密任务日志。
-
-每次更新看 [三端版本说明](../versions/README.md)；遇到问题看对应安装指南及 [恢复说明](../../RECOVERY.md)。软件依赖、入口或安装方式变化时，应与版本说明一起更新本目录。
+alpha.4 的三个下载文件是开发预览产物，Windows/relay ZIP 都是源码包，不是 EXE 安装器或已签 OTA feed。alpha.4 新增私有下载鉴权；首次受管安装与发布仍须测试公钥/私钥管理、同源私有 HTTPS 路由及候选包，不能公开为静态目录；命令见 [发布步骤](../OTA-PUBLISH.md)，顺序见 [落地验收](../OTA-ACCEPTANCE.md)。普通 debug 签名不保证覆盖已装 alpha.2，遇到冲突先保留应用和数据，勿卸载绕过。产品代码完成不等于真机已升级。GitHub Actions 14 天临时 artifact 不能充当在线更新服务；遇到 `needs_review` 按 [恢复说明](../OTA-RECOVERY.md)保留现场。

@@ -36,7 +36,7 @@ try {
   lease = createServer(socket => socket.destroy());
   await new Promise((yes,no) => { lease.once('error',no); lease.listen('\\\\.\\pipe\\desktop-remote-lite-'+scope,yes); });
   follower = new Follower(config);
-  server = httpServer(new Service(config,follower,new Receipts(join(config.dataDir,'receipts'))),auth.token,auth.instance,auth.controlToken);
+  server = httpServer(new Service(config,follower,new Receipts(join(config.dataDir,'receipts')), {quarantine:auth.quarantine === true}),auth.token,auth.instance,auth.controlToken);
   await new Promise((yes,no) => { server.once('error',no); server.listen(config.port,'127.0.0.1',yes); });
   console.log(JSON.stringify({schema:1,state:'listening',port:config.port,version:VERSION,scope:'one-desktop-task'}));
   const close = () => { server.close(); lease.close(); follower.close(); };

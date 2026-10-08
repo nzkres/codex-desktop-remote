@@ -1,8 +1,13 @@
 {
   "name": "codex-desktop-remote",
-  "version": "0.1.0-alpha.2",
+  "version": "0.1.0-alpha.4",
   "private": true,
   "type": "module",
-  "engines": { "node": "20.x" },
-  "scripts": { "test": "node --test", "start": "node src/main.js" }
+  "engines": {
+    "node": "20.x"
+  },
+  "scripts": {
+    "test": "node --test",
+    "start": "node src/main.js"
+  }
 }

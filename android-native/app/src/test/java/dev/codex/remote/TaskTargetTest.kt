@@ -7,7 +7,8 @@ class TaskTargetTest {
     @Test fun onlyTaskApisAreRoutedAndLegacyPathsStayUnchanged() {
         val target = TaskTarget("a".repeat(32), "电脑 A")
         for (path in listOf("/api/projects", "/api/projects/project-a/sessions", "/api/activity", "/api/sessions", "/api/sessions/thread/mobile-sync?cursor=a&older=1",
-            "/api/sessions/thread/messages", "/api/sessions/thread/signals", "/api/sessions/thread/stop")) {
+            "/api/sessions/thread/messages", "/api/sessions/thread/signals", "/api/sessions/thread/stop",
+            "/api/connector/update-status")) {
             assertEquals("/terminal-api/${target.id}$path", target.route(path))
             assertEquals(path, TaskTarget().route(path))
         }

@@ -14,7 +14,9 @@
 
 ## 版本更新记录
 
-**后续三个原型都必须支持 OTA 更新。** 手机通过应用内检查并由系统确认安装，Windows 通过窗口和独立助手更新，中继通过管理员工具在线更新。详见 [三端 OTA 要求与验收](docs/OTA.md)。当前 `0.1.0-alpha.2` 仍不具备这项能力，下面的安装和发布状态保持如实记录。
+最新阶段是[OTA本地准备](docs/OTA-LOCAL-PREPARATION.md)：部署草稿、发布前校验与合成演练已提交，`be5a01c`的Windows/Linux和Android CI均通过。用户暂不合并或配置真实签名；服务器预检、候选入口和撤回步骤见[部署审查清单](docs/OTA-DEPLOYMENT-REVIEW.md)，尚未部署。
+
+**alpha.4 在三端 OTA 上增加私有下载鉴权。** 手机复用账号登录，Windows 复用配对身份，中继管理员交互登录后更新。元数据与包都受控，仅向同源 HTTPS 的固定目录发送凭据，发布签名仍独立验证。正式更新源、稳定签名首装与真实设备升级尚未配置/验收，普通 CI 包不能直接成为正式 OTA 基线。按 [三阶段落地与验收](docs/OTA-ACCEPTANCE.md)逐项推进；[实现边界](docs/OTA.md)、[发布](docs/OTA-PUBLISH.md)和[恢复](docs/OTA-RECOVERY.md)提供具体说明。
 
 **仓库文档是查看每次更新的主要入口。** 三个软件分别保存完整历史，按版本从新到旧排列：
 
@@ -26,22 +28,22 @@
 
 [全部版本索引](docs/versions/README.md) · [仓库更新总览](CHANGELOG.md) · [后续维护规则](docs/ITERATION.md)
 
-以后每次软件版本更新，都必须把更新内容追加到对应文档并随代码提交；已发布记录持续保留。目前三份文档均包含 `0.1.0-alpha.1` 和 `0.1.0-alpha.2`。
+以后每次软件版本更新，都必须把更新内容追加到对应文档并随代码提交；已发布记录持续保留。目前三份文档包含 alpha.4 的私有鉴权变化，并保留更早历史。
 
-最新开发预览：[v0.1.0-alpha.2](https://github.com/nzkres/codex-desktop-remote/releases/tag/v0.1.0-alpha.2)。登录有权限的 GitHub 账号后，可下载独立 Android 测试 APK、校验值和测试报告；源码可克隆或从该版本页面下载，旧 alpha.1 仍保留。Windows 目前运行 Python 窗口源码，尚无安装器。建议先看 [原型关系图](docs/ARCHITECTURE.md)，再运行下面的合成自测/窗口预览，最后按 [测试指南](docs/TESTING.md) 做专用任务联调。遇到问题可用 [测试反馈](https://github.com/nzkres/codex-desktop-remote/issues/new?template=test-feedback.yml) 记录版本、步骤和结果。
+可下载开发预览：[v0.1.0-alpha.4](https://github.com/nzkres/codex-desktop-remote/releases/tag/v0.1.0-alpha.4)。登录有权限的 GitHub 账号后，可下载 Android 测试 APK、Windows/relay 源码 ZIP、校验值和报告；alpha.2 / alpha.1 继续归档。Android 预览包更新信任为空，Windows/relay 源码包需外部运行时及首装信任配置，尚无一体化 EXE 安装器。建议先看 [原型关系图](docs/ARCHITECTURE.md)，再运行下面的合成自测/窗口预览，最后按 [测试指南](docs/TESTING.md) 做专用任务联调。遇到问题可用 [测试反馈](https://github.com/nzkres/codex-desktop-remote/issues/new?template=test-feedback.yml) 记录版本、步骤和结果。
 
 ## 先安全自测
 
 软件内也显示同一份说明：手机“我的 → 版本与更新说明”、Windows 窗口底部“版本与更新说明”、中继 `python relay/control_server.py --release-notes`。实际安装或部署版本需单独核对，不能从仓库版本推定。
 
-合成自测需要 Python 3.12、Node 20.19；Windows 上会额外验证真实 Job 进程树，窗口演示还需 Tkinter。只有实际连接才需要 FRP 0.71 和指定版本 Desktop。工具须由使用者自行可靠取得；仓库不会自动下载安装。Node 无外部 npm 依赖；Android 构建另需 JDK 17、Android SDK 36 与 Gradle/Maven 依赖。
+合成自测需要 Python 3.12、`updates/requirements.txt` 中的 cryptography、Node 20.19；Windows 上会额外验证真实 Job 进程树，窗口演示还需 Tkinter。只有实际连接才需要 FRP 0.71 和指定版本 Desktop。工具须由使用者自行可靠取得；仓库不会自动下载安装。Node 无外部 npm 依赖；Android 构建另需 JDK 17、Android SDK 36 与 Gradle/Maven 依赖。
 
 ```powershell
 .\scripts\SelfTest.ps1 -Node '<NODE_EXE_PATH>' -Python '<PYTHON_EXE_PATH>'
 python windows/demo.py
 ```
 
-前一命令运行 Node、Windows Python 和 relay 的合成测试；后一命令只预览 Windows 窗口，使用纯合成状态，不保存身份、不连接服务器或 Desktop。具体测试与失败边界见 [docs/TESTING.md](docs/TESTING.md)。本仓库核心 CI 与 Android 编译已通过；新包安装和真机联调仍待独立验收，不能把原仓库或 Lite 的通过记录算作本仓库通过。
+前一命令运行 Node、Windows Python 和 relay 的合成测试；后一命令只预览 Windows 窗口，使用纯合成状态，不保存身份、不连接服务器或 Desktop。具体测试与失败边界见 [docs/TESTING.md](docs/TESTING.md)。当前代码的核心 CI、Android 编译和隔离 OTA 演练结果见 [STATUS](STATUS.md)；新包安装和真机联调仍待独立验收，不能把原仓库或 Lite 的通过记录算作本仓库通过。
 
 ## 准备一条真实测试任务
 

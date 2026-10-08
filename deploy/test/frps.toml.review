@@ -1,0 +1,26 @@
+# FRPS 0.71.0 review template. Private files below do not exist in this repo.
+# Validate with the exact deployed frps binary before installing.
+bindAddr = "0.0.0.0"
+bindPort = 17443
+proxyBindAddr = "127.0.0.1"
+allowPorts = [{ start = 28200, end = 28220 }]
+
+[auth]
+method = "token"
+
+[auth.tokenSource]
+type = "file"
+
+[auth.tokenSource.file]
+path = "/etc/codex-desktop-remote-test/frps-token"
+
+[transport.tls]
+force = true
+certFile = "/etc/codex-desktop-remote-test/frps-server.crt"
+keyFile = "/etc/codex-desktop-remote-test/frps-server.key"
+
+[[httpPlugins]]
+name = "cdrtest-device-policy"
+addr = "127.0.0.1:28192"
+path = "/internal/frp"
+ops = ["Login", "NewProxy", "Ping", "NewWorkConn", "NewUserConn", "CloseProxy"]

@@ -154,6 +154,9 @@ class Credentials(context: Context) {
         return messageId
     }
     fun acknowledgeMessage(endpoint: String, id: String) { prefs.edit().remove(messageKey(endpoint, id)).commit() }
+    fun hasUnconfirmedMessages(): Boolean = prefs.all.keys.any {
+        it.startsWith("pending-send-") && it != "pending-send-legacy-owner"
+    }
     fun clear() { prefs.edit().clear().apply() }
 }
 
@@ -249,6 +252,7 @@ class Gateway(private val baseUrl: String, private val token: String, val target
         val observation = it.optJSONObject("observation") ?: return@mapNotNull null
         ActivityEntry(session.session(), observation.observation())
     }
+    internal suspend fun updateStatus(): ConnectorUpdateProof = parseConnectorUpdateProof(request("/api/connector/update-status"))
     suspend fun conversation(id: String, older: Boolean = false): Conversation = conversationLock.withLock {
         val window = windows.remove(id) ?: ConversationWindow()
         windows[id] = window

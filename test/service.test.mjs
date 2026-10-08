@@ -20,6 +20,28 @@ function fixture(t) {
  return {dir,id,state,calls,follower,config,receipts,service:new Service(config,follower,receipts)};
 }
 const message={text:'Only reply TEST_OK',clientMessageId:'message-1'};
+test('OTA status observes fresh idle permissions without sending model input',async t=>{
+ const f=fixture(t);
+ assert.equal((await f.service.updateStatus()).idle,true);
+ assert.equal(f.calls.length,0);
+ f.state.requests=[{method:'item/fileChange/requestApproval'}];
+ await assert.rejects(f.service.updateStatus());
+ f.state.requests=[]; f.state.threadRuntimeStatus={type:'active'};
+ await assert.rejects(f.service.updateStatus());
+ assert.equal(f.calls.length,0);
+});
+test('OTA status rejects unknown receipts and races with admitted sends',async t=>{
+ const f=fixture(t); f.service.stopUncertain=true;
+ await assert.rejects(f.service.updateStatus(),{code:'update_uncertain'});
+ f.service.stopUncertain=false;
+ const waiting=deferred(); f.follower.completeSnapshot=()=>waiting.promise;
+ const checking=f.service.updateStatus();
+ await assert.rejects(f.service.send(f.id,message),{code:'operation_busy'});
+ waiting.resolve(f.state); await checking;
+ f.receipts.begin(f.receipts.key(f.id,'uncertain'),f.receipts.digest('pending'));
+ await assert.rejects(f.service.updateStatus(),{code:'send_unknown'});
+ assert.equal(f.calls.length,0);
+});
 function deferred() {
  let resolve, reject;
  const promise=new Promise((yes,no)=>{resolve=yes;reject=no;});
@@ -194,4 +216,12 @@ test('drain timeout remains fenced and can only succeed after the admitted send 
  await sending;
  assert.deepEqual(await service.prepareDisconnect(),{drained:true});
  assert.equal(f.calls.length,1);
+});
+
+test('quarantined OTA adapter permits fresh evidence but never forwards phone mutations', async t => {
+ const f=fixture(t);const service=new Service(f.config,f.follower,f.receipts,{quarantine:true});
+ assert.equal((await service.updateStatus()).idle,true);
+ await assert.rejects(service.send(f.id,message),{code:'update_quarantine'});
+ assert.equal(f.calls.length,0);
+ assert.deepEqual(await service.prepareDisconnect(),{drained:true});
 });

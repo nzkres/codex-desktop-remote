@@ -1,0 +1,23 @@
+[Unit]
+Description=Isolated Codex Desktop Remote test relay (managed host)
+Wants=network-online.target
+After=network-online.target
+# A rejected ExecStop would not prevent systemd from killing the service tree.
+# Planned stops must use the managed CLI after its admission gate succeeds.
+RefuseManualStop=yes
+
+[Service]
+Type=exec
+User=cdrtest
+Group=cdrtest
+WorkingDirectory=/srv/codex-desktop-remote-test
+Slice=system.slice
+ExecStart=/usr/bin/python3.12 -B /srv/codex-desktop-remote-test/start.py --cgroup-root /sys/fs/cgroup/system.slice/codex-desktop-remote-test.service
+Delegate=yes
+ProtectControlGroups=no
+Restart=no
+UMask=0077
+NoNewPrivileges=yes
+
+[Install]
+WantedBy=multi-user.target

@@ -27,13 +27,13 @@ export const permissionDigest = state => {
   return createHash('sha256').update(JSON.stringify(canonical(state.currentPermissions))).digest('hex');
 };
 export class Service {
-  constructor(config, follower, receipts, { drainTimeoutMs = 5000 } = {}) {
+  constructor(config, follower, receipts, { drainTimeoutMs = 5000, quarantine = false } = {}) {
     if (!Number.isSafeInteger(drainTimeoutMs) || drainTimeoutMs < 1 || drainTimeoutMs > 30000)
       throw new Error('invalid_drain_timeout');
     this.config = config; this.follower = follower; this.receipts = receipts;
     this.sync = new MobileSync(); this.mutating = false;
     this.draining = false; this.stopUncertain = false; this.drainWaiters = new Set();
-    this.drainTimeoutMs = drainTimeoutMs;
+    this.drainTimeoutMs = drainTimeoutMs; this.quarantine = quarantine;
   }
   target(id) { if (id !== this.config.threadId) throw new ControlError('outside_scope', '未开放这个任务。', 403); }
   permissions(state) {
@@ -62,7 +62,8 @@ export class Service {
       controlNotice: null,
     };
   }
-  async mutate(action) {
+  async mutate(action, readonly = false) {
+    if (this.quarantine && !readonly) throw new ControlError('update_quarantine', '更新验证中，未发送操作。', 503);
     if (this.draining) throw new ControlError('disconnect_preparing', '连接器正在断开，未发送操作。', 503);
     if (this.mutating) throw new ControlError('operation_busy', '另一项操作正在核对，请稍后刷新。');
     this.mutating = true;
@@ -88,6 +89,19 @@ export class Service {
     if (this.stopUncertain) throw new ControlError('drain_uncertain', '停止操作结果未确认，不能确认断开。', 503);
     this.receipts.assertCertain();
     return { drained: true };
+  }
+  async updateStatus() {
+    // Reserve local mutation admission while reading a fresh native snapshot.
+    // This is observation, not permission to interrupt a Desktop task.
+    return this.mutate(async () => {
+      if (this.stopUncertain) throw new ControlError('update_uncertain', '存在未确认操作，更新已延期。', 409);
+      this.receipts.assertCertain();
+      const state = await this.follower.completeSnapshot();
+      this.permissions(state);
+      assertIdle(state);
+      this.receipts.assertCertain();
+      return { idle: true, version: VERSION, permissionsVerified: true, receiptsCertain: true };
+    }, true);
   }
   async send(id, body) {
     this.target(id);
@@ -164,6 +178,8 @@ export function httpServer(service, token, instance, controlToken = null) {
         return reply(200, { instance, ...await service.prepareDisconnect() });
       if (req.method === 'GET' && url.pathname === '/api/connector/health')
         return reply(200, {instance,healthy:true,executor:'unknown',desktopTask:'unverified',version:VERSION});
+      if (req.method === 'GET' && url.pathname === '/api/connector/update-status')
+        return reply(200, await service.updateStatus());
       if (req.method === 'GET' && url.pathname === '/api/projects')
         return reply(200, {projects:[{id:'desktop-fixture', name:'Desktop 联调', path:service.config.projectPath}]});
       if (req.method === 'GET' && url.pathname === '/api/sessions')

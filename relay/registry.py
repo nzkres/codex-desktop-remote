@@ -38,10 +38,13 @@ class Registry:
     FAILURE_SECONDS = 300
     MAX_FAILURES = 10
 
-    def __init__(self, path, port_start=21000, port_end=21999, clock=time.time):
+    def __init__(self, path, port_start=21000, port_end=21999, clock=time.time,
+                 initialize=True):
         if not 1024 <= port_start <= port_end <= 65535:
             raise ValueError("Invalid private port pool")
         self.path, self.port_start, self.port_end, self.clock = str(path), port_start, port_end, clock
+        if not initialize:
+            return  # Managed startup performs a separate read-only schema preflight.
         with self.transaction() as db:
             db.executescript("""
                 CREATE TABLE IF NOT EXISTS pairings (
