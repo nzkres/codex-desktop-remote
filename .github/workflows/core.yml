@@ -32,6 +32,9 @@ jobs:
       - name: Real Windows GUI and independent helper upgrade and rollback
         if: runner.os == 'Windows'
         run: python -B scripts/windows_ota_smoke.py
+      - name: Windows paired maintenance handoff and failed candidate fence
+        if: runner.os == 'Windows'
+        run: python -B scripts/windows_maintenance_smoke.py
       - name: Real Linux cgroup relay upgrade and rollback
         if: runner.os == 'Linux'
         shell: bash

@@ -1,4 +1,12 @@
-# 当前验证状态：手机同步误报已定位，Windows alpha.6 修复待安装
+# 当前验证状态：Windows alpha.6 维护路径已隔离验证，待签发与实际切换
+
+2026-10-08维护增量：仓库新增仅用于 alpha.5→alpha.6 审批别名故障的 `updates/windows_maintenance.py`。审查绑定完整稳定身份、配置、任务/回执文件、当前槽、trust、ledger和启动器；签名候选从本地独立暂存，固定同用户/会话原GUI句柄，等待正常退出，再经原事务做保全与健康校验。等待退出前先写旧启动器识别的持久屏障；过期、预检失败、断电或候选不健康均保留需复核状态。alpha.5仍有已知探针缺陷，失败时不启动它或宣称健康回退。工具不随产品包交付，不是通用冷恢复器。操作与边界见[维护指南](docs/WINDOWS-ALPHA5-MAINTENANCE.md)。
+
+本地验收：Node **64/64**，Python **141项中135通过/6跳过**；新增Windows真实合成DPAPI/Tk/独立助手/Job演练完成 `committed` 与坏候选 `needs_review`，身份和任务文件保持，旧进程正常退出后助手继续运行。签名/篡改/过期/重复锁/候选清理失败/激活不明/双journal镜像中断路径有回归。首次演练仅因夹具预期错误码不符失败，修正夹具后两例通过；不改产品门槛。
+
+真实选定任务的**只读维护预检通过**，模型输入0：固定兼容性通过，当前仍仅顶层审批别名差异，requests为空、回执确定。首次预检因要求未确认提交必须为空数组而拒绝；只读核对固定 app.asar 后确认其代码在清空时删除 `unconfirmedTurnSubmissions` 字段，现允许该字段缺省，但自有null/undefined/格式错误/非空仍拒绝；不修改Desktop或配置。本轮CI、候选签发与实际review结果后续单列；**当前三端仍alpha.5，未停止现用连接、未部署新feed、未实际安装或手机验收。**
+
+## 此前审批别名定位与CI证据（历史记录）
 
 2026-10-08最新实机证据：用户完成手机发送与 Desktop 接续，两条回复 PHONE_ALPHA5_OK、DESKTOP_ALPHA5_CONTINUE_OK 均已在同一个原生任务完成；手机没有同步，截图明确报“Desktop 任务权限已变化”。活动 alpha.5 登记仍 connected、适配器健康200，但 update-status 和 mobile-sync 均409/permissions_changed，不能宣称闭环通过。
 
