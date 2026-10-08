@@ -1,5 +1,10 @@
 # 工作记录
 
+## 2026-10-08 — 手机登录后首页404诊断
+
+- 用户确认alpha.5登录后首页顶部HTTP404，地址含9443。只读源码核对默认TaskTarget空ID走旧路由，MainActivity后台refresh未等待电脑选择便请求`/api/projects`；新隔离Caddy不提供该无目标路由。
+- 主电脑正常TLS GET复验auth/status200、三个旧任务接口404、匿名control-api/terminals401。没有读取凭据或手机私密日志，没有更改服务器；指导用户先完成配对并显式选择电脑。已把未选择目标时的引导和停止旧接口轮询记为下一版候选，详见设备基线记录；本轮未修改或重发产品包。
+
 ## 2026-10-08 — 主电脑 alpha.5 全新安装、任务恢复与图形启动
 
 - 在预先确认不存在的 `%LOCALAPPDATA%\CodexDesktopRemoteTest` 使用原始签名 alpha.5/bootstrap 完成全新安装与账本校验。读取旧专用测试配置仅限任务 UUID/项目路径/Desktop 路径等白名单；重新创建新配置与独立端口，未复制旧身份或旧配置文件。
