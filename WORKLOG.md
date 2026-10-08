@@ -1,5 +1,13 @@
 # 工作记录
 
+## 2026-10-08 — 云端放行后公网私有源与FRP验收通过
+
+- 用户亲自放行9443/17443并回复完成。主电脑以正常系统TLS验证访问新origin，六项metadata/包匿名401；新测试账号登录后使用产品updates.security.fetch/download/verify实际下载三端alpha.5包，RSA/大小/SHA全部与发布一致，跨origin在生成鉴权头前拒绝。退出登录后旧token401，17443TCP连通。没有打印口令/token或将其放入参数。
+- 新合成设备外部claim/confirm/connection成功，Windows元数据200，Android/relay403。本机固定FRPC0.71.0（SHA c9c59f9bb99561405b81d68f688384aec49369df10489044315292b0eaac957a）在独立Windows Job中经公网新FRPS/专用CA/TLS/设备插件连接本机无任务HTTP夹具；服务器loopback实际读到CDR_EXTERNAL_FRP_OK。原始Popen句柄和Job整树清空确认后清理；暂停/撤销403，设备已撤销、会话已退出，无真实Desktop、任务或身份。三次夹具保留撤销墓碑，不重置分配账本。
+- 新服务器以cdrtest UID实际执行现有产品login→受管socket check→logout，经固定公网origin取得已签元数据；返回no_update_available、relayHealthy=true、loggedOut=true。当前就是alpha.5，不强制同版本安装。秘密仅root读取新测试账号后在降权进程内使用，没有复制旧凭据。
+- b107726推送到codex/controlled-alpha5，创建草稿PR #2。Core push37744798752及PR37744901531 Windows/Linux均success；已读取测试汇总和真实生命周期步骤，统计见部署记录。Android源码/已发布alpha.5包未变，不重签或触发新发行。
+- GPT-6 Sol medium再次同步安装/OTA/交接文档，主代理验收并记录外部真实证据。仍未手机安装、真实Windows接入、alpha.5→alpha.6或实际新证书轮换；下一步须按N基线顺序由用户完成安装、登录、配对和专用任务确认。
+
 ## 2026-10-08 — 获批隔离部署，服务器内验收完成
 
 - 用户明确选择“批准隔离部署”，范围为106.53.126.69独立用户/目录/数据库、alpha.5 relay/FRPS/HTTPS/私有OTA、TCP9443/17443、独立续证hook与鉴权回退；保留现用服务和身份，不含手机安装/真实身份迁移。按最新授权执行，没有重复要求部署确认。

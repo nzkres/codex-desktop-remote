@@ -1,6 +1,6 @@
 # Windows 连接器：源码预览与全新受管安装
 
-返回[安装起点](README.md)，版本变化见 [Windows 历史](../versions/WINDOWS.md)。[alpha.5 私有 prerelease](https://github.com/nzkres/codex-desktop-remote/releases/tag/v0.1.0-alpha.5) 已发布 `windows-0.1.0-alpha.5.zip` 和独立的 `bootstrap-0.1.0-alpha.5.zip`；服务端大小/SHA 与本地一致，详见 [STATUS](../../STATUS.md)。它是受控测试渠道的**源码运行包**，不是 EXE 或一键安装器。测试 origin `https://106.53.126.69:9443` 已在隔离服务器安装并通过服务器内 HTTPS/鉴权验收，Windows 外网访问仍超时；可本地解压、合成预览或在全新临时目录验证 bootstrap，真实连接和在线更新仍待后续验收，见[部署记录](../OTA-ISOLATED-DEPLOYMENT-20261008.md)。全新受管安装不读取、迁移或停用旧连接器、旧 Gateway/FRP 和现用身份。
+返回[安装起点](README.md)，版本变化见 [Windows 历史](../versions/WINDOWS.md)。[alpha.5 私有 prerelease](https://github.com/nzkres/codex-desktop-remote/releases/tag/v0.1.0-alpha.5) 已发布 `windows-0.1.0-alpha.5.zip` 和独立的 `bootstrap-0.1.0-alpha.5.zip`；服务端大小/SHA 与本地一致，详见 [STATUS](../../STATUS.md)。它是受控测试渠道的**源码运行包**，不是 EXE 或一键安装器。测试 origin `https://106.53.126.69:9443` 已从主电脑公网通过正常 TLS、账号鉴权和完整包校验；公网 FRPS `17443` 的合成 FRPC 夹具也已连通。可本地解压、合成预览或在全新临时目录验证 bootstrap，真实身份/任务和在线更新仍待后续验收，见[部署记录](../OTA-ISOLATED-DEPLOYMENT-20261008.md)。全新受管安装不读取、迁移或停用旧连接器、旧 Gateway/FRP 和现用身份。
 
 ## 前置条件
 
@@ -13,7 +13,7 @@
 
 ## 全新受管目录
 
-以下可用于**本地隔离临时目录**复验；目标测试电脑的真实连接须等外网可达与专用任务另行验收。下载两个 ZIP 并分别解到不同新目录；bootstrap 根目录已核对有 `README.txt`，`windows/` 下有 `trust.json`、`latest.json`。在 PowerShell 中填写绝对路径；`$InstallRoot` 必须尚不存在，不填旧安装或已配对 `data`。签名与整个 ZIP 清单由 bootstrap 核对。Windows Python 3.12.14 临时首装已成功，重复首装被拒且原目录未变；没有启动真实任务。
+以下可用于**本地隔离临时目录**复验；目标测试电脑的真实连接仍须新身份配对与专用任务另行验收。下载两个 ZIP 并分别解到不同新目录；bootstrap 根目录已核对有 `README.txt`，`windows/` 下有 `trust.json`、`latest.json`。在 PowerShell 中填写绝对路径；`$InstallRoot` 必须尚不存在，不填旧安装或已配对 `data`。签名与整个 ZIP 清单由 bootstrap 核对。Windows Python 3.12.14 临时首装已成功，重复首装被拒且原目录未变；没有启动真实任务。
 
 ```powershell
 $PythonExe = '<PYTHON_3_12_EXE>'
@@ -46,4 +46,4 @@ $PythonwExe = Join-Path (Split-Path -Parent $PythonExe) 'pythonw.exe'
 
 受管窗口底部可检查和下载签名更新；先正常断开，助手只在旧窗口实际退出后继续。维护者可在源码根目录只读调用 `& $PythonExe -B -m updates.cli --home $InstallRoot status`，`check` 和 `stage` 会访问已配置的 HTTPS source，**Windows 的 `apply`/`stop` 命令会拒绝，应使用窗口安装按钮**。发生 `needs_review` 时保留 `data/`、`state/` 与版本目录，见 [恢复说明](../OTA-RECOVERY.md)。
 
-alpha.4 增加私有下载：首次应先在手机完成新设备确认，再检查更新。它读取本安装已有 DPAPI 身份，不新增更新账号或复制其他电脑身份；缺失身份只提示未配对。更新 source 必须位于已配对 relay 的同 HTTPS origin 的 `/desktop-remote-updates/test/windows/`（stable 独立配置），否则在发凭据前拒绝。设备暂停、撤销或凭据无效时服务器拒绝下载。旧 alpha.3 中继不能提供此私有路由；新的受管 relay 已在隔离环境安装，服务器内合成设备 Windows 下载获 200、Android/relay 获 403，真实电脑配对和公网下载仍待验收。
+alpha.4 增加私有下载：首次应先在手机完成新设备确认，再检查更新。它读取本安装已有 DPAPI 身份，不新增更新账号或复制其他电脑身份；缺失身份只提示未配对。更新 source 必须位于已配对 relay 的同 HTTPS origin 的 `/desktop-remote-updates/test/windows/`（stable 独立配置），否则在发凭据前拒绝。设备暂停、撤销或凭据无效时服务器拒绝下载。旧 alpha.3 中继不能提供此私有路由；新的受管 relay 已在隔离环境安装，主电脑公网合成设备 Windows 下载及权限/暂停/撤销拒绝已验证，真实电脑配对和 App 内下载仍待验收。

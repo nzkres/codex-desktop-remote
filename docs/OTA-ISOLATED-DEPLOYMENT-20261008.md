@@ -1,8 +1,8 @@
 # alpha.5 隔离部署验收记录 — 2026-10-08
 
-**当前：服务器安装及服务器内验收通过；公网连通性未通过。** 主电脑访问新端口 9443、17443 超时；短时 SYN 抓取同时确认旧 443 请求到达且连接成功，新端口请求未到达。需核对云防火墙/安全组或上游规则，不能把服务器内下载成功写成公网 OTA 完成。
+**当前：隔离服务部署、公网私有源与公网FRP夹具验收通过。** 用户放行云端TCP9443/17443后，主电脑正常TLS下载三端alpha.5包并通过RSA/大小/SHA验证；实际FRPC经公网FRPS回连主电脑HTTP夹具通过。手机安装、真实Windows接入、Desktop同任务及真实N→N+1仍未验收。
 
-用户已明确批准在 106.53.126.69 建立隔离环境、开放 TCP 9443/17443、配置续证和验证鉴权/回退。这不包含手机安装、真实身份迁移或停止现用服务。无需再次申请同一部署权限；当前缺少可用云控制台登录，已请用户登录或放行两条规则。
+用户已明确批准在106.53.126.69建立隔离环境、开放TCP9443/17443、配置续证和验证鉴权/回退，并亲自完成云端端口放行。此次不包含手机安装、真实身份迁移或停止现用服务；不重复申请同一部署权限。
 
 ## 实际安装
 
@@ -16,8 +16,8 @@
 | 私有配置 | `/etc/codex-desktop-remote-test`，独立 FRPS CA、证书、token；秘密不进入仓库 |
 | relay / FRPS | `codex-desktop-remote-test.service`、`codex-desktop-remote-test-frps.service` 已启用/运行；Restart=no |
 | 内部端口 | auth 28181、API 28191、plugin 28192、Caddy admin 22019 均仅 127.0.0.1 |
-| 新公网监听 | HTTPS 9443、FRPS 17443；UFW 仅新增这两个 IPv4 TCP 允许规则，外部连接仍超时 |
-| 代理池 | `127.0.0.1:28200–28220`；测试用过的两个设备已撤销，保留墓碑/分配账本 |
+| 新公网监听 | HTTPS9443、FRPS17443；UFW仅新增这两个IPv4 TCP规则，用户放行云端规则后外部连接通过 |
+| 代理池 | `127.0.0.1:28200–28220`；测试用过的三个设备已撤销，保留墓碑/分配账本 |
 | HTTPS | 独立 `codex-desktop-remote-test-caddy` 容器、Compose 项目与数据目录；固定镜像 digest，无静态文件下载 |
 | 私有 feed | `data/update-feed/test/{android,windows,relay}`；目录0700/文件0600，先版本包后已签 latest.json，逐请求鉴权 |
 
@@ -38,17 +38,21 @@
 | 目标服务器升级/回退 | 临时委派 systemd 单元执行 `scripts/relay_ota_smoke.py`：committed0.0.2、坏候选回退0.0.2、4棵自有树全部退出 | 目标 Python3.12/systemd255 上的合成事务成功，不是 alpha.5→alpha.6 |
 | alpha.5 停启 | 撤销夹具、无活动设备/配对后，经受管CLI stop；整个服务cgroup及ready/socket消失后再启动；两库逻辑摘要保持，phase ready/healthy true | 新服务实际受控重启通过；没有覆盖旧数据库 |
 | 续证 reload | 新 hook 以匹配 lineage 执行成功，核对固定容器身份；旧配置哈希不变 | 新入口重载路径可用；没有强制续证或验证新证书轮换 |
-| 外部连通性 | Windows443成功；9443/17443超时；18秒仅SYN抓取观察443为1、新端口各0 | 新端口尚未打通；定位在服务器之前，具体云规则尚待核对 |
+| 外部私有下载 | Windows正常TLS；三组件六项匿名401；账号实际下载三包并用产品fetch/download/verify验签、大小和SHA一致；跨origin发凭据前拒绝；logout后401 | 公网私有源可用，不是手机安装或OTA切换成功 |
+| 外部FRP | Windows合成设备/FRPC0.71→公网FRPS→Windows本机无任务HTTP夹具，服务器读到 `CDR_EXTERNAL_FRP_OK`；CA/TLS/插件和权限通过 | 新公网transport真实链路通过，不连接Desktop |
+| 外部夹具清理 | Windows原始句柄和独立Job证明整树退出；合成设备暂停/撤销后拒绝，账号退出，无剩余活动设备 | 无遗留夹具进程或有效夹具身份 |
+| 中继实际OTA检查 | 新服务cdrtest UID以产品login→受管check→logout，经公网origin；返回 `no_update_available`，relay持续healthy | 当前同版本正确无更新，不是已升级 |
 
-夹具账号会话已退出，两个合成设备都已撤销，没有待配对或活动设备；保留数据库历史，不删除账本来伪造全新环境。FRPC原进程已退出，临时HTTP服务已停止，合成升级单元已回收。脱敏报告保存在服务器 `/opt/codex-desktop-remote-test/operator/` 下的 `internal-acceptance.json` 和 `restart-acceptance.json`；含凭据的其他文件禁止打印或提交。
+夹具账号会话已退出，三个合成设备都已撤销，没有待配对或活动设备；保留数据库历史，不删除账本来伪造全新环境。FRPC原进程/Job整树已退出，临时HTTP服务已停止，合成升级单元已回收。服务器脱敏报告在 `/opt/codex-desktop-remote-test/operator/` 的 `internal-acceptance.json` 和 `restart-acceptance.json`；主电脑脱敏外部报告在ignored `artifacts/isolated-deploy-20261008/external-acceptance.json`、`external-frp-acceptance.json`。含凭据的其他文件禁止打印或提交。
 
 ## 本轮发现与修正
 
 1. 固定 Caddy 镜像的二进制带 `cap_net_bind_service=ep`，删除全部 capability 后实际启动报 `operation not permitted`。Compose 保留 `cap_drop: ALL`，仅补 `NET_BIND_SERVICE`，保留只读根目录和 no-new-privileges，实际运行通过。无任务状态的代理使用 `unless-stopped`；任务宿主仍为 Restart=no 和恢复门禁。
 2. 直接访问 IP 的客户端可能不发送 SNI，原草稿握手失败。新 Caddy 加 `default_sni 106.53.126.69` 后正常 IP 证书验证通过；没有绕过证书验证。参见 [Caddy 官方说明](https://caddyserver.com/docs/caddyfile/options#default-sni)。只重建了本轮新容器，没有重载旧443入口。
 3. 首次诊断脚本未使用 `-B`，导入已安装代码产生两个 root-owned `.pyc`，完整性门禁正确报告 `package_file_set_changed`。核对29个签名源文件未变、额外文件仅为该诊断产生的两个确切字节码、路径/所有者/格式/无链接均匹配后，仅清除此二文件及空目录。保留 `probe-bytecode-repair.json`；不删保护标志或数据。后续诊断统一 `python3 -B` 并设 `sys.dont_write_bytecode=True`，复验通过。
+4. 最初新端口外网超时，18秒仅SYN诊断中443到达且连接成功，新端口均未到达；不通过修改旧443或降低TLS来绕过。用户完成云端放行后，正常HTTPS/私有包下载及真实公网FRP夹具全部通过。云规则备注建议为“Codex Desktop Remote 测试 HTTPS 与私有 OTA”（9443）、“Codex Desktop Remote 测试 FRP 连接通道”（17443）。
 
-部署时旧 `/opt/codex-remote-caddy/Caddyfile` 的 SHA-256 前后均为 `82969cafcaf3eb56cc3c061d6186462d1e688e798a2ff1b955367c68135590e3`；旧443/7443/7000监听仍在。未停止或更改旧 Gateway、FRPS、身份或数据库。
+部署时旧 `/opt/codex-remote-caddy/Caddyfile` 的 SHA-256 前后均为 `82969cafcaf3eb56cc3c061d6186462d1e688e798a2ff1b955367c68135590e3`；旧443/7443/7000监听仍在。最终复核旧443与新9443的 `/auth/status` 均为200/configured，relay为alpha.5/ready/healthy，安装完整性通过且临时更新登录文件已移除。未停止或更改旧Gateway、FRPS、身份或数据库。
 
 ## 续证与时效
 
@@ -58,9 +62,12 @@
 
 ## 下一步及停止条件
 
-1. 腾讯云控制台为准确服务器核对入站 IPv4 TCP9443/17443；保留其他规则，内部28181/28191/28192/22019/28200–28220不开放。当前需要登录或用户完成规则；服务/UFW已经配置，不重复安装。
-2. 从Windows外部正常TLS验证 `/auth/status`、匿名401、账号三组件完整下载/验签，以及实际FRPC外部连接。敏感凭据只在进程内/受保护文件传递，完成后退出测试会话。外部失败时保留现场，不改源、不借用旧443。
-3. 公网验收后再安排用户手机首装和全新Windows测试身份；用户完成安装确认、登录、配对及选定原生测试任务。此阶段尚未执行，不以历史旧项目手机联调代替。
-4. N基线稳定后才构建 alpha.6，逐组件执行真实 N→N+1 和失败恢复，结果逐项写入 [OTA验收](OTA-ACCEPTANCE.md)。alpha.6当前不存在。
+1. 公网两端口、私有下载和FRP验收已完成；保留规则和内部loopback边界，不重复安装。不把云控制台规则的用户说明当成功证据：本次另有实际外部请求验证。
+2. 安排用户手机首装和全新Windows测试身份；用户完成安装确认、隔离测试账号登录、配对及选定原生测试任务。此阶段尚未执行，不以历史旧项目手机联调代替，不复制旧身份。
+3. N基线稳定后才构建alpha.6，逐组件执行真实N→N+1和失败恢复，结果逐项写入 [OTA验收](OTA-ACCEPTANCE.md)。alpha.6当前不存在。
 
-隔离环境撤回/维护仍遵循 [部署审查的回退边界](OTA-DEPLOYMENT-REVIEW.md#回退与失败停点)：先检查空闲，受管CLI stop核对退出，后维护新FRPS/新Caddy/仅本轮两条规则；未知回执、残留树或DB变化则停止。保留 home 和证据，不以备份覆盖新数据，不按名称批量杀进程。已经存在的目录不是可再次运行的首装目标。
+## 本轮仓库验证
+
+部署修正提交 `b107726` 的 Core [push37744798752](https://github.com/nzkres/codex-desktop-remote/actions/runs/37744798752) 与 [PR37744901531](https://github.com/nzkres/codex-desktop-remote/actions/runs/37744901531) Windows/Linux全部通过。Node Windows33、Linux31通过/2跳过；主Python Windows118通过/6跳过、Linux104通过/20跳过；relay Windows73通过/4跳过、Linux77通过；hook Linux3通过/Windows3跳过，真实GUI/helper和cgroup升级/回退步骤通过。新CI临时源码包不是alpha.5发布资产，不替换已部署签名包。后续仅更新外网证据的Markdown提交不冒称重新构建程序。
+
+隔离环境撤回/维护仍遵循 [部署审查的回退边界](OTA-DEPLOYMENT-REVIEW.md#撤回与失败停点)：先检查空闲，受管CLI stop核对退出，后维护新FRPS/新Caddy/仅本轮两条规则；未知回执、残留树或DB变化则停止。保留 home 和证据，不以备份覆盖新数据，不按名称批量杀进程。已经存在的目录不是可再次运行的首装目标。

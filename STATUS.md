@@ -1,4 +1,4 @@
-# 当前验证状态：alpha.5 隔离服务已安装，公网端口待打通
+# 当前验证状态：alpha.5 隔离服务与公网私有源验收通过
 
 用户已批准在106.53.126.69新建隔离用户/目录/数据库，部署alpha.5中继、FRPS、HTTPS与私有OTA源，开放TCP9443/17443并验证续证/鉴权/回退。**不含手机安装、真实身份迁移或停止现用服务。** 下方“暂不部署”是先前阶段的历史限制，已由本次具体授权解除。
 
@@ -8,12 +8,14 @@
 | 服务器内实际验收 | 正常IP证书HTTPS；六项匿名metadata/包401；账号三端下载RSA/大小/SHA通过；合成设备仅Windows、暂停/撤销拒绝；实际FRPC/FRPS TLS+插件+HTTP夹具通过 |
 | 目标服务器事务 | Python3.12.3/systemd255委派cgroup合成升级0.0.2、坏候选回退0.0.2、4棵自有树清理通过；实际alpha.5受管stop/start、整个cgroup退出、两库摘要保持通过 |
 | 独立续证 | 新容器reload hook已安装并实际调用成功；现有codex-remote-certbot-renew.timer active。未强制续证，实际新证书轮换尚待验收 |
-| 公网阻点 | UFW已放行两个IPv4 TCP端口且服务监听正确；Windows9443/17443仍超时。同期抓取443的SYN到达/连接成功，新端口SYN各0；云控制台未登录，待核对云防火墙或上游规则 |
+| 公网验收 | 用户放行云端两端口后，主电脑正常TLS三包完整下载/RSA/大小/SHA通过，六匿名401、退出后401、跨origin凭据拒绝；真实Windows FRPC→公网FRPS→Windows HTTP夹具通过，设备权限/暂停撤销与原始句柄+Job整树清理通过 |
+| 中继更新检查 | cdrtest实际产品login/check/logout通过，当前alpha.5返回no_update_available，服务healthy；无强制同版本重装 |
 | 现用环境 | 旧Caddy配置SHA未变，443/7443/7000仍监听；无旧身份、数据库、Gateway迁移或停止 |
 | 本轮回归 | Node33通过；Python124项118通过/6跳过；relay77项73通过/4跳过；目标Linux续证hook合成3项通过 |
-| 尚未完成 | 外部私有下载和FRP验收、手机首装、真实Windows接入、真实三端alpha.5→alpha.6、证书实际轮换和独立签名密钥恢复 |
+| 本轮CI | b107726的Core push37744798752/PR37744901531 Windows/Linux成功，含真实GUI/helper和cgroup升级/回退；三端原包不变 |
+| 尚未完成 | 手机首装、真实Windows接入、真实三端alpha.5→alpha.6、证书实际轮换和独立签名密钥恢复 |
 
-详细资源、命令、故障修正、保护和下一接手点见[隔离部署记录](docs/OTA-ISOLATED-DEPLOYMENT-20261008.md)。程序仍是已发布的alpha.5原包，alpha.6尚未构建；本轮仅变更部署配置和记录。公网未打通前不安排用户手机切换。
+详细资源、命令、故障修正、保护和下一接手点见[隔离部署记录](docs/OTA-ISOLATED-DEPLOYMENT-20261008.md)。程序仍是已发布的alpha.5原包，alpha.6尚未构建；本轮仅变更部署配置和记录。下一步是用户手机首装、全新Windows测试身份及原生同任务N基线；本轮未执行这些实机操作。
 
 ## alpha.5 受控构建与发布基线
 
