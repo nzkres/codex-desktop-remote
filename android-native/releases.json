@@ -4,6 +4,23 @@
   "name": "Android 手机端",
   "releases": [
     {
+      "version": "0.1.0-alpha.5",
+      "date": "2026-10-08",
+      "summary": "准备隔离测试环境的受控 OTA 首装基线，沿用现有版本与更新说明入口。",
+      "changes": [
+        {
+          "title": "固定测试渠道发布信任与连续 APK 签名",
+          "experience": "计划的受控首装 APK 在“我的 → 版本与更新说明”沿用原有检查入口，使用预置的测试渠道公钥和更新源；安装仍由系统确认。",
+          "verify": "核对 APK 的包名、versionCode 5、专用签名证书及包内 trust 与审核文件一致，再从同一证书构建下一版验证覆盖更新。"
+        }
+      ],
+      "limitations": [
+        "普通推送和 PR 的 CI debug APK 仍为空 trust、临时签名，不能作为受控首装或连续升级基线。",
+        "测试 HTTPS origin 已确定但尚未部署；本版受控 APK、手机首装和真实 OTA／同任务验收均未完成。"
+      ],
+      "versionCode": 5
+    },
+    {
       "version": "0.1.0-alpha.4",
       "date": "2026-10-08",
       "summary": "私有 OTA 复用已有账号登录，并限制下载凭据的发送范围。",

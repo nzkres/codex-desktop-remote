@@ -4,6 +4,22 @@
   "name": "Windows 连接器",
   "releases": [
     {
+      "version": "0.1.0-alpha.5",
+      "date": "2026-10-08",
+      "summary": "准备隔离测试环境的受控 OTA 首装基线，保留现有连接窗口。",
+      "changes": [
+        {
+          "title": "签名校验后的全新受管目录首装",
+          "experience": "受控首装时，维护者核对测试渠道公钥、已签元数据和源码 ZIP 后，在新的 home 引导连接器；窗口继续提供版本与更新说明入口。",
+          "verify": "核对签名、ZIP 文件清单、运行版本和新目录数据隔离，再用专用 Desktop 任务检查连接与断开；不复制旧配对身份。"
+        }
+      ],
+      "limitations": [
+        "仍需外部 Python、Node、FRP 和固定兼容的 Desktop；没有一体化 EXE 安装器或新 UI。",
+        "测试 HTTPS origin 已确定但尚未部署；本版签名首装、新测试身份保持与真实 OTA／同任务验收均未完成。"
+      ]
+    },
+    {
       "version": "0.1.0-alpha.4",
       "date": "2026-10-08",
       "summary": "Windows 私有 OTA 复用本机配对身份，无需另建更新账号。",

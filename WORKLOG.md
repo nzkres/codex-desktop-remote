@@ -1,5 +1,14 @@
 # 工作记录
 
+## 2026-10-08 — 批准受控首装，合并PR #1
+
+- 用户明确选择“批准签名与合并，暂不部署”：确认测试origin `https://106.53.126.69:9443`、本项目专用RSA/APK测试签名、本机加密保存、六项Android Secrets和alpha.5首装构件。公网部署、停现用服务、真实身份迁移与手机安装仍不在范围；不再重复询问已批准的签名/合并。
+- `755fe14`最终Core push37734382112/PR37734386777与Android push37734382114/PR37734386832全成功。Core日志核对119项主测试的Windows113通过/6跳过、Linux101通过/18跳过，并保留真实GUI/helper及cgroup升级/回退结果。Android为普通debug构建，受控签名步骤明确跳过。
+- 执行`gh pr merge 1 --merge --match-head-commit 755fe145c76766e51cd1abf8bbb1a0012cb0e5a6`，PR已MERGED，main为`1e405ad596644f773aa0aa8207e43b079de4042b`。从该main建立独立`codex/controlled-alpha5`继续，不覆盖其他工作区。
+- GPT-6 Sol medium更新三端alpha.5 catalog及体验/验证/限制说明、Android code5、根package版本和生成历史；旧alpha.4保留。主代理实现可复用`updates.android_publisher`，本机DPAPI封装专用加密PKCS12与口令、绑定RSA公钥和固定origin、六项Secrets通过stdin提交并记录无秘密journal。Sol补合成测试，主代理验收；真实执行结果随后记录。
+- 新工具完整本机回归：Node33通过、Python124项中118通过/6跳过、relay77项中73通过/4跳过。然后才实际创建专用签名：全新本机受控父目录/库，RSA3072；APK RSA3072、自签长期测试证书、随机强口令PKCS12，外层CurrentUser DPAPI。无明文PEM/p12/口令落盘，无原身份读取。公开keyId与指纹记于STATUS。
+- 获准执行`updates.android_publisher provision-github`，六项Secrets经stdin逐一提交，返回configured=true/secretCount=6，本机journal为configured。仅作用于固定私有仓库；RSA发行私钥没有上传。真实受控构建和构件核验尚待执行，不能把配置完成视为APK验签完成。
+
 ## 2026-10-08 — 受控首装签名工具准备
 
 - 用户要求继续下一阶段。只读核对PR #1仍OPEN/head aa757cf、main b7db21e、仓库Secrets列表为空；上一轮明确的暂缓合并/真实签名边界尚未按具体执行清单解除。先补实际签名工具，不触碰服务或真实身份。

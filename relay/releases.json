@@ -4,6 +4,22 @@
   "name": "服务器中继",
   "releases": [
     {
+      "version": "0.1.0-alpha.5",
+      "date": "2026-10-08",
+      "summary": "准备独立受管中继的受控 OTA 首装基线。",
+      "changes": [
+        {
+          "title": "验证签名后在全新 home 建立中继",
+          "experience": "受控首装时，维护者使用审核后的测试渠道公钥、已签元数据和源码 ZIP 引导独立中继，再配置新账号、私有路由与 FRPS。",
+          "verify": "核对 ZIP 完整清单、签名和新受管目录，确认独立监听与委派 cgroup；随后分别验证鉴权下载和专用任务转发。"
+        }
+      ],
+      "limitations": [
+        "仍需外部 Python、独立 HTTPS/FRPS 配置和显式委派的 cgroup v2；不接管现用中继。",
+        "测试 HTTPS origin 已确定但尚未部署；本版签名首装及真实三端 OTA、同任务验收均未完成。"
+      ]
+    },
+    {
       "version": "0.1.0-alpha.4",
       "date": "2026-10-08",
       "summary": "中继增加三端私有更新下载与管理员登录更新。",

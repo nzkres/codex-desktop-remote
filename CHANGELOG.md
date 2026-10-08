@@ -2,6 +2,12 @@
 
 这里按版本记录仓库更新。每个软件的完整历史、体验入口和验证方法分别见 [手机](docs/versions/ANDROID.md)、[Windows](docs/versions/WINDOWS.md)、[中继](docs/versions/RELAY.md)，也可从 [全部版本索引](docs/versions/README.md) 查找。每次软件发布必须同时更新本总览与相应组件文档；组件可以独立升级，旧记录保留。
 
+## 0.1.0-alpha.5 — 受控隔离首装基线 — 2026-10-08
+
+三端新增受控首装版本记录：Android code5使用专用连续APK签名和固定测试trust构建，Windows/relay使用已签元数据及独立trust在新home首装。沿用现有UI，安装/签名/部署证据分别记录，不新增EXE安装器或托盘。普通CI调试包仍不是受控基线，公网源和真实升级尚未部署/验收。
+
+新增发行者工具在Windows DPAPI库中保存专用加密APK签名材料，并通过标准输入向固定私有仓库配置六项Secrets；已有配置、损坏、部分失败和重复执行均停止，不自动覆盖或重试。用户已批准签名、PR #1合并和alpha.5构建，实际结果见STATUS。alpha.4资产不换包。
+
 ## 0.1.0-alpha.4 — 私有 OTA 下载鉴权 — 2026-10-08
 
 发行工具维护：新增Windows DPAPI RSA密钥库与`--signing-home`内存签名；Android受控构建严格核对公钥/私有更新路径及APK实际嵌入的trust，明确PKCS12格式。临时密钥回归通过；没有生成本项目真实签名或受控首装包。三端版本和已发布alpha.4资产保持原样，后续实际首装使用新版本。

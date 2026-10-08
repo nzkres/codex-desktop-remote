@@ -2,11 +2,11 @@
 
 下一阶段工具已补：`updates.signing`提供仅本机CurrentUser DPAPI的RSA库，发布器通过`--signing-home`直接内存签名；Android受控构建增加trust预检/包内比对及PKCS12格式。先读[发行工具与待确认执行范围](OTA-PUBLISH.md#windows发行密钥与受控android构建)，不要把临时密钥测试算作真实签名已配置；密钥备份/恢复与实际首装仍待处理。本次CI结果见STATUS，旧be5a01c仅代表上一阶段。
 
-**最新用户边界：先完成本地准备，暂不合并或配置签名。** 部署草稿、发布路径校验和合成测试已随`be5a01c`推送至`codex/ota-implementation`。Core push37726150384/PR37726153483与Android37726153367全成功；后续仅补文档，软件版本与alpha.4资产不变。下一位先读[本地准备记录](OTA-LOCAL-PREPARATION.md)，再核对最新head、未提交改动与PR状态，不要把“继续下一步”理解成合并main、创建真实发行密钥/Secrets或公网部署授权。
+**最新授权：用户已批准签名与PR #1合并，暂不部署。** 部署草稿、发布路径校验和合成测试已随`be5a01c`推送至`codex/ota-implementation`。Core push37726150384/PR37726153483与Android37726153367全成功；后续仅补文档，软件版本与alpha.4资产不变。下一位先读[本地准备记录](OTA-LOCAL-PREPARATION.md)，再核对最新head、未提交改动与PR状态，本轮已经明确批准新项目测试签名与六项Secrets、固定测试origin及alpha.5构建；公网部署和真实设备切换仍未批准。
 
-2026-10-08增量：用户已选定**现有中继服务器新增隔离环境**。已只读核对106.53.126.69及候选资源，独立HTTPS9443配置通过实际Caddy校验；没有部署。后续按[部署审查](OTA-DEPLOYMENT-REVIEW.md)确认入口、签名保管与最终安装清单，处理IP短期证书续期，不再重新询问环境选项。具体origin和公网变更授权仍待确认。
+2026-10-08增量：用户已选定**现有中继服务器新增隔离环境**。已只读核对106.53.126.69及候选资源，独立HTTPS9443配置通过实际Caddy校验；没有部署。后续按[部署审查](OTA-DEPLOYMENT-REVIEW.md)确认入口、签名保管与最终安装清单，处理IP短期证书续期，不再重新询问环境选项。origin已由用户确认为https://106.53.126.69:9443；具体公网变更仍待确认。
 
-alpha.3 已完成私有开发预览归档；alpha.4 新增私有下载鉴权。实际代码/CI/下载/安装/真机层级以根目录 [STATUS](../STATUS.md) 为准。PR #1 仍需核对合并授权与远端状态，不能直接推 main。
+alpha.3 已完成私有开发预览归档；alpha.4 新增私有下载鉴权。实际代码/CI/下载/安装/真机层级以根目录 [STATUS](../STATUS.md) 为准。PR #1已合并为main 1e405ad；正在独立codex/controlled-alpha5分支准备获批的首装构件，仍需核对最新远端和验证结果。
 
 下一位维护者先读 [落地验收](OTA-ACCEPTANCE.md)、[OTA 边界](OTA.md)、[发布步骤](OTA-PUBLISH.md)、[安装起点](install/README.md)和[恢复说明](OTA-RECOVERY.md)，再核对分支、未提交改动、CI 与发布资产。用户已经确定“保持私有，先补下载鉴权”，不要重新提议公开源码包。Android 使用既有登录、Windows 使用本机配对身份，relay 管理员交互 login/logout；仅限同 HTTPS origin 固定组件目录，元数据和包均鉴权。先核验匿名/过期/撤销/暂停/跨源拒绝，再审查服务器部署。服务器已选定；尚需确定最终 HTTPS origin、受控 RSA 发布密钥保管和连续 Android 证书。普通 CI debug APK 的空 trust 和临时签名不能成为 OTA 首装基线；14 天 Actions artifact 也不能成为 feed。
 

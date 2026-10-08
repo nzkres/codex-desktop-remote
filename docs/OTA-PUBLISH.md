@@ -1,6 +1,6 @@
 # OTA 打包、签名与发布交接
 
-2026-10-08 签名准备增量：已实现发行RSA密钥的Windows用户作用域DPAPI库，`sign --signing-home`直接在内存解封；受控Android构建新增严格公钥/source预检与APK内trust逐字节核对，并明确PKCS12格式。当前只验证临时合成材料，**尚未创建本项目真实签名、配置Secrets或合并main**。本次为发行工具/构建门禁维护，不重发alpha.4；受控首装创建时再记录新的组件版本。
+2026-10-08 签名准备增量：已实现发行RSA密钥的Windows用户作用域DPAPI库，`sign --signing-home`直接在内存解封；受控Android构建新增严格公钥/source预检与APK内trust逐字节核对，并明确PKCS12格式。用户明确批准后，PR #1已合并，专用测试签名及六项Secrets已配置，alpha.5版本记录已准备；**构件仍需main受控构建与实际验签，部署/安装没有执行**。实际公开指纹与证据见STATUS，不替换alpha.4资产。
 
 2026-10-08 本地准备增量：`sign` 现在强制 source 为 `/desktop-remote-updates/{channel}/{component}/latest.json`，包 URL 必须是同目录的 `component-{catalog.version}.apk|zip`，渠道/组件/版本/扩展名须一致；拒绝时不生成元数据，避免签出私有服务无法提供的地址。该发行工具不随三端运行包分发，本次不重发 alpha.4、不递增三个软件版本。用户已选择暂不合并或配置真实签名，见[本地准备记录](OTA-LOCAL-PREPARATION.md)。
 
@@ -55,11 +55,15 @@ Android使用另一份连续APK签名证书，构建格式固定为[PKCS12](http
 
 构建前执行`python -B -m scripts.check_android_trust --trust <EXTERNAL_TRUST_JSON>`，只接受test渠道、一个RSA>=3072公钥、一个android source及准确的私有HTTPS路径。构建后加`--apk <APK_PATH>`逐字节比对`assets/update-trust.json`，缺失、重复或内容变化都失败；APK证书仍由独立apksigner步骤核对。普通PR只测试这套工具和编译调试APK，不证明main的真实签名步骤已执行。
 
-### 待确认的实际执行范围
+### 已批准的实际执行范围（2026-10-08）
 
 准备完成后的受控首装操作限定为：核对并合并PR #1；固定测试origin为`https://106.53.126.69:9443`；在本机`%LOCALAPPDATA%\CodexDesktopRemoteSigning\test-v1`下建立新的专用签名材料（不复用旧项目密钥），RSA使用DPAPI，Android使用加密PKCS12及受控本地保护；只向本私有仓库配置上述六项Secrets；将三端首装版本更新为alpha.5并运行main受控构建、验签和包内校验。尚无真实构件，不能把拟定alpha.5写成已发布。
 
-此范围不包含公网部署、开放端口、手机安装、真实身份迁移或停止现用服务。构件通过后再审核[隔离部署清单](OTA-DEPLOYMENT-REVIEW.md)及回退步骤；旧alpha.4资产保留。用户先前明确暂缓合并/签名，恢复这些实际动作前需确认该暂缓已解除。
+用户已明确批准上述签名与合并范围，PR #1已合并为`1e405ad`。此范围不包含公网部署、开放端口、手机安装、真实身份迁移或停止现用服务。构件通过后再审核[隔离部署清单](OTA-DEPLOYMENT-REVIEW.md)及回退步骤；旧alpha.4资产保留。前期“暂缓合并/签名”的决定已被此次明确批准替代，不需重复询问这两项。
+
+`updates.android_publisher create --directory $SigningHome --key-id $KeyId --origin $Origin`在已创建的RSA库内新建专用APK签名，私钥/口令只在内存处理并写入`android-signing.dpapi`，同时输出公开`android-public.json`及固定`android-trust.json`；底层PKCS12也使用强随机口令加密。不会复用旧项目证书、写明文p12或口令文件。
+
+`updates.android_publisher provision-github`使用同样三个参数，将六项Android构建输入逐一经`gh secret set`的标准输入提交到固定的`nzkres/codex-desktop-remote`。先检查这些Secret名称尚不存在，不读取秘密值；本地`github-provision.json`只记录阶段和名称。失败或未知结果标为`needs_review`，重复执行拒绝，不能自动覆盖、删除远端Secrets或清除记录重试。RSA私钥不在这六项中。此工具仍不提供跨电脑密钥恢复，Git仓库/CI成功不等于备份完成。
 
 私有下载文件只放在**新受管中继**的 `home/data/update-feed/{test|stable}/{android|windows|relay}/`。`home`、`data`、`update-feed`、渠道和组件目录均须由运行中继的同一用户持有，权限 `0700`；`latest.json` 和不可变版本包须为同一用户的普通单链接文件，权限 `0600`。只允许 `latest.json` 和与组件/版本相符的 `component-x.y.z[-alpha.N].apk|zip`；不能用软链接、硬链接、重解析点或目录浏览暴露其他文件。先把**版本化包**放到目标组件目录，核对实际字节数/SHA-256、签名元数据的 URL/有效期与 HTTPS 证书；最后以同目录临时文件和原子替换发布 `latest.json`。不要原地改已有版本包，也不要先让元数据指向尚未到位的包。仓库没有通用上传命令或已批准的服务器目标；私有 GitHub Release 可作归档，14 天 Actions artifact 不能作长期 feed。
 
