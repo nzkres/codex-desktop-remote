@@ -576,6 +576,77 @@ class MaintenanceTests(unittest.TestCase):
         self.assertEqual(read(self.home / "state/transaction.json"), marker)
         self.assertFalse(list((self.home / "state").glob("maintenance-resume-*.json")))
 
+    def test_clean_exit_requires_removed_guard_both_locks_and_unoccupied_original_pid(self):
+        _, _, review, _, _, _, marker = self.waiting_resume_fixture()
+        owner = review["owner"]
+        absent = types.SimpleNamespace(returncode=0, stdout=b"absent\n")
+        occupied = types.SimpleNamespace(returncode=1, stdout=b"")
+        original_lock = self.store.lock
+
+        @contextmanager
+        def busy_runtime(name="identity.lock"):
+            if name == "runtime.lock":
+                raise UpdateError("synthetic_runtime_lock_busy")
+            with original_lock(name):
+                yield
+
+        with self.fake_controller(), patch.object(maintenance.subprocess, "CREATE_NO_WINDOW", 0, create=True), patch.object(
+                maintenance.subprocess, "run", return_value=absent) as cim:
+            self.store.state["runtimeNeedsReview"] = True
+            with self.assertRaisesRegex(UpdateError, "identity_or_runtime_requires_review"):
+                maintenance.verify_clean_exit(self.home, owner)
+            self.store.state["runtimeNeedsReview"] = False
+            with self.assertRaisesRegex(UpdateError, "identity_or_runtime_requires_review"):
+                maintenance.verify_clean_exit(self.home, owner)
+            del self.store.state["runtimeNeedsReview"]
+            cim.assert_not_called()
+
+            with patch.object(maintenance, "lock", side_effect=UpdateError("synthetic_application_lock_busy")):
+                with self.assertRaisesRegex(UpdateError, "synthetic_application_lock_busy"):
+                    maintenance.verify_clean_exit(self.home, owner)
+            with patch.object(self.store, "lock", busy_runtime):
+                with self.assertRaisesRegex(UpdateError, "synthetic_runtime_lock_busy"):
+                    maintenance.verify_clean_exit(self.home, owner)
+            cim.assert_not_called()
+
+            with patch.object(maintenance.subprocess, "run", return_value=occupied):
+                with self.assertRaisesRegex(UpdateError, "original_gui_absence_unverified"):
+                    maintenance.verify_clean_exit(self.home, owner)
+            maintenance.verify_clean_exit(self.home, owner)
+        self.assertIn("runtime.lock", self.store.leases)
+        self.assertEqual(read(self.home / "state/transaction.json"), marker)
+
+    def test_confirmed_clean_exit_rechecks_cold_state_and_uses_original_transaction(self):
+        baseline, path, review, review_hash, pointer, expected, marker = self.waiting_resume_fixture()
+        update_driver = sys.modules[maintenance.WindowsDriver.__module__]
+        with patch.object(update_driver, "controller_for", return_value=self.controller):
+            driver = maintenance.AliasRecoveryDriver(self.home, self.old_root, pointer, expected)
+        events, hooks = self.transaction_hooks(driver)
+        fake_os = types.SimpleNamespace(name="nt", fsync=os.fsync, open=os.open)
+        absent = types.SimpleNamespace(returncode=0, stdout=b"absent\n")
+        with hooks, patch.object(maintenance, "os", fake_os), patch.object(
+                maintenance.subprocess, "CREATE_NO_WINDOW", 0, create=True), patch.object(
+                maintenance.subprocess, "run", return_value=absent) as cim, patch.object(
+                maintenance, "PinnedProcess", side_effect=AssertionError("must not pin exited GUI")), patch.object(
+                maintenance, "normal_exit", side_effect=AssertionError("no original handle")), patch.object(
+                maintenance, "AliasRecoveryDriver", return_value=driver), patch(
+                "sys.stdout", new_callable=io.StringIO):
+            result = maintenance.resume_wait(path, review_hash, baseline, self.metadata, self.archive,
+                                             normal_close_confirmed=True)
+        self.assertEqual(result["phase"], "committed")
+        self.assertEqual(events.count("candidate_start"), 1)
+        self.assertGreaterEqual(events.count("candidate_alias_probe"), 2)
+        self.assertEqual(cim.call_count, 3)
+        self.assertIn("runtime.lock", self.store.leases)
+        self.assertEqual(read(self.home / "current.json"), pointer)
+        self.assertEqual(read(self.home / "state/transaction.json")["phase"], "committed")
+        self.assertEqual(read(self.home / "state/maintenance-transaction.json")["phase"], "committed")
+        self.assertEqual(read(self.home / "state/maintenance.json")["phase"], "committed")
+        renewed = list((self.home / "state").glob("maintenance-resume-*.json"))
+        self.assertEqual(len(renewed), 1)
+        self.assertIs(read(renewed[0])["normalCloseConfirmed"], True)
+        self.assertEqual(read(renewed[0])["priorReviewHash"], review_hash)
+
     def test_fence_blocks_cold_launch_and_embeds_previous_terminal_journal(self):
         previous = {"schema": 1, "phase": "committed", "success": True,
                     "candidate": {"version": OLD}}

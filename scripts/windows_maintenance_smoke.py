@@ -125,12 +125,21 @@ def run_case(base, bad=False, resume=False):
             atomic(home / 'state/maintenance.json', {'schema': 1, 'reviewHash': review['reviewHash'],
                 'phase': 'needs_review', 'code': 'old_process_exit_unconfirmed'})
             action, extra = 'resume-wait', ['--baseline-metadata', old_meta]
+            if resume == 'cold':
+                # The user closed normally after the first helper timed out.
+                old.write({'fixtureClose': True})
+                assert old.wait(timeout=30) == 0
+                action = 'resume-clean-exit'
+                extra.append('--normal-close-confirmed')
         helper = OwnedChild([python, '-B', ROOT / 'updates/windows_maintenance.py', action,
             '--review', report, '--expect-review', review['reviewHash'],
             '--metadata', new_meta, '--package', new_zip, *extra], cwd=ROOT)
         ready = helper.read(timeout=60)
         expected_ready = {'schema': 1, 'guiPinned': True, 'waitingNormalExit': True}
-        if resume:
+        if resume == 'cold':
+            expected_ready = {'schema': 1, 'normalCloseVerified': True, 'waitingNormalExit': False,
+                              'reviewRenewed': True}
+        elif resume:
             expected_ready.update(reviewRenewed=True, waitSeconds=600)
         assert ready == expected_ready, ready
         try:
@@ -139,8 +148,9 @@ def run_case(base, bad=False, resume=False):
             assert error.code == 'interrupted_update_requires_review', error.code
         else:
             raise AssertionError('cold launch not fenced')
-        old.write({'fixtureClose': True})
-        assert old.wait(timeout=30) == 0
+        if resume != 'cold':
+            old.write({'fixtureClose': True})
+            assert old.wait(timeout=30) == 0
         # The independent helper continues after the old Tk application exits.
         outcome = helper.read(timeout=90)
         helper.wait(timeout=20)
@@ -194,9 +204,10 @@ def run_case(base, bad=False, resume=False):
 if __name__ == '__main__':
     if os.name != 'nt':
         raise SystemExit('Windows required')
-    for resume in (False, True):
+    for resume in (False, True, 'cold'):
         for bad in (False, True):
             with tempfile.TemporaryDirectory(prefix='cdr-maintenance-') as directory:
                 phase = run_case(Path(directory), bad, resume)
-                print('synthetic_paired_maintenance_' + ('resume_' if resume else '') + phase +
+                label = 'resume_clean_' if resume == 'cold' else ('resume_' if resume else '')
+                print('synthetic_paired_maintenance_' + label + phase +
                       ' identity_and_data_preserved', flush=True)

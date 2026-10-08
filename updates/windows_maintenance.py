@@ -7,6 +7,7 @@ version: the existing transaction retains needs_review and the unchanged data.
 """
 import argparse
 import ctypes
+from contextlib import nullcontext
 import hashlib
 import hmac
 import json
@@ -431,7 +432,30 @@ def resume_evidence(home, review, expected_hash, baseline_metadata, metadata, ar
                                         'staged': digest(staged), 'candidate': digest(candidate)}
 
 
-def resume_wait(review_path, expected_hash, baseline_metadata, metadata, archive):
+def verify_clean_exit(home, owner):
+    """Cold review after an explicitly confirmed normal window close.
+
+    This does not claim a retained exit handle or terminate any process. The
+    old signed controller removes runtimeNeedsReview only after its own drain
+    and original Job-tree cleanup proof; require that record plus both leases.
+    Any process occupying the old PID makes this narrow path refuse.
+    """
+    pid = owner.get('pid')
+    if type(pid) is not int or not 0 < pid <= 0xffffffff:
+        raise UpdateError('invalid_gui_identity')
+    controller = controller_for(home)
+    with lock(home / 'state/application.lock'), controller.store.lock('runtime.lock'):
+        binding(home)  # No runtimeNeedsReview key, even false, is accepted.
+        command = ("$ErrorActionPreference='Stop'; "
+                   f"$p=Get-CimInstance Win32_Process -Filter 'ProcessId = {pid}'; "
+                   "if ($null -eq $p) {Write-Output 'absent'} else {exit 1}")
+        result = subprocess.run(['powershell.exe', '-NoProfile', '-NonInteractive', '-Command', command],
+                                capture_output=True, timeout=20, creationflags=subprocess.CREATE_NO_WINDOW)
+        if result.returncode or result.stdout.strip() != b'absent':
+            raise UpdateError('original_gui_absence_unverified')
+
+
+def resume_wait(review_path, expected_hash, baseline_metadata, metadata, archive, *, normal_close_confirmed=False):
     if os.name != 'nt':
         raise UpdateError('windows_owner_required')
     review = read(review_path)
@@ -441,10 +465,15 @@ def resume_wait(review_path, expected_hash, baseline_metadata, metadata, archive
         with lock(home / 'state/update.lock'):
             old_root, pointer, expected, evidence = resume_evidence(
                 home, review, expected_hash, baseline_metadata, metadata, archive)
-        with PinnedProcess(review['owner']) as pin:
-            verify_gui(pin, home, old_root)
+        with (nullcontext(None) if normal_close_confirmed else PinnedProcess(review['owner'])) as pin:
+            def confirm_owner_state():
+                if normal_close_confirmed:
+                    verify_clean_exit(home, review['owner'])
+                else:
+                    verify_gui(pin, home, old_root)
+            confirm_owner_state()
             alias_probe(home / pointer['path'], home)
-            verify_gui(pin, home, old_root)
+            confirm_owner_state()
             with lock(home / 'state/update.lock'):
                 if resume_evidence(home, review, expected_hash, baseline_metadata, metadata, archive) != (
                         old_root, pointer, expected, evidence):
@@ -453,15 +482,21 @@ def resume_wait(review_path, expected_hash, baseline_metadata, metadata, archive
                 # A new review follows fresh verification; the expired original
                 # is never re-dated or used as current authorization/evidence.
                 renewed = {'schema': 1, 'kind': 'alpha5-wait-timeout-review',
-                           'priorReviewHash': expected_hash, 'owner': pin.identity,
+                           'priorReviewHash': expected_hash, 'owner': review['owner'] if pin is None else pin.identity,
+                           'normalCloseConfirmed': normal_close_confirmed,
                            'createdAt': now, 'expiresAt': now + REVIEW_SECONDS,
                            'binding': expected, 'evidence': evidence, 'package': review['package']}
                 audit = home / 'state' / ('maintenance-resume-' + secrets.token_hex(12) + '.json')
                 atomic(audit, renewed)
-            print(json.dumps({'schema': 1, 'guiPinned': True, 'waitingNormalExit': True,
+            print(json.dumps({'schema': 1, 'normalCloseVerified': True, 'waitingNormalExit': False,
+                              'reviewRenewed': True} if normal_close_confirmed else
+                             {'schema': 1, 'guiPinned': True, 'waitingNormalExit': True,
                               'reviewRenewed': True, 'waitSeconds': 600}), flush=True)
             try:
-                normal_exit(pin, timeout=600)
+                if normal_close_confirmed:
+                    confirm_owner_state()
+                else:
+                    normal_exit(pin, timeout=600)
                 if read(audit) != renewed or int(time.time()) >= renewed['expiresAt']:
                     raise UpdateError('maintenance_review_expired')
                 with lock(home / 'state/update.lock'):
@@ -494,7 +529,12 @@ def main():
     resume.add_argument('--review', required=True, type=Path)
     resume.add_argument('--expect-review', required=True)
     resume.add_argument('--baseline-metadata', required=True, type=Path)
-    for action in (review, apply, resume):
+    cold = sub.add_parser('resume-clean-exit', help='Review a user-confirmed clean close after waiting timed out')
+    cold.add_argument('--normal-close-confirmed', required=True, action='store_true')
+    cold.add_argument('--review', required=True, type=Path)
+    cold.add_argument('--expect-review', required=True)
+    cold.add_argument('--baseline-metadata', required=True, type=Path)
+    for action in (review, apply, resume, cold):
         action.add_argument('--metadata', required=True, type=Path)
         action.add_argument('--package', required=True, type=Path)
     args = parser.parse_args()
@@ -503,6 +543,9 @@ def main():
             result = make_review(args.home, args.metadata, args.package, args.gui_pid, args.output)
         elif args.command == 'resume-wait':
             result = resume_wait(args.review, args.expect_review, args.baseline_metadata, args.metadata, args.package)
+        elif args.command == 'resume-clean-exit':
+            result = resume_wait(args.review, args.expect_review, args.baseline_metadata, args.metadata, args.package,
+                                 normal_close_confirmed=args.normal_close_confirmed)
         else:
             result = apply_review(args.review, args.expect_review, args.metadata, args.package)
         print(json.dumps(result), flush=True)

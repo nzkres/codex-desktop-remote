@@ -48,6 +48,21 @@ $BaselineMetadata = '<ORIGINAL_SIGNED_ALPHA5_FIRST_INSTALL_METADATA>'
 
 确认签名和完整绑定、重新固定原GUI句柄并完成实时任务探针后，工具写入新的30分钟审查记录，保留原主屏障，报告`reviewRenewed/waitingNormalExit`；此时才请用户关闭旧窗口，最多等待**600秒**。退出后仍走原独占锁、冷态绑定、事务CAS、候选隔离健康和数据保全流程。新审查与原fence归属分开记录，任何结果不明仍需复核。该入口仅在仓库中，不改变已签alpha.6运行包。
 
+### 用户已正常关闭窗口，但原句柄未保留
+
+若原 `apply` **只因等待原 alpha.5 GUI 退出超时**而停在 `old_process_exit_unconfirmed`，之后用户明确确认用窗口的“×”正常关闭，且维护工具未保留当时的原进程句柄，可由维护者审查另一条 repo-only 路径。`resume-clean-exit` **不能追溯验证原退出码，也不把用户确认当作进程树证明**；它要求旧版正常关闭产生的冷态记录与独占锁证据全部吻合。此路径不是普通重试、重新配对或强制关闭进程。
+
+```powershell
+$BaselineMetadata = '<ORIGINAL_SIGNED_ALPHA5_FIRST_INSTALL_METADATA>'
+& $PythonExe -B -m updates.windows_maintenance resume-clean-exit --normal-close-confirmed --review $Review --expect-review $ReviewHash --baseline-metadata $BaselineMetadata --metadata $Metadata --package $Package
+```
+
+工具仅在主 `state/transaction.json` 精确保留原审查哈希、原 alpha.5 指针和 `maintenance_waiting_normal_gui_exit` 屏障，且 `state/maintenance.json` 精确记录 `old_process_exit_unconfirmed`、**不存在次级 `maintenance-transaction.json`** 时继续。过期的原审查只作完整性与历史绑定证据，不被延长为当前许可。原 alpha.5 首装签名元数据必须从空状态重建与原审查一致的账本；同一 alpha.6 签名元数据、ZIP、当前 ledger、`current.json`、`staged.json` 和 `candidate.json` 必须逐项匹配，身份、配置及全部任务文件也须保持原完整绑定。两份元数据都必须仍有效；不降账本、不重签或改动 alpha.6 包。
+
+冷态检查同时获取应用锁和 `runtime.lock`，要求身份中 `runtimeNeedsReview` **键彻底不存在**（即使值为 `false` 也拒绝），并通过 CIM 确认旧 PID **完全未被任何进程占用**；PID 已复用或查询不明都拒绝。随后以当前选定原生任务运行 alpha.6 的新鲜审核别名只读探针，前后再次检查冷态与完整签名/暂存绑定，才写新的 30 分钟审查记录并进入原事务的 CAS、候选隔离健康和数据保全流程。它不会删主屏障、重开 alpha.5、自动重试未知操作或替用户启动任务。输出中的 `normalCloseVerified` 表示上述**替代证据已通过**，不是取得了已遗失的原句柄退出码。
+
+维护路径已有真实 Windows 上的两项**合成冷态**演练，分别到 `committed` 与 `needs_review`，另有 22 项维护单测通过；这些不证明当前真实安装已切换、旧进程原退出码已验证、手机显示恢复或三端 OTA 闭环。任何一项证据缺失即停在 `needs_review`，保留身份、ledger、签名包、主/次事务和保护现场人工复核。
+
 审查过期、GUI/身份/数据变化、任务不空闲、签名或候选验证失败，都应停止切换并保留证据。设置主启动屏障后的异常、进程退出不明、候选树清理或激活结果不明会留下 `needs_review`；不要删除 `state/transaction.json`、`state/maintenance-transaction.json`、`state/maintenance.json`、账本、候选槽或任务数据，也不要人工清屏障来重试。旧 alpha.5 本身仍有审核别名探针缺陷：即使候选失败后指针恢复到旧槽，也**不能据此宣称旧版已健康回退或重新启动它**。中断事务只供人工联合核对两份日志和原始进程/数据状态，不自动恢复或重放请求。一般恢复原则见 [OTA 恢复](OTA-RECOVERY.md)。
 
 完成后分开记录：签名包与元数据、审查哈希/有效期、原 GUI 正常退出、主/次事务阶段、当前槽与实际运行版本、身份/配置/回执摘要保持、同一原生任务的手机显示。只保存脱敏结论，不把身份、token、原始任务或审查文件入库。

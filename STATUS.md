@@ -1,4 +1,12 @@
-# 当前验证状态：维护升级已批准，等待旧窗口退出超时，原alpha.5现场保留
+# 当前验证状态：Windows alpha.6 实际维护升级与手机原任务同步验收通过
+
+2026-10-08最新实际结果：用户确认此前按“×”正常关闭原alpha.5窗口。补充并验收受限的`resume-clean-exit`后，按既有维护授权执行同一已签名alpha.6包，主/次事务与maintenance均`committed`，实际新GUI唯一且与可信启动门父进程匹配，应用锁持有。签名槽重新校验通过；原alpha.5槽保留，完整稳定身份、配置、权限、任务/回执和启动器摘要保持。没有重新配对、重发已完成消息、改手机/中继或发布新feed。
+
+候选实际隔离启动通过固定Desktop兼容性、空闲/权限/回执检查及真实登记/传输探针，再清理自有连接进入新GUI。用户随后重新连接；独立只读检查确认alpha.6本机health正常、实时任务检查通过、`mobile-sync` HTTP200、UUID不变，两条已有`PHONE_ALPHA5_OK`和`DESKTOP_ALPHA5_CONTINUE_OK`均可读取。**用户随后明确确认手机两条回复都能看到，原任务同步验收通过。** 本次完成Windows本地签名包维护升级；Android/relay联网N→N+1和三端OTA验收仍未完成。 脱敏证据见忽略目录`artifacts/alpha6-maintenance-20261008/maintenance-committed-verification.json`；自动模型输入0。
+
+本次维护工具仅在仓库运行，不修改已签alpha.6 ZIP。完整Python146项中140通过/6跳过、Node64通过、维护定向22通过；Windows合成初次/等待续审/正常关闭续审各成功和失败共六例通过。先前`resume-wait`提交0b3532f的Core [push37773618452](https://github.com/nzkres/codex-desktop-remote/actions/runs/37773618452) / [PR37773623778](https://github.com/nzkres/codex-desktop-remote/actions/runs/37773623778)均两平台成功；最新正常关闭续审增量CI待核。PR #2仍草稿，main未合并；Android和relay仍alpha.5。
+
+## 此前等待退出超时的历史现场（已由上述续审完成）
 
 **最新实际结果：用户已明确批准维护升级，无需重复请求该授权。** 独立助手复验成功并报告guiPinned/waitingNormalExit；原GUI在120秒内未退出，助手返回 `old_process_exit_unconfirmed`，主journal与maintenance结果保持 `needs_review`。随后只读复核：当前槽仍alpha.5、稳定身份/配置/任务/回执与审查一致、候选事务尚未开始、原GUI仍能通过创建身份/路径/用户/会话核验。候选已暂存且ledger接受sequence2，故不能直接重跑原review/apply，也不能删屏障或回退ledger。没有启动alpha.6或停止原GUI，手机恢复未验收。下一次须在用户准备操作时先复核本次中断和原句柄，安排受审查的继续交接；不要让用户提前关掉原窗口。原始脱敏结果在忽略目录`apply-timeout-verification.json`。
 

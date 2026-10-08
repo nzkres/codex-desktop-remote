@@ -1,5 +1,14 @@
 # 工作记录
 
+## 2026-10-08 — 确认正常关闭后续审，真实 Windows alpha.6 提交完成
+
+- 首次`resume-wait`现场核对发现原GUI已不存在，返回`old_process_owner_unverified`，没有改原超时journal或切换；用户随后明确确认按“×”正常关闭。只读核对原控制器已正常移除运行保护、应用/运行锁释放、完整身份/任务配置保持。保留原时点记录，不按旧PID重新打开句柄或强杀。
+- 新增仅等待退出超时场景的`resume-clean-exit --normal-close-confirmed`：完整复算已签旧/新metadata账本和staging，secondary必须不存在；双锁下要求runtimeNeedsReview键完全缺失及CIM旧PID完全未被占用。fresh alias探针前后再次确认冷态/全部绑定，生成新30分钟审查，继续原AliasRecoveryDriver/MaintenanceTransaction。用户确认不替代树证明或旧退出码；工具不在发行包内，原签名alpha.6 ZIP未改。
+- GPT-6 Sol medium补22项维护回归、操作说明及独立只读审查，根代理验收。`python -B -m unittest discover -s test -p 'test_*.py'`146项140通过/6跳过；本轮Node64通过；实际Windows合成DPAPI/Tk/Job/独立助手初次、resume-wait、resume-clean-exit各成功/失败共六例通过。release catalog与diff检查通过。0b3532f的Core push37773618452/PR37773623778两平台success；正常关闭增量新CI另记。
+- 按持续有效的维护升级批准，执行`python -B -m updates.windows_maintenance resume-clean-exit --normal-close-confirmed --review <原审查> --expect-review e19672fa6647a6aec018f64d545ad2acfa65204fe7f2f0212fa823be663e5ff9 --baseline-metadata <已签alpha.5> --metadata <同一已签alpha.6> --package <原93986字节ZIP>`。输出normalCloseVerified/reviewRenewed，随后committed/success/alpha.6，退出码0；未改手机或服务器。
+- 独立复验主/次journal完全一致、signed slot正确、实际唯一新GUI与可信门进程父子归属一致、应用锁持有、原版本保留；稳定身份、fixture、权限、task/receipts、install/trust/launcher逐项保持。最初核验把可信child_gate也算作GUI，断言失败；按准确argv入口和父子关系区分后唯一GUI通过，未更改进程或产品。
+- 用户在新窗口重新连接后，本机认证GET health及update-status通过，mobile-sync200、sameThread=true，两条已经完成的回复均读取成功；模型输入0。忽略目录记录maintenance-committed-verification.json，令牌/原始日志/身份未入Git。用户随后明确回复“两条回复都能看到”，手机原任务同步验收通过；维护切换不等同于三端联网OTA完成；alpha.6 feed/Release未发布，PR #2与main保持边界。
+
 ## 2026-10-08 — 等待超时的受限继续交接
 
 - 用户回复“准备好了”；此前维护升级批准持续有效，不再请求重复授权。只读核对原GUI创建身份/路径/用户会话仍匹配，稳定身份/任务/配置保持，current仍alpha.5，secondary事务不存在；原review已过期，故没有直接重跑apply。

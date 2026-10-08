@@ -1,5 +1,11 @@
 # OTA 交接
 
+**当前停点（优先于下方全部历史）：Windows已实际升级到alpha.6，用户确认手机原任务两条回复都显示，同步验收通过。** 用户确认此前按“×”正常关闭；`resume-clean-exit --normal-close-confirmed`经完整绑定、签名账本、冷态双锁、保护键缺失、旧PID无人占用及新鲜alias探针续审后，原事务已`committed`。没有保留旧退出句柄，不声称追溯证明旧退出码；不删门禁/降账本/重配对。原signed ZIP保持`4df87881...7811cf`，实际新GUI唯一、签名槽正确，身份/配置/权限/任务和回执保持。详见STATUS与忽略目录`maintenance-committed-verification.json`。
+
+用户已重新连接；本机alpha.6 health与idle/permissionsVerified/receiptsCertain通过，原UUID的mobile-sync HTTP200且包含两条既有回复。用户已确认`PHONE_ALPHA5_OK`和`DESKTOP_ALPHA5_CONTINUE_OK`都显示；不要重发消息、重跑维护命令、重新配对或要求再关窗口。当前本次维护任务完成；Android/relay仍alpha.5、feed未发布alpha.6，三端联网OTA验收仍未完成。后续按OTA-ACCEPTANCE逐组件安排N→N+1，不把本地签名包维护交接计作HTTP OTA闭环。最新repo-only正常关闭恢复代码140项Python通过/6跳过，Node64、维护22单测与六项Windows合成演练通过；新CI结果后续核对。PR #2草稿未合并。
+
+## 历史停点（下方授权、窗口与实现状态已由上方取代）
+
 **最高优先级停点：用户已批准，实际apply因旧GUI120秒未退出而停止。** 不再请求相同升级授权；也不要照下方旧指令直接重跑apply。`current`仍alpha.5，主transaction与maintenance为needs_review/old_process_exit_unconfirmed；候选已暂存、ledger已接受sequence2，secondary maintenance-transaction不存在。只读复核身份/配置/回执/任务保持、原GUI仍匹配（当时PID20032）。请用户先保持原窗口，在其准备操作后重新审查固定原进程、已有签名staging/ledger和完整数据绑定，再安排安全继续交接；不能删除primary、runtimeNeedsReview或ledger，也不能把用户确认“关闭”代替原始句柄退出证明。审查文件已可能过期，不能凭旧hash绕过时效。当前工具没有自动resume命令；需要完成受审查的中断继续方案，原窗口提前退出会失去可固定原句柄的机会。见STATUS和忽略报告apply-timeout-verification.json。候选仍是同一签名包，不重打或替换同版本。
 
 **可执行停点（晚于下方实现记录）：** 56f488e的Core push37763446214/PR37763453724两平台成功；43文件Windows CI包逐字节匹配Git，已用原测试keyId在本地签发sequence2。包`artifacts/alpha6-maintenance-20261008/windows-0.1.0-alpha.6.zip`，SHA256 `4df87881c5d0f704a4b2ac0a1a2d12e022f5b11062a8740d7ad43f96ca7811cf`；元数据`windows-latest.json`。真实review成功，审查文件同目录`maintenance-review.json`，hash `e19672fa6647a6aec018f64d545ad2acfa65204fe7f2f0212fa823be663e5ff9` / expiresAt1791457239。原GUI PID20032只作当时证据，必须重新核实原句柄、不可按旧PID杀进程。用户实际切换确认已询问但尚未收到；未apply/部署feed/新Release。先检查审查时效和最新用户答复，过期则只读重做review到新文件；批准后助手独立运行，输出waitingNormalExit后再请用户正常关闭连接器（不关Desktop），按工具验证结果推进手机原任务同步，禁止重发已完成的两条消息。若不批准就保留现用alpha.5连接。
