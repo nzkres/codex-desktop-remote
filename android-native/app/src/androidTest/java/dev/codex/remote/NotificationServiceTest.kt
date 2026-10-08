@@ -21,6 +21,7 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import java.net.ServerSocket
+import java.util.concurrent.CopyOnWriteArrayList
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
 import kotlin.concurrent.thread
@@ -32,15 +33,18 @@ class NotificationServiceTest {
     @get:Rule val permission = GrantPermissionRule.grant(Manifest.permission.POST_NOTIFICATIONS)
 
     @Test fun backgroundCompletionQuestionAndPause() = verifyNotifications(false)
-    @Test fun offlineOriginalComputerDoesNotBlockRemoteNotificationsOrTheirDestination() = verifyNotifications(true)
+    @Test fun offlineSecondComputerDoesNotBlockSelectedComputerNotificationsOrTheirDestination() = verifyNotifications(true)
 
     private fun verifyNotifications(remoteOnly: Boolean) {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         FakeTaskGateway(remoteOnly).use { server ->
             val credentials = Credentials(context)
+            credentials.clear()
             credentials.url = "http://127.0.0.1:${server.port}"
             credentials.token = "b".repeat(64) // Synthetic local test login only.
-            val target = if (remoteOnly) TaskTarget(server.terminal, "合成第二台电脑") else TaskTarget()
+            credentials.account = "synthetic-notifications"
+            val target = TaskTarget(server.terminal, "合成测试电脑")
+            credentials.selectTarget(target)
             SignalLedger(context, "").clearAll()
             TaskNotifications.prefs(context).edit().putBoolean("introduced", true).commit()
             TaskNotifications.setEnabled(context, true)
@@ -56,6 +60,9 @@ class NotificationServiceTest {
             ActivityScenario.launch<MainActivity>(bootstrap).use { activity ->
                 try {
                     await { server.detailReads.get() > 0 && manager.activeNotifications.any { it.id == TaskNotifications.CONNECTION_ID } }
+                    if (remoteOnly) await { server.paths.any { it.startsWith("/terminal-api/${server.offlineTerminal}/api/") } }
+                    assertTrue(server.paths.any { it.startsWith("/terminal-api/${server.terminal}/api/") })
+                    assertFalse("Notification polling must never fall back to the old host", server.paths.any { it.startsWith("/api/") })
                     // Stop the Activity but leave the process/foreground service running.
                     activity.moveToState(Lifecycle.State.CREATED)
                     server.stage.set(1)
@@ -140,9 +147,11 @@ class NotificationServiceTest {
 
 private class FakeTaskGateway(private val remoteOnly: Boolean = false) : java.io.Closeable {
     val terminal = "d".repeat(32)
+    val offlineTerminal = "e".repeat(32)
     val id = "00000000-0000-4000-8000-000000000002"
     val stage = AtomicInteger(0)
     val detailReads = AtomicInteger(0)
+    val paths = CopyOnWriteArrayList<String>()
     private val observedStart = System.currentTimeMillis()
     private val running = AtomicBoolean(true)
     private val socket = ServerSocket(0)
@@ -154,8 +163,10 @@ private class FakeTaskGateway(private val remoteOnly: Boolean = false) : java.io
                     client.soTimeout = 5_000
                     val input = client.getInputStream().bufferedReader()
                     val path = input.readLine()?.split(' ')?.getOrNull(1).orEmpty()
+                    paths.add(path)
                     while (!input.readLine().isNullOrBlank()) { }
-                    val offline = remoteOnly && path.startsWith("/api/")
+                    val offline = remoteOnly && (path.startsWith("/api/") ||
+                        path.startsWith("/terminal-api/$offlineTerminal/api/"))
                     val body = (if (offline) """{"error":"terminal_offline"}""" else response(path)).toByteArray(Charsets.UTF_8)
                     client.getOutputStream().apply {
                         write("HTTP/1.1 ${if (offline) "502 Unavailable" else "200 OK"}\r\nContent-Type: application/json\r\nContent-Length: ${body.size}\r\nConnection: close\r\n\r\n".toByteArray())
@@ -173,7 +184,7 @@ private class FakeTaskGateway(private val remoteOnly: Boolean = false) : java.io
         val session = """{"id":"$id","project_id":"fixture","title":"后台通知测试","status":"$status","active_turn_id":${if (completed) "null" else "\"turn-$n\""},"mode":"default","updated_at":$now}"""
         val observation = """{"state":"${if (completed) "completed" else "running"}","lastActivityAt":${observedStart + n},"source":"gateway","lastItemType":"agentMessage"}"""
         return when (path.removePrefix("/terminal-api/$terminal").substringBefore('?')) {
-            "/control-api/terminals" -> if (remoteOnly) """{"terminals":[{"id":"$terminal","name":"合成第二台电脑","state":"active","online":true}]}""" else """{"terminals":[]}"""
+            "/control-api/terminals" -> """{"terminals":[{"id":"$terminal","name":"合成测试电脑","state":"active","online":true}${if (remoteOnly) ",{\"id\":\"$offlineTerminal\",\"name\":\"离线电脑\",\"state\":\"active\",\"online\":false}" else ""}]}"""
             "/control-api/pairings" -> """{"pairings":[]}"""
             "/api/projects" -> """{"projects":[{"id":"fixture","name":"测试工作区"}]}"""
             "/api/sessions" -> """{"sessions":[$session]}"""

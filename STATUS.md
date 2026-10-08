@@ -1,4 +1,12 @@
-# 当前验证状态：Windows alpha.6→alpha.7 真实 OTA 与手机同任务接续验收通过
+# 当前验证状态：Android alpha.6 OTA 候选准备；Windows alpha.7 实机闭环通过
+
+## 2026-10-08 — Android alpha.5→alpha.6 独立 OTA 准备
+
+用户要求下一步 Android OTA。在独立 `codex/android-alpha6` 工作树实现 versionCode 6：未选电脑时任务/动态显示选择引导，不请求旧任务接口；通知只发现明确设备，清理旧空目标通知。终端管理 401 返回登录，403 保留权限错误，已选目标任务错误仍按原路径处理；账号、目标和草稿存储未迁移。版本历史、安装说明和 [审查/手机验收清单](docs/ANDROID-ALPHA6-OTA-REVIEW.md) 已更新。
+
+本机 Node64 通过，Python152中146通过/6平台跳过，relay77中73通过/4跳过；版本生成校验和 diff 检查通过。第一次沙箱 Node 因用户目录 EPERM、Python 合成签名库测试因 DPAPI 环境失败，正常用户上下文重跑通过，未操作真实密钥或身份。本机未发现 JDK/ADB/SDK；Android JVM、lint、APK 和新增模拟器回归交由 CI，结果尚待核对。新增真实 Activity 无目标/选目标网络测试和通知隔离回归；构建 instrumentation APK 不当作执行通过。
+
+**实际手机仍 alpha.5、Windows alpha.7、relay alpha.5；Android alpha.6 尚未受控签名、发布或安装。** main-only 签名门禁保留。完成 PR/CI 验收后，需对具体 PR 合并与原证书受控构建、Android 私有源发布明确确认；不沿用仅限 Windows 源发布的批准。不要让手机安装普通 CI debug APK，不卸载 alpha.5。
 
 ## 2026-10-08 — 用户点击下载并安装，alpha.6→alpha.7 实际事务完成
 
