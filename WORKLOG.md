@@ -1,6 +1,19 @@
 # 工作记录
 
+## 2026-10-08 — 本地准备推送与三平台 CI 验收
+
+- 用户继续推进；保持“暂不合并或配置签名”的最新边界。先核对远端PR #1为OPEN，分支head为3277a8a，本机工作区干净且仅领先be5a01c；执行`git push origin codex/ota-implementation`成功，无force、无main改动。
+- `gh run list`及`gh run view --json`核对同一head：Core push37726150384、PR37726153483的Windows/Linux均success；Android37726153367 success。进一步读取日志中的测试汇总、真实升级/回退标志、APK校验结果；不是仅根据旧绿色状态判断。
+- Core PR日志：Node Windows33通过、Linux31通过/2跳过；Python主套件107项中Windows102通过/5跳过、Linux94通过/13跳过；relay77项中Windows73通过/4跳过、Linux77通过；续证钩子Linux3通过、Windows3跳过。真实pythonw助手升级0.0.2/坏候选回退0.0.1；Linux中继升级0.0.2/坏0.0.3回退0.0.2、4棵树清理。没有放宽检查或忽略失败。
+- Android普通PR构建通过单测/lint、主/测试APK编译及包内说明检查；APK为alpha.4/code4、11,771,608字节、bundledNotesMatchSource=true。未启用受控签名步骤，未安装模拟器/手机；本轮不将CI调试包替换原Release。
+- `gh api .../actions/runs/.../artifacts`核对Windows/Linux源码ZIP与Android debug/报告构件均已上传、未过期，14天保留至2026-10-22 UTC。这里只验证CI和上传状态，没有把临时构件当长期更新服务或声称真实OTA成功。
+- GPT-6 Sol medium只读复核安装/OTA说明，主代理核对结果并更新STATUS、CHANGELOG、README、HANDOFF与本地准备记录；修正本地测试统计为通过与跳过分列。保留上一节推进前记录和早期Windows偶发问题，没有编造新软件版本。
+- 最后仅6份Markdown变化：`python -B scripts/check_versions.py`、62个本地链接目标和`git diff --check`通过。文档提交使用`[skip ci]`避免重跑未变更的产品；上列CI证据精确对应be5a01c，后续文档提交不冒称又执行过一次完整CI。
+- 下一步仍是受控首装信任和连续签名、隔离HTTPS部署、三端真实N→N+1；这些尚未执行。当前签名保管/合并/部署选择未改变，不把“继续”扩张为实际切换授权。
+
 ## 2026-10-08 — 本地部署准备与发布路径修正
+
+以下是`be5a01c`推送前的本地准备记录；后续推送与CI结果另立增量，不将当时“未推送”视为当前状态。
 
 - 用户在“继续下一步”后明确选择“先完成本地准备，暂不合并或配置签名”；本轮不创建项目真实发行密钥、不配置Secrets、不合并或公网部署。只读核对PR3277a8a三平台检查全成功，仓库Secrets/Variables列表为空；没有读取秘密值。本轮没有新CI或新发布。
 - GPT-6 Sol medium准备deploy/test下独立systemd/FRPS/Caddy/续证钩子草稿，主代理复核。主代理要求证书挂载只限指定lineage，续证以固定容器ID/项目/镜像和明确22019地址重载，保持旧2019隔离；无ExecStop假门禁，relay拒绝手动stop且Restart=no。另由Sol复核发布器精确路由与服务端一致。

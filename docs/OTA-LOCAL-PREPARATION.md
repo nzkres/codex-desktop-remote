@@ -1,6 +1,6 @@
 # OTA 本地准备记录
 
-2026-10-08。用户明确选择“先完成本地准备，暂不合并或配置签名”。本轮只做源码、审核文件和本机合成测试；不生成项目真实发行密钥，不写 GitHub Secrets，不合并 main，不部署服务器或变更现用身份。当前手机仍按原安装使用；GitHub alpha.4 预览资产未替换。
+2026-10-08。用户明确选择“先完成本地准备，暂不合并或配置签名”。本轮完成源码、审核文件、本机合成测试及开发分支CI；不生成项目真实发行密钥，不写 GitHub Secrets，不合并 main，不部署服务器或变更现用身份。当前手机仍按原安装使用；GitHub alpha.4 预览资产未替换。
 
 ## 已完成的本地工作
 
@@ -15,8 +15,8 @@
 | 验证 | 结果与范围 |
 | --- | --- |
 | Node 20.19 回归 | 33/33 通过；首轮沙箱在加载测试前报目录EPERM，获准以本机合成范围重跑成功 |
-| Windows Python 3.12 主套件 | 107项通过（5项Linux专属跳过）；包含新增发布路径拒绝与自定义HTTPS端口用例 |
-| Windows relay 套件 | 77项通过（4项Linux专属跳过） |
+| Windows Python 3.12 主套件 | 共107项：102通过、5项Linux专属跳过；包含新增发布路径拒绝与自定义HTTPS端口用例 |
+| Windows relay 套件 | 共77项：73通过、4项Linux专属跳过 |
 | Windows 真GUI/独立助手 | `isolated_gui_helper_committed 0.0.2 pythonw`；坏探针`isolated_gui_helper_rolled_back 0.0.1 pythonw`；仅临时身份/目录，探针不访问真实Desktop |
 | 本机 WSL 中继生命周期 | Ubuntu Python3.14.4 / systemd259，非root sheng用户，真实Delegate=yes cgroup；升级0.0.2，坏0.0.3回退0.0.2，4棵自有树退出，瞬态单元已回收 |
 | systemd手动停止保护 | 独立12秒sleep夹具设置RefuseManualStop=yes；root请求stop得到Operation refused，夹具保持active直到自然结束；不用于停止真实服务 |
@@ -40,14 +40,30 @@ git diff --check
 
 WSL演练采用**本机**一次性单元`cdr-local-smoke-20261008-01.service`，经`systemd-run --wait --pipe --collect`创建，属性为`User=sheng`、`Group=sheng`、`Delegate=yes`、`RefuseManualStop=yes`、`Restart=no`、`NoNewPrivileges=yes`、`UMask=0077`。将`DESKTOP_REMOTE_TEST_CGROUP`明确指向这个单元的cgroup，执行本仓库`scripts/relay_ota_smoke.py`。使用新的唯一单元名复跑，结束后检查`LoadState=not-found`、`ActiveState=inactive`；不借用现用服务或未明确委派的cgroup。
 
-Linux钩子回归可用`python3 -B -m unittest discover -s deploy/test -p 'test_*.py'`运行，测试以临时假docker执行，不接触容器。Core工作流已加入此命令与deploy/test路径触发条件，但本轮未推送或触发该新工作流，不能计作CI已通过。Linux审核文件固定LF，避免Windows检出换行使shell脚本不能运行。
+Linux钩子回归可用`python3 -B -m unittest discover -s deploy/test -p 'test_*.py'`运行，测试以临时假docker执行，不接触容器。Core工作流已加入此命令与deploy/test路径触发条件，随`be5a01c`推送后已在Linux CI通过3项，Windows显式跳过3项。Linux审核文件固定LF，避免Windows检出换行使shell脚本不能运行。
+
+## 推送与 CI 验证（2026-10-08）
+
+本地准备提交`be5a01c0c0940450699ca8ad3e85cf6031d512a2`已推送到`codex/ota-implementation`，PR #1仍为OPEN、目标main。Core [push 37726150384](https://github.com/nzkres/codex-desktop-remote/actions/runs/37726150384) 与 [PR 37726153483](https://github.com/nzkres/codex-desktop-remote/actions/runs/37726153483) 的Windows/Linux均成功。下表数量从PR运行日志核对，跳过项不计为通过。
+
+| 检查 | Windows CI | Linux CI |
+| --- | --- | --- |
+| Node | 33通过 | 31通过、2跳过 |
+| Python主套件（107项） | 102通过、5跳过 | 94通过、13跳过 |
+| relay（77项） | 73通过、4跳过 | 77通过 |
+| 续证钩子（3项） | 3跳过 | 3通过 |
+| 真实进程演练 | pythonw/Tk与独立助手：升级0.0.2、坏候选回退0.0.1 | cgroup中继：升级0.0.2、坏0.0.3回退0.0.2，4棵自有树清理 |
+
+两个平台的源码ZIP构件已上传，Actions API确认未过期，保留至2026-10-22 UTC。它们是14天CI构件，不是长期feed；本轮不重新发布或覆盖alpha.4。三端应用分发输入未改变，新增的是发布工具、部署审核文件和测试。
+
+Android [37726153367](https://github.com/nzkres/codex-desktop-remote/actions/runs/37726153367) 已成功：JVM单元测试、lint、主/测试APK编译及包内版本说明校验通过。CI核对主APK为alpha.4/code4、11,771,608字节、包内说明与源码一致；debug APK与报告已上传，保留至2026-10-22 UTC。普通PR任务不启用受控签名、不配置Secrets，未运行模拟器或真实手机安装。本次仅核对CI日志和构件API，没有将新调试包作为Release或OTA候选；同版本CI重编不代表允许替换已发布资产。
 
 ## 尚未执行与继续条件
 
 FRPS工具来自[官方v0.71.0发布](https://github.com/fatedier/frp/releases/tag/v0.71.0)，归档13,932,092字节，SHA-256为`84f27e39f11169f7adcef8e8b70c9329de17747b1f14dad9fb95eef5682ea716`。初次下载停滞已取消，其后有界续传完成，再核对官方API摘要才解出单一frps文件。`verify`仅验证配置，不能证明TLS隧道、插件或手机连通；下载该开发工具也不是应用OTA下载验收。
 
-- PR仍未合并；本轮产出以本地提交和文件为准，不宣称新增CI通过或新发布可下载。此前3277a8a的CI检查已只读核对全成功。
-- 未生成、登记或备份真实RSA/APK签名；没有已签alpha.5安装包、alpha.6更新包或长期私有feed。Android源码本轮未改，未重建或安装APK。
+- PR仍未合并；本轮CI证据与提交对应关系见上节，没有新增软件发布。此前3277a8a的成功记录是旧提交证据。
+- 未生成、登记或备份真实RSA/APK签名；没有已签alpha.5安装包、alpha.6更新包或长期私有feed。Android源码本轮未改，仅CI调试构建，未受控重签或安装APK。
 - 新部署单元、FRPS0.71.0配置、容器实际证书挂载、续证事件和云安全组尚未在目标环境验收。不能将模板解析或本地合成验证当作部署成功。
 - 首装运行时、干净电脑安装、真实DPAPI身份保持和手机↔Desktop同任务接续，仍按[三端验收](OTA-ACCEPTANCE.md)单独执行。
 
