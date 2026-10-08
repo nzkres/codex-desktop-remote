@@ -1,10 +1,10 @@
 # OTA 打包、签名与发布交接
 
-2026-10-08 当前状态：PR #1已合并，专用测试签名及六项Secrets已配置，alpha.5 main受控构建、实际包复验和Windows/WSL临时bootstrap已完成。用户随后批准在现有服务器建立独立隔离环境；alpha.5 relay、FRPS、HTTPS和私有OTA已安装，并从主电脑公网完成正常TLS/鉴权下载与合成FRPC链路验收。**手机安装、真实Desktop任务和三端N→N+1没有执行。**公开指纹与结果见[STATUS](../STATUS.md)和[隔离部署记录](OTA-ISOLATED-DEPLOYMENT-20261008.md)，alpha.5原包/版本不变，不替换alpha.4资产。
+2026-10-08 当前状态：PR #1已合并，专用测试签名及六项Secrets已配置，alpha.5 main受控构建、实际包复验和隔离服务器部署已完成。手机现为alpha.5；Windows已用同一已签alpha.6包维护升级，用户确认手机原任务同步恢复。**Windows普通HTTPS OTA及Android/relay的真实N→N+1尚未完成。**下一步是Windows alpha.6→alpha.7，候选和发布边界见[alpha.7审查](WINDOWS-ALPHA7-OTA-REVIEW.md)；公开指纹与分层结果见[STATUS](../STATUS.md)。原alpha.5/alpha.6包保持不变。
 
 2026-10-08 本地准备增量：`sign` 现在强制 source 为 `/desktop-remote-updates/{channel}/{component}/latest.json`，包 URL 必须是同目录的 `component-{catalog.version}.apk|zip`，渠道/组件/版本/扩展名须一致；拒绝时不生成元数据，避免签出私有服务无法提供的地址。该发行工具不随三端运行包分发，本次不重发 alpha.4、不递增三个软件版本。该段为前期准备记录；暂缓签名/合并已由后续明确批准替代，见[当前状态](../STATUS.md)。
 
-以下是 **alpha.4 起支持的私有 OTA** 操作范式，构建与归档证据见 [STATUS](../STATUS.md)；alpha.5受控首装资料已签发并安装到独立服务器测试环境，服务器内验收已通过，真实手机/电脑验收未完成。既有程序包不以同版本换包。[验收计划](OTA-ACCEPTANCE.md)使用alpha.5首装、alpha.6在线升级，后者尚未构建。下面为工具调用范式，alpha.5成品已存在，不能重新打包覆盖；后续先更新对应catalog再发新版本。`updates.publish` 本身只在本地打包 Windows/relay 源码 ZIP、对已有 APK/ZIP 签发布元数据，**不构建 APK、不上传文件、不部署中继**。正式发布须有受控 RSA 3072 位以上私钥、经审核的公钥/trust、Android 连续 APK 签名证书，以及与登录/配对中继同源的受鉴权 HTTPS 下载入口。私钥路径、口令与凭据不得进入仓库、日志或命令示例。
+以下是 **alpha.4 起支持的私有 OTA** 操作范式，构建与归档证据见 [STATUS](../STATUS.md)。[验收计划](OTA-ACCEPTANCE.md)最初采用alpha.5→alpha.6；Windows现在按实际安装基线改为alpha.6→alpha.7，Android/relay仍从alpha.5逐端推进。下面是历史首装工具调用范式，alpha.5成品已存在，不能重跑来覆盖旧包；本轮签发以alpha.7审查中的固定CI输入、版本和sequence为准。`updates.publish` 本身只在本地打包 Windows/relay 源码 ZIP、对已有 APK/ZIP 签发布元数据，**不构建 APK、不上传文件、不部署中继**。正式发布须有受控 RSA 3072 位以上私钥、经审核的公钥/trust、Android 连续 APK 签名证书，以及与登录/配对中继同源的受鉴权 HTTPS 下载入口。私钥路径、口令与凭据不得进入仓库、日志或命令示例。
 
 先在仓库根目录更新发生变化组件的 `releases.json` 与版本说明，运行 `python scripts/check_versions.py --write` 及只读校验和相关测试。`pack` 从当前源码按固定白名单生成新文件，输出路径必须尚不存在。以下 PowerShell **占位符必须按已审核的真实资源替换**，`$PythonExe` 为带 `cryptography` 的 Python 3.12；本仓库不提供密钥或部署主机：
 

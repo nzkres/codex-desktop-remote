@@ -10,7 +10,7 @@
 
 alpha.3 已交付更新程序、隔离测试和归档包，alpha.4 增加三端私有下载鉴权。alpha.5受控首装构件基于`1a4b4c0`：Windows/Linux CI和main受控Android CI均成功；Windows/WSL新临时home首装通过。隔离服务器Python3.12.3/systemd255/cgroupv2环境已完成alpha.5安装、合成0.0.2升级/坏候选回退及四棵自有树验收；主电脑公网完成三组件鉴权下载、TLS/RSA/大小/哈希核对与FRPS无任务夹具转发。真实手机/电脑首装和真实设备N→N+1尚未验收，不能以合成公网结果替代它们。
 
-alpha.4保留为私有鉴权开发预览，普通debug APK信任为空。**alpha.5作为受控首装N，alpha.6作为下一OTA候选N+1**；alpha.5已构建，alpha.6尚未构建。各端必须使用本机实际版本比较，Android versionCode递增。既有归档不换包；已签元数据过期时，以新序号重新签发相同已验证文件，不改包字节或关闭验证。以后可独立更新某个组件。
+alpha.4保留为私有鉴权开发预览，普通debug APK信任为空。**当前Windows在线验收为已安装的alpha.6→alpha.7；Android/relay仍从alpha.5开始逐端准备下一版本。**原始alpha.5→alpha.6统一组合仅是历史计划。各端必须使用本机实际版本比较，Android versionCode递增。既有归档不换包；已签元数据过期时，以新序号重新签发相同已验证文件，不改包字节或关闭验证。以后可独立更新某个组件。
 
 完成须同时满足：真实 HTTPS 下载、发布者及包校验、实际运行版本改变、身份/数据/权限保留、手机与 Desktop 同任务继续交互、失败行为可解释。没有执行的步骤记“待测”，下载成功、CI 成功与 `probe_verified` 均不能代替这些结果。
 

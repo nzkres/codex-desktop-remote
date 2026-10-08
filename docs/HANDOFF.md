@@ -1,6 +1,6 @@
 # OTA 交接
 
-**alpha.7准备入口：** 用户已同意先准备Windows正常GUI在线OTA，再逐端Android和relay。本轮独立分支`codex/windows-alpha7`从421a4c3开始；配对失败提示修复、版本记录和本地回归完成，真实alpha.6仍使用原身份/任务。先读STATUS最新段和[alpha.7发布审查](WINDOWS-ALPHA7-OTA-REVIEW.md)；候选准备后才请求实际feed发布/在线切换确认，不能把本轮方案批准当作已实施安装。签名使用原项目库，不重新create/provision；不重跑alpha.5维护器。后续结果追加STATUS。
+**alpha.7当前停点：** 独立分支`codex/windows-alpha7`的c20c203已通过push37781824455/PR37781829558两平台CI；本机Node64、Python146通过/6跳过、六种维护及HTTPS GUI提交/回退通过。已核验43文件并用原项目库签发sequence3，ZIP95,085字节/SHA`91676bd9b0e1526c5808fb6a8d8156c2511f38ea4f306b1069d20d95d0412266`，有效至北京时间2026-10-15 21:12:09；仅使用忽略目录`artifacts/alpha7-preparation-20261008/final/`中固定ZIP和metadata。草稿PR #3叠加PR #2，未合并main。先读STATUS与[发布审查](WINDOWS-ALPHA7-OTA-REVIEW.md)；**准备完成，实际feed发布和当前alpha.6→alpha.7在线切换仍待用户最终确认**。当前真实alpha.6/ledger2保持，Android/relay仍alpha.5；不提前让用户检查旧feed、关闭窗口或重新配对，不重跑alpha.5维护器。发布须CAS旧metadata、包不可变、保留鉴权与原数据；不能降ledger来撤回。获批后先验证源，再让用户在原窗口正常断开并安装，最终核对同一任务。
 
 **当前停点（优先于下方全部历史）：Windows已实际升级到alpha.6，用户确认手机原任务两条回复都显示，同步验收通过。** 用户确认此前按“×”正常关闭；`resume-clean-exit --normal-close-confirmed`经完整绑定、签名账本、冷态双锁、保护键缺失、旧PID无人占用及新鲜alias探针续审后，原事务已`committed`。没有保留旧退出句柄，不声称追溯证明旧退出码；不删门禁/降账本/重配对。原signed ZIP保持`4df87881...7811cf`，实际新GUI唯一、签名槽正确，身份/配置/权限/任务和回执保持。详见STATUS与忽略目录`maintenance-committed-verification.json`。
 

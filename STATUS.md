@@ -1,8 +1,12 @@
-# 当前验证状态：Windows alpha.7 准备正常在线升级，实际仍运行 alpha.6
+# 当前验证状态：Windows alpha.7 已签候选就绪，待确认发布与真实在线升级
 
 2026-10-08用户同意按“Windows alpha.6→alpha.7，然后 Android，再 relay”顺序推进。此次先完成源码、测试、签名候选和发布审查；实际私有feed发布和当前电脑在线升级仍为准备完成后的确认步骤。新独立工作树/分支`codex/windows-alpha7`基于已验收的`421a4c3`，原PR #2与已安装alpha.6保留。
 
-alpha.7只修配对失败显示：核心已记录的connection_unavailable不再被GUI忽略，提交结果与重开状态提示一致、保留原申请；白名单输入/响应错误有明确原因，未知错误不回显。没有改身份/协议/任务权限或运行保护。Node64通过、Python149项143通过/6跳过、合成Tk错误预览/后续状态恢复通过，实际截图已检查。新增实际回环TLS、设备鉴权、GUI worker/独立助手/Job演练由根代理复验：正常committed alpha.7与坏候选rolled_back alpha.6均通过，合成身份/任务保持，匿名metadata/ZIP拒绝、旧staged/candidate替换及旧maintenance记录保留均核对。Desktop/FRP健康是临时合成探针，两份夹具源取自当前checkout，不冒充真实alpha.6发布包或实机验收。最终CI与签名候选结果继续追加。
+alpha.7只修配对失败显示：核心已记录的connection_unavailable不再被GUI忽略，提交结果与重开状态提示一致、保留原申请；白名单输入/响应错误有明确原因，未知错误不回显。没有改身份/协议/任务权限或运行保护。Node64通过；最终完整Python152项146通过/6跳过，合成Tk错误预览/后续状态恢复通过，实际截图已检查。新增实际回环TLS、设备鉴权、GUI worker/独立助手/Job演练由根代理复验：正常committed alpha.7与坏候选rolled_back alpha.6均通过，合成身份/任务保持，匿名metadata/ZIP拒绝、旧staged/candidate替换及旧maintenance记录保留均核对。Desktop/FRP健康是临时合成探针，两份夹具源取自当前checkout，不冒充真实alpha.6发布包或实机验收。
+
+最终代码`c20c2036e6319f9dca1ef108f7e8830f893c7f89`的[push37781824455](https://github.com/nzkres/codex-desktop-remote/actions/runs/37781824455)和[PR37781829558](https://github.com/nzkres/codex-desktop-remote/actions/runs/37781829558)均Windows/Linux成功，六种维护与真实合成HTTPS提交/回退通过。首轮PR旧维护夹具的即时Job空断言失败及修正过程保留在WORKLOG；产品树检查未放宽。[PR #3](https://github.com/nzkres/codex-desktop-remote/pull/3)为叠加在PR #2上的草稿，main未合并。
+
+Linux CI的Windows包已逐43文件核对Git；与实际已签alpha.6相比仅GUI和版本目录两源文件变化。已用原项目DPAPI密钥在本机签发sequence3，并按现用安装trust/ledger只读复验。ZIP **95,085字节**、SHA256 `91676bd9b0e1526c5808fb6a8d8156c2511f38ea4f306b1069d20d95d0412266`；元数据SHA256 `aa6dbad8c3eb1e1bf941008cc31c5bcd46277af91059d6bdbcce9c7db3cec81c`，有效至北京时间2026-10-15 21:12:09。固定文件在忽略目录`artifacts/alpha7-preparation-20261008/final/`。**已实现、自动测试通过、CI产物可下载、候选已本地签名；尚未发布alpha.7 feed/Release、未在线安装或实机验收。当前实际仍alpha.6/ledger2/committed，安装内容保持。**
 
 发布和失败恢复方案见 [alpha.7 OTA 审查](docs/WINDOWS-ALPHA7-OTA-REVIEW.md)。实际手机/Windows同步基线已通过，具体证据如下；本轮未重新配对、切换现用实例或部署更新源。
 
