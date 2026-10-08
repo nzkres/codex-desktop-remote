@@ -21,7 +21,7 @@ from cryptography.hazmat.primitives.asymmetric import padding, rsa
 
 from updates import windows_maintenance as maintenance
 from updates.engine import Transaction
-from updates.security import COMPATIBILITY, UpdateError, unpack
+from updates.security import COMPATIBILITY, UpdateError, unpack, verify
 from updates.storage import atomic, digest, ensure_launchable, read
 
 
@@ -397,6 +397,184 @@ class MaintenanceTests(unittest.TestCase):
         with self.fake_controller():
             marker = maintenance.fence(self.home, review_hash, driver.expected)
         return pointer, driver, review_hash, marker
+
+    def waiting_resume_fixture(self):
+        """Create signed old/new ledger history, with only a waiting fence."""
+        baseline_archive = self.base / "baseline.zip"
+        with zipfile.ZipFile(baseline_archive, "w") as bundle:
+            for path in sorted(self.old_root.rglob("*")):
+                if path.is_file():
+                    bundle.write(path, path.relative_to(self.old_root).as_posix())
+        baseline_sha = hashlib.sha256(baseline_archive.read_bytes()).hexdigest()
+        baseline_metadata = self.base / "baseline.json"
+        candidate_payload = json.loads(base64.b64decode(read(self.metadata)["payload"]))
+        baseline_payload = {**candidate_payload, "version": OLD, "sequence": 5,
+                            "url": SOURCE.rsplit("/", 1)[0] + f"/windows-{OLD}.zip",
+                            "bytes": baseline_archive.stat().st_size, "sha256": baseline_sha}
+        raw = json.dumps(baseline_payload, separators=(",", ":")).encode()
+        baseline_envelope = {"schema": 1, "keyId": "synthetic",
+                             "payload": base64.b64encode(raw).decode(),
+                             "signature": base64.b64encode(
+                                 self.key.sign(raw, padding.PKCS1v15(), hashes.SHA256())).decode()}
+        atomic(baseline_metadata, baseline_envelope)
+        old_ledger = verify(baseline_envelope, read(self.home / "trust.json"), "windows",
+                            "windows-x64", COMPATIBILITY["windows"], None, {})[1]
+        atomic(self.home / "state/ledger.json", old_ledger)
+        named_old = self.home / "versions" / (OLD + "-" + baseline_sha[:16])
+        self.old_root.rename(named_old)
+        self.old_root = named_old
+        self.old = {**self.old, "path": "versions/" + named_old.name}
+        atomic(self.home / "current.json", self.old)
+
+        review = self.review_value()
+        review["createdAt"] -= maintenance.REVIEW_SECONDS + 1
+        review["expiresAt"] -= maintenance.REVIEW_SECONDS + 1
+        review_hash = digest(review)
+        review_path = self.base / "historical-review.json"
+        atomic(review_path, review)
+        with self.fake_controller():
+            pointer, expected = maintenance.stage_local(self.home, self.metadata, self.archive, review)
+            marker = maintenance.fence(self.home, review_hash, expected)
+        status = {"schema": 1, "reviewHash": review_hash, "phase": "needs_review",
+                  "code": "old_process_exit_unconfirmed"}
+        atomic(self.home / "state/maintenance.json", status)
+        return baseline_metadata, review_path, review, review_hash, pointer, expected, marker
+
+    def test_expired_waiting_review_can_only_resume_after_signed_history_and_fresh_review(self):
+        baseline, path, review, review_hash, pointer, expected, marker = self.waiting_resume_fixture()
+        with self.assertRaisesRegex(UpdateError, "maintenance_review_expired"):
+            maintenance.validate_review(review, review_hash)
+        with self.fake_controller():
+            old_root, actual_pointer, actual_expected, evidence = maintenance.resume_evidence(
+                self.home, review, review_hash, baseline, self.metadata, self.archive)
+        self.assertEqual((old_root, actual_pointer, actual_expected),
+                         (self.old_root, pointer, expected))
+        self.assertEqual(set(evidence), {"primary", "status", "staged", "candidate"})
+        self.assertEqual(read(self.home / "state/transaction.json"), marker)
+        self.assertEqual(read(self.home / "current.json"), self.old)
+
+        class Pin:
+            def __init__(self, owner):
+                if owner != review["owner"]:
+                    raise AssertionError("different GUI owner")
+                self.identity = owner
+
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *args):
+                pass
+
+        update_driver = sys.modules[maintenance.WindowsDriver.__module__]
+        with patch.object(update_driver, "controller_for", return_value=self.controller):
+            driver = maintenance.AliasRecoveryDriver(self.home, self.old_root, pointer, expected)
+        events, hooks = self.transaction_hooks(driver)
+        fake_os = types.SimpleNamespace(name="nt", fsync=os.fsync, open=os.open)
+        def normal_exit_after_fresh_review(pin, timeout):
+            self.assertEqual(pin.identity, review["owner"])
+            self.assertEqual(timeout, 600)
+            renewed = list((self.home / "state").glob("maintenance-resume-*.json"))
+            self.assertEqual(len(renewed), 1)
+            self.assertGreater(read(renewed[0])["expiresAt"], int(time.time()))
+            self.assertEqual(read(self.home / "current.json"), self.old)
+
+        with hooks, patch.object(maintenance, "os", fake_os), patch.object(
+                maintenance, "PinnedProcess", Pin), patch.object(
+                maintenance, "verify_gui") as verify_owner, patch.object(
+                maintenance, "normal_exit", side_effect=normal_exit_after_fresh_review) as wait_owner, patch.object(
+                maintenance, "AliasRecoveryDriver", return_value=driver), patch(
+                "sys.stdout", new_callable=io.StringIO):
+            result = maintenance.resume_wait(path, review_hash, baseline, self.metadata, self.archive)
+        self.assertEqual(result["phase"], "committed")
+        self.assertEqual(events.count("candidate_start"), 1)
+        self.assertEqual(verify_owner.call_count, 2)
+        wait_owner.assert_called_once()
+        self.assertEqual(read(self.home / "current.json"), pointer)
+        self.assertEqual(read(self.home / "state/transaction.json")["phase"], "committed")
+        renewed = list((self.home / "state").glob("maintenance-resume-*.json"))
+        self.assertEqual(len(renewed), 1)
+        self.assertEqual(read(renewed[0])["priorReviewHash"], review_hash)
+        self.assertEqual(read(renewed[0])["binding"], expected)
+
+    def test_waiting_resume_rejects_forged_history_changed_data_and_nonwaiting_state(self):
+        baseline, path, review, review_hash, pointer, expected, marker = self.waiting_resume_fixture()
+
+        def check(code):
+            with self.fake_controller(), self.assertRaisesRegex(UpdateError, code):
+                maintenance.resume_evidence(self.home, review, review_hash, baseline,
+                                            self.metadata, self.archive)
+
+        with self.fake_controller():
+            maintenance.resume_evidence(self.home, review, review_hash, baseline,
+                                        self.metadata, self.archive)
+        original_baseline = read(baseline)
+        forged = dict(original_baseline, signature=base64.b64encode(b"forged").decode())
+        atomic(baseline, forged)
+        check("invalid_release_signature")
+        atomic(baseline, original_baseline)
+
+        baseline_payload = json.loads(base64.b64decode(original_baseline["payload"]))
+        baseline_payload["notes"] = "different signed history"
+        changed_raw = json.dumps(baseline_payload, separators=(",", ":")).encode()
+        atomic(baseline, {**original_baseline,
+                          "payload": base64.b64encode(changed_raw).decode(),
+                          "signature": base64.b64encode(
+                              self.key.sign(changed_raw, padding.PKCS1v15(), hashes.SHA256())).decode()})
+        check("maintenance_baseline_ledger_changed")
+        atomic(baseline, original_baseline)
+
+        original_ledger = read(self.home / "state/ledger.json")
+        atomic(self.home / "state/ledger.json", {**original_ledger, "binding": "0" * 64})
+        check("maintenance_state_changed")
+        atomic(self.home / "state/ledger.json", original_ledger)
+
+        fixture = self.home / "data/fixture.local.json"
+        fixture.write_text("changed fixture", encoding="utf-8")
+        check("maintenance_state_changed")
+        fixture.write_text("synthetic fixture", encoding="utf-8")
+
+        staged = read(self.home / "state/staged.json")
+        atomic(self.home / "state/staged.json", {**staged, "candidate": self.old})
+        check("maintenance_staging_changed")
+        atomic(self.home / "state/staged.json", staged)
+
+        archive_bytes = self.archive.read_bytes()
+        self.archive.write_bytes(archive_bytes + b"changed")
+        check("download_integrity_failed")
+        self.archive.write_bytes(archive_bytes)
+
+        atomic(self.home / "state/transaction.json", {**marker, "error": "different_failure"})
+        check("maintenance_wait_timeout_required")
+        atomic(self.home / "state/transaction.json", marker)
+
+        atomic(self.home / "state/maintenance-transaction.json", {"phase": "prepared"})
+        check("maintenance_transaction_already_started")
+        self.assertEqual(read(self.home / "current.json"), self.old)
+        self.assertEqual(read(self.home / "state/staged.json")["candidate"], pointer)
+
+    def test_waiting_resume_refuses_gui_that_has_already_exited(self):
+        baseline, path, review, review_hash, _, _, marker = self.waiting_resume_fixture()
+
+        class Pin:
+            def __init__(self, owner):
+                self.identity = owner
+
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *args):
+                pass
+
+        fake_os = types.SimpleNamespace(name="nt", fsync=os.fsync, open=os.open)
+        with self.fake_controller(), patch.object(maintenance, "os", fake_os), patch.object(
+                maintenance, "PinnedProcess", Pin), patch.object(
+                maintenance, "verify_gui", side_effect=UpdateError("reviewed_gui_not_running")), patch.object(
+                maintenance, "alias_probe") as probe:
+            with self.assertRaisesRegex(UpdateError, "reviewed_gui_not_running"):
+                maintenance.resume_wait(path, review_hash, baseline, self.metadata, self.archive)
+        probe.assert_not_called()
+        self.assertEqual(read(self.home / "state/transaction.json"), marker)
+        self.assertFalse(list((self.home / "state").glob("maintenance-resume-*.json")))
 
     def test_fence_blocks_cold_launch_and_embeds_previous_terminal_journal(self):
         previous = {"schema": 1, "phase": "committed", "success": True,

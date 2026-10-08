@@ -37,6 +37,17 @@ $ReviewHash = '<EXACT_REVIEW_HASH_FROM_REVIEW_OUTPUT>'
 
 ## 失败与恢复边界
 
+若**唯一失败是等旧GUI正常退出超时**，且候选事务从未开始、同一个原GUI仍活着，可在用户准备操作后由维护者显式运行以下受限入口（不是定时自动重试）：
+
+```powershell
+$BaselineMetadata = '<ORIGINAL_SIGNED_ALPHA5_FIRST_INSTALL_METADATA>'
+& $PythonExe -B -m updates.windows_maintenance resume-wait --review $Review --expect-review $ReviewHash --baseline-metadata $BaselineMetadata --metadata $Metadata --package $Package
+```
+
+它把原审查作为历史绑定证据，不把过期审查当作当前许可。原alpha.5签名元数据必须能从空状态重建与原审查摘要**完全一致**的账本；同一alpha.6元数据计算出的后继账本也须与当前完整账本相等。两份元数据此时都必须仍有效。身份、配置、任务文件、原槽、主屏障、暂存清单或GUI归属任一变化都拒绝；存在任何候选事务记录、其他失败原因、原GUI已退出也拒绝。不会降账本、删屏障、启动旧版或重打同版本包。
+
+确认签名和完整绑定、重新固定原GUI句柄并完成实时任务探针后，工具写入新的30分钟审查记录，保留原主屏障，报告`reviewRenewed/waitingNormalExit`；此时才请用户关闭旧窗口，最多等待**600秒**。退出后仍走原独占锁、冷态绑定、事务CAS、候选隔离健康和数据保全流程。新审查与原fence归属分开记录，任何结果不明仍需复核。该入口仅在仓库中，不改变已签alpha.6运行包。
+
 审查过期、GUI/身份/数据变化、任务不空闲、签名或候选验证失败，都应停止切换并保留证据。设置主启动屏障后的异常、进程退出不明、候选树清理或激活结果不明会留下 `needs_review`；不要删除 `state/transaction.json`、`state/maintenance-transaction.json`、`state/maintenance.json`、账本、候选槽或任务数据，也不要人工清屏障来重试。旧 alpha.5 本身仍有审核别名探针缺陷：即使候选失败后指针恢复到旧槽，也**不能据此宣称旧版已健康回退或重新启动它**。中断事务只供人工联合核对两份日志和原始进程/数据状态，不自动恢复或重放请求。一般恢复原则见 [OTA 恢复](OTA-RECOVERY.md)。
 
 完成后分开记录：签名包与元数据、审查哈希/有效期、原 GUI 正常退出、主/次事务阶段、当前槽与实际运行版本、身份/配置/回执摘要保持、同一原生任务的手机显示。只保存脱敏结论，不把身份、token、原始任务或审查文件入库。

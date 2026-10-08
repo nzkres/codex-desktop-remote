@@ -22,7 +22,7 @@ sys.path.insert(0, str(ROOT))
 sys.path.insert(0, str(ROOT / 'windows'))
 from updates import bootstrap, publish, windows_maintenance as maintenance
 from updates.processes import OwnedChild
-from updates.storage import atomic, read, lock, ensure_launchable
+from updates.storage import atomic, read, lock, ensure_launchable, digest
 from updates.security import UpdateError
 from update_driver import controller_for
 
@@ -71,7 +71,7 @@ def signed(base, version, sequence, key, good):
     return archive, metadata
 
 
-def run_case(base, bad=False):
+def run_case(base, bad=False, resume=False):
     # CI TEMP can use an 8.3 username. Production requires a physical home and
     # a dataDir under that same spelling; make the fixture match that contract.
     base = Path(base).resolve(strict=True)
@@ -110,11 +110,29 @@ def run_case(base, bad=False):
         report = base / 'review.json'
         review = maintenance.make_review(home, new_meta, new_zip, owner['pid'], report)
         assert not (home / 'state/staged.json').exists()
-        helper = OwnedChild([python, '-B', ROOT / 'updates/windows_maintenance.py', 'apply',
+        action = 'apply'
+        extra = []
+        if resume:
+            # Model the persisted waiting-only timeout with an expired historical
+            # review. The old GUI is still the same live original process.
+            historical = read(report)
+            historical['createdAt'] -= 3600
+            historical['expiresAt'] -= 3600
+            atomic(report, historical)
+            review['reviewHash'] = digest(historical)
+            _, expected = maintenance.stage_local(home, new_meta, new_zip, historical)
+            maintenance.fence(home, review['reviewHash'], expected)
+            atomic(home / 'state/maintenance.json', {'schema': 1, 'reviewHash': review['reviewHash'],
+                'phase': 'needs_review', 'code': 'old_process_exit_unconfirmed'})
+            action, extra = 'resume-wait', ['--baseline-metadata', old_meta]
+        helper = OwnedChild([python, '-B', ROOT / 'updates/windows_maintenance.py', action,
             '--review', report, '--expect-review', review['reviewHash'],
-            '--metadata', new_meta, '--package', new_zip], cwd=ROOT)
+            '--metadata', new_meta, '--package', new_zip, *extra], cwd=ROOT)
         ready = helper.read(timeout=60)
-        assert ready == {'schema': 1, 'guiPinned': True, 'waitingNormalExit': True}, ready
+        expected_ready = {'schema': 1, 'guiPinned': True, 'waitingNormalExit': True}
+        if resume:
+            expected_ready.update(reviewRenewed=True, waitSeconds=600)
+        assert ready == expected_ready, ready
         try:
             ensure_launchable(home)
         except UpdateError as error:
@@ -176,7 +194,9 @@ def run_case(base, bad=False):
 if __name__ == '__main__':
     if os.name != 'nt':
         raise SystemExit('Windows required')
-    for bad in (False, True):
-        with tempfile.TemporaryDirectory(prefix='cdr-maintenance-') as directory:
-            phase = run_case(Path(directory), bad)
-            print('synthetic_paired_maintenance_' + phase + ' identity_and_data_preserved', flush=True)
+    for resume in (False, True):
+        for bad in (False, True):
+            with tempfile.TemporaryDirectory(prefix='cdr-maintenance-') as directory:
+                phase = run_case(Path(directory), bad, resume)
+                print('synthetic_paired_maintenance_' + ('resume_' if resume else '') + phase +
+                      ' identity_and_data_preserved', flush=True)

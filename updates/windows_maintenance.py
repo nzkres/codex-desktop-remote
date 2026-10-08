@@ -154,9 +154,9 @@ def verify_gui(pin, home, old_root):
         raise UpdateError('gui_command_unverified')
 
 
-def normal_exit(pin):
+def normal_exit(pin, timeout=120):
     from ctypes import wintypes as w
-    pin.wait(timeout=120)
+    pin.wait(timeout=timeout)
     api = pin.api
     api.GetExitCodeProcess.argtypes = [w.HANDLE, ctypes.POINTER(w.DWORD)]
     api.GetExitCodeProcess.restype = w.BOOL
@@ -194,16 +194,22 @@ def make_review(home, metadata, archive, gui_pid, output):
             'to': NEW_VERSION, 'packageSha256': release['sha256'], 'aliasVerified': True}
 
 
-def validate_review(value, expected, now=None):
+def validate_review_integrity(value, expected):
     fields = {'schema', 'kind', 'home', 'owner', 'createdAt', 'expiresAt', 'binding', 'envelope', 'package'}
     if (not isinstance(value, dict) or set(value) != fields or value['schema'] != 1
             or value['kind'] != 'alpha5-reviewer-alias' or not re.fullmatch(r'[a-f0-9]{64}', expected)
             or not hmac.compare_digest(digest(value), expected)):
         raise UpdateError('maintenance_review_changed')
-    now = int(time.time()) if now is None else now
     if (type(value['createdAt']) is not int or type(value['expiresAt']) is not int
-            or not value['createdAt'] <= now < value['expiresAt']
+            or value['createdAt'] < 0
             or value['expiresAt'] - value['createdAt'] != REVIEW_SECONDS):
+        raise UpdateError('maintenance_review_changed')
+
+
+def validate_review(value, expected, now=None):
+    validate_review_integrity(value, expected)
+    now = int(time.time()) if now is None else now
+    if not value['createdAt'] <= now < value['expiresAt']:
         raise UpdateError('maintenance_review_expired')
 
 
@@ -374,6 +380,106 @@ def apply_review(review_path, expected_hash, metadata, archive):
             return {'schema': 1, 'phase': result['phase'], 'success': result['success'], 'version': NEW_VERSION}
 
 
+def resume_evidence(home, review, expected_hash, baseline_metadata, metadata, archive):
+    """Verify a waiting-only interruption without resetting any protection.
+
+    The old review is historical evidence only. Its exact original ledger is
+    reconstructed from authenticated first-install metadata, then the sole
+    permitted ledger change is recomputed from the SAME candidate release.
+    """
+    validate_review_integrity(review, expected_hash)
+    if str(home) != review['home'] or review['createdAt'] > int(time.time()):
+        raise UpdateError('maintenance_home_changed')
+    if (home / 'state/maintenance-transaction.json').exists():
+        raise UpdateError('maintenance_transaction_already_started')
+    primary, status = read(home / 'state/transaction.json'), read(home / 'state/maintenance.json')
+    fence_value = {'schema': 1, 'phase': 'needs_review', 'success': False,
+                   'maintenanceReviewHash': expected_hash, 'old': review['binding']['current'],
+                   'error': 'maintenance_waiting_normal_gui_exit'}
+    if 'previousJournal' in primary:
+        fence_value['previousJournal'] = primary['previousJournal']
+    if primary != fence_value or status != {'schema': 1, 'reviewHash': expected_hash,
+            'phase': 'needs_review', 'code': 'old_process_exit_unconfirmed'}:
+        raise UpdateError('maintenance_wait_timeout_required')
+    config, current, old_root = installed(home)
+    trust, envelope = read(home / 'trust.json'), read(metadata)
+    if config['component'] != 'windows' or current['version'] != OLD_VERSION or trust['channel'] != 'test':
+        raise UpdateError('maintenance_old_version_mismatch')
+    baseline, old_ledger = verify(read(baseline_metadata), trust, 'windows', config['platform'],
+                                  config['compatibility'], None, {})
+    if (baseline['version'] != OLD_VERSION or digest(old_ledger) != review['binding']['ledger']
+            or current['path'] != 'versions/' + OLD_VERSION + '-' + baseline['sha256'][:16]):
+        raise UpdateError('maintenance_baseline_ledger_changed')
+    release, ledger = verify(envelope, trust, 'windows', config['platform'], config['compatibility'],
+                             OLD_VERSION, old_ledger)
+    if (release['version'] != NEW_VERSION or digest(envelope) != review['envelope']
+            or release['sha256'] != review['package']):
+        raise UpdateError('maintenance_candidate_changed')
+    expected = {**review['binding'], 'ledger': digest(ledger)}
+    if binding(home, allow_running=True) != expected:
+        raise UpdateError('maintenance_state_changed')
+    with tempfile.TemporaryDirectory(prefix='cdr-alias-resume-') as directory:
+        extracted = unpack(no_links(archive), Path(directory) / 'package', release)
+        pointer = {'path': 'versions/' + NEW_VERSION + '-' + release['sha256'][:16],
+                   'version': NEW_VERSION, 'manifestSha256': sha(extracted / 'package.json')}
+    slot(home, pointer)
+    staged, candidate = read(home / 'state/staged.json'), read(home / 'state/candidate.json')
+    if (staged != {'schema': 1, 'old': current, 'candidate': pointer, 'envelope': envelope}
+            or candidate != {'old': current, 'envelope': envelope}):
+        raise UpdateError('maintenance_staging_changed')
+    return old_root, pointer, expected, {'primary': digest(primary), 'status': digest(status),
+                                        'staged': digest(staged), 'candidate': digest(candidate)}
+
+
+def resume_wait(review_path, expected_hash, baseline_metadata, metadata, archive):
+    if os.name != 'nt':
+        raise UpdateError('windows_owner_required')
+    review = read(review_path)
+    validate_review_integrity(review, expected_hash)
+    home = physical_home(review['home'])
+    with lock(home / 'state/maintenance.lock'):
+        with lock(home / 'state/update.lock'):
+            old_root, pointer, expected, evidence = resume_evidence(
+                home, review, expected_hash, baseline_metadata, metadata, archive)
+        with PinnedProcess(review['owner']) as pin:
+            verify_gui(pin, home, old_root)
+            alias_probe(home / pointer['path'], home)
+            verify_gui(pin, home, old_root)
+            with lock(home / 'state/update.lock'):
+                if resume_evidence(home, review, expected_hash, baseline_metadata, metadata, archive) != (
+                        old_root, pointer, expected, evidence):
+                    raise UpdateError('maintenance_state_changed')
+                now = int(time.time())
+                # A new review follows fresh verification; the expired original
+                # is never re-dated or used as current authorization/evidence.
+                renewed = {'schema': 1, 'kind': 'alpha5-wait-timeout-review',
+                           'priorReviewHash': expected_hash, 'owner': pin.identity,
+                           'createdAt': now, 'expiresAt': now + REVIEW_SECONDS,
+                           'binding': expected, 'evidence': evidence, 'package': review['package']}
+                audit = home / 'state' / ('maintenance-resume-' + secrets.token_hex(12) + '.json')
+                atomic(audit, renewed)
+            print(json.dumps({'schema': 1, 'guiPinned': True, 'waitingNormalExit': True,
+                              'reviewRenewed': True, 'waitSeconds': 600}), flush=True)
+            try:
+                normal_exit(pin, timeout=600)
+                if read(audit) != renewed or int(time.time()) >= renewed['expiresAt']:
+                    raise UpdateError('maintenance_review_expired')
+                with lock(home / 'state/update.lock'):
+                    if resume_evidence(home, review, expected_hash, baseline_metadata, metadata, archive) != (
+                            old_root, pointer, expected, evidence):
+                        raise UpdateError('maintenance_state_changed')
+                driver = AliasRecoveryDriver(home, old_root, pointer, expected)
+                result = MaintenanceTransaction(home, driver, expected_hash).apply()
+            except BaseException as error:
+                code = error.code if isinstance(error, UpdateError) else 'maintenance_failed_preserve_evidence'
+                atomic(home / 'state/maintenance.json', {'schema': 1, 'reviewHash': expected_hash,
+                                                         'phase': 'needs_review', 'code': code})
+                raise
+            atomic(home / 'state/maintenance.json', {'schema': 1, 'reviewHash': expected_hash,
+                                                     'phase': result['phase']})
+            return {'schema': 1, 'phase': result['phase'], 'success': result['success'], 'version': NEW_VERSION}
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     sub = parser.add_subparsers(dest='command', required=True)
@@ -384,13 +490,19 @@ def main():
     apply = sub.add_parser('apply')
     apply.add_argument('--review', required=True, type=Path)
     apply.add_argument('--expect-review', required=True)
-    for action in (review, apply):
+    resume = sub.add_parser('resume-wait', help='Freshly review only an unchanged waiting-for-GUI timeout')
+    resume.add_argument('--review', required=True, type=Path)
+    resume.add_argument('--expect-review', required=True)
+    resume.add_argument('--baseline-metadata', required=True, type=Path)
+    for action in (review, apply, resume):
         action.add_argument('--metadata', required=True, type=Path)
         action.add_argument('--package', required=True, type=Path)
     args = parser.parse_args()
     try:
         if args.command == 'review':
             result = make_review(args.home, args.metadata, args.package, args.gui_pid, args.output)
+        elif args.command == 'resume-wait':
+            result = resume_wait(args.review, args.expect_review, args.baseline_metadata, args.metadata, args.package)
         else:
             result = apply_review(args.review, args.expect_review, args.metadata, args.package)
         print(json.dumps(result), flush=True)
