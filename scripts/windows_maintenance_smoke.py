@@ -72,6 +72,9 @@ def signed(base, version, sequence, key, good):
 
 
 def run_case(base, bad=False):
+    # CI TEMP can use an 8.3 username. Production requires a physical home and
+    # a dataDir under that same spelling; make the fixture match that contract.
+    base = Path(base).resolve(strict=True)
     key = rsa.generate_private_key(public_exponent=65537, key_size=3072)
     private = base / 'synthetic-key.pem'
     private.write_bytes(key.private_bytes(serialization.Encoding.PEM, serialization.PrivateFormat.PKCS8,

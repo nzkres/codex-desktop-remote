@@ -68,7 +68,10 @@ class MaintenanceTests(unittest.TestCase):
     def setUp(self):
         self.temporary = tempfile.TemporaryDirectory(prefix="maintenance-synthetic-")
         self.addCleanup(self.temporary.cleanup)
-        self.base = Path(self.temporary.name)
+        # Windows CI may supply RUNNER~1 in TEMP. Production review first calls
+        # physical_home(), so the synthetic expected command must use that
+        # same canonical path rather than a short-name alias.
+        self.base = Path(self.temporary.name).resolve(strict=True)
         self.home = self.base / "home"
         for name in ("versions", "staging", "state", "data/identity", "data/task/receipts"):
             (self.home / name).mkdir(parents=True, exist_ok=True)
@@ -361,6 +364,8 @@ class MaintenanceTests(unittest.TestCase):
         self.assertFalse((self.home / "state/staged.json").exists())
 
     def test_gui_cim_user_session_and_exact_command_line_are_required(self):
+        self.assertEqual(self.home, self.home.resolve(strict=True))
+        self.assertEqual(self.old_root, self.old_root.resolve(strict=True))
         identity = {"pid": 2468, "path": str(Path(sys.executable).resolve())}
         pin = types.SimpleNamespace(identity=identity, handle=object(),
             api=types.SimpleNamespace(WaitForSingleObject=lambda *_: 258))

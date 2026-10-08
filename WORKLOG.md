@@ -7,6 +7,7 @@
 - 本机Python3.12 `-B -m unittest discover -s test -p 'test_*.py'`141项135通过/6跳过；固定Node20.19 `--test`64通过。Node首轮沙箱EPERM未能启动子进程，主机同命令通过。`python -B scripts/windows_maintenance_smoke.py`采用临时签名包与合成DPAPI身份/探针，真实Tk原GUI正常退出后独立helper完成提交；坏候选清理全部自有后代后回指旧槽但needs_review，不启动旧版。首次夹具错误地期待unfinished而实际interrupted错误码，修正断言后两例通过。
 - 真实只读预检首次拒绝缺省unconfirmedTurnSubmissions。固定Desktop26.930.7945.0/app.asar（原pin不变）源码显示其长度清零后delete该字段，添加时??=[]，空闲判断缺省false；因此仅接受字段不存在或明确空数组，null/自有undefined/其他格式仍拒绝。19项定向回归通过，原任务真实maintenance预检idle/permissionsVerified/receiptsCertain/reviewerAliasOnly全部true。没有发送模型输入或更改权限摘要。
 - 增docs/WINDOWS-ALPHA5-MAINTENANCE.md、安装链接与alpha.6版本体验记录；工具repo-only不打入运行包。当前alpha.5窗口和服务保持，包签发、CI复验、实际维护review/用户切换确认继续单列，不以合成演练宣称真实OTA通过。
+- 首提交ece3eb6的push37762969281/PR37762974145：Linux成功，Windows唯一错误是合成GUI命令行单测使用未规范化的TEMP短路径；生产review已要求physical_home，夹具未遵守。将单测与新维护烟测的临时根resolve后重验，不改产品路径归属比较；未采用失败运行的包进行签发。
 
 ## 2026-10-08 — 同任务回复已完成，手机同步被审批别名误判阻断
 
