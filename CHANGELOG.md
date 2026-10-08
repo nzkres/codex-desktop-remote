@@ -2,6 +2,10 @@
 
 这里按版本记录仓库更新。每个软件的完整历史、体验入口和验证方法分别见 [手机](docs/versions/ANDROID.md)、[Windows](docs/versions/WINDOWS.md)、[中继](docs/versions/RELAY.md)，也可从 [全部版本索引](docs/versions/README.md) 查找。每次软件发布必须同时更新本总览与相应组件文档；组件可以独立升级，旧记录保留。
 
+## Android 0.1.0-alpha.6 — 先选择电脑，再读取任务 — 2026-10-08
+
+修复新中继登录后尚未选择电脑时因旧任务路由产生的首页 HTTP404；任务、动态使用现有控件引导选择电脑，后台通知仅监控明确设备。登录过期与权限不足分别处理，保留已选电脑、草稿和真实任务错误。版本号6，版本说明与体验方法见 [Android 历史](docs/versions/ANDROID.md)。本轮准备独立手机 OTA，未更改 Windows/relay 版本；CI、受控签名、私有源和真实手机安装分别记录于 STATUS。
+
 ## Windows 0.1.0-alpha.7 — 配对失败提示与正常在线升级准备 — 2026-10-08
 
 实机安装增量：用户经原GUI点击下载并安装后，alpha.6→alpha.7事务实际committed/success、ledger3；发布包绑定、原身份/权限/任务保持、旧alpha.6保留、唯一新GUI与实时Desktop探针均独立核验通过。用户随后明确确认手机显示PHONE_ALPHA7_OK及DESKTOP_ALPHA7_CONTINUE_OK两条新回复，升级后手机/电脑同任务接续验收通过。下方保留准备与发布阶段记录。

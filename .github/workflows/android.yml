@@ -104,6 +104,28 @@ jobs:
         run: bash ./gradlew --no-daemon --max-workers=2 -Pkotlin.compiler.execution.strategy=in-process :app:testDebugUnitTest :app:lintDebug :app:assembleDebug :app:assembleDebugAndroidTest
       - name: Verify version and release notes inside APK
         run: python -B scripts/check_android_apk.py
+      - name: Run isolated target-selection and notification UI regressions
+        if: github.event_name != 'workflow_dispatch' || !inputs.signed_ota
+        timeout-minutes: 12
+        shell: bash
+        run: |
+          set -euo pipefail
+          sdkmanager 'emulator' 'system-images;android-35;google_apis;x86_64'
+          echo no | avdmanager create avd --force --name cdr-regression --package 'system-images;android-35;google_apis;x86_64'
+          sudo chmod a+rw /dev/kvm
+          "$ANDROID_HOME/emulator/emulator" -avd cdr-regression -no-window -no-audio -no-boot-anim -no-snapshot -gpu swiftshader_indirect > "$RUNNER_TEMP/cdr-emulator.log" 2>&1 &
+          emulator_pid=$!
+          trap 'adb emu kill >/dev/null 2>&1 || true; wait "$emulator_pid" || true' EXIT
+          timeout 180 adb wait-for-device
+          booted=false
+          for attempt in $(seq 1 90); do
+            if [[ "$(adb shell getprop sys.boot_completed | tr -d '\r')" == '1' ]]; then booted=true; break; fi
+            sleep 2
+          done
+          if [[ "$booted" != true ]]; then tail -n 60 "$RUNNER_TEMP/cdr-emulator.log"; exit 1; fi
+          adb shell input keyevent 82
+          cd android-native
+          bash ./gradlew --no-daemon --max-workers=2 -Pkotlin.compiler.execution.strategy=in-process :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=dev.codex.remote.MainActivityTargetSelectionTest,dev.codex.remote.TaskTargetSwitchUiTest,dev.codex.remote.TerminalControlUiTest,dev.codex.remote.NotificationServiceTest
       - name: Verify controlled APK signing certificate
         if: github.event_name == 'workflow_dispatch' && inputs.signed_ota
         env:

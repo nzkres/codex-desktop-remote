@@ -20,13 +20,13 @@ private data class TerminalAction(val id: String, val action: String, val name: 
 
 @Composable
 fun TerminalScreen(client: TerminalControl, selected: TaskTarget = TaskTarget(), selecting: Boolean = false,
-    onSelect: ((TaskTarget) -> Unit)? = null) {
+    onSelect: ((TaskTarget) -> Unit)? = null, onUnauthorized: () -> Unit = {}) {
     // Recreate all state on account/client change. No pairing code on disk or in saved state.
-    key(client) { TerminalPage(client, selected, selecting, onSelect) }
+    key(client) { TerminalPage(client, selected, selecting, onSelect, onUnauthorized) }
 }
 
 @Composable
-private fun TerminalPage(client: TerminalControl, selected: TaskTarget, selecting: Boolean, onSelect: ((TaskTarget) -> Unit)?) {
+private fun TerminalPage(client: TerminalControl, selected: TaskTarget, selecting: Boolean, onSelect: ((TaskTarget) -> Unit)?, onUnauthorized: () -> Unit) {
     val scope = rememberCoroutineScope()
     var snapshot by remember { mutableStateOf<TerminalSnapshot?>(null) }
     var code by remember { mutableStateOf<PairingCode?>(null) }
@@ -45,6 +45,7 @@ private fun TerminalPage(client: TerminalControl, selected: TaskTarget, selectin
             catch (cancelled: CancellationException) { throw cancelled }
             catch (failure: Exception) {
                 snapshot = null // No stale management buttons after uncertain response.
+                if (failure is GatewayException && failure.status == 401) onUnauthorized()
                 error = if (write) "操作结果尚未确认，请先刷新核对，不要重复提交。" else
                     (failure.message?.takeIf { it.startsWith("中继") || it.startsWith("登录") || it.startsWith("终端") } ?: "连接失败，请刷新重试。")
             } finally { busy = false }
@@ -63,9 +64,9 @@ private fun TerminalPage(client: TerminalControl, selected: TaskTarget, selectin
         item {
             Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text("远程终端", color = HapiPalette.ink, fontSize = 22.sp, fontWeight = FontWeight.SemiBold)
-                Text(if (onSelect == null) "管理接入的电脑。任务仍使用当前入口。" else
+                Text(if (onSelect == null) "管理接入的电脑。任务仍使用当前入口。" else if (!selected.isSelected)
+                    "请添加电脑，或在下方选择一台已接入的电脑查看任务。" else
                     "当前：${selected.name}。选择电脑后，任务与新对话都在该电脑执行。", color = HapiPalette.muted, fontSize = 12.sp)
-                if (onSelect != null) GlassActionButton("原电脑 · 旧通道", { onSelect(TaskTarget()) }, enabled = !busy && !selecting)
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     GlassActionButton("刷新", { perform() }, busy = busy, icon = "plan")
                     GlassActionButton("添加电脑", { perform(true) { code = client.createPairing() } }, icon = "plus", enabled = !busy && snapshot != null && code == null)

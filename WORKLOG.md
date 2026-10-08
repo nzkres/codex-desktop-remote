@@ -1,5 +1,13 @@
 # 工作记录
 
+## 2026-10-08 — Android alpha.6 候选实现与隔离验证
+
+- 从 Windows 已验收分支515313d新建独立工作树 codex-desktop-remote-android-alpha6 / codex/android-alpha6，保留其他工作树。委派 GPT-6 Sol 完成版本文档、测试和独立审查，根代理验收与集成。
+- 复用现有 UI/协议，未选电脑不发任务轮询；移除旧路由入口和后台默认监控，保留明示选择与已有账号/草稿作用域。审查发现终端401处理缺口及旧scope通知残留，一并补齐；不关闭真实401/403/404或更新门禁。
+- 执行 `node --test`：64通过；`python -B -m unittest discover -s test -p 'test_*.py'`：152项，146通过/6跳过；relay对应命令77项，73通过/4跳过。沙箱首次Node EPERM和Python DPAPI合成库错误记录为环境失败，正常用户重跑通过。`python -B scripts/check_versions.py`、`git diff --check`通过。
+- 新增真实MainActivity loopback回归，并调整明确设备通知与选择UI测试；Android workflow在普通debug构建后增加API35独立模拟器运行目标相关instrumentation，未触及main-only受控签名门禁。无本机Java/ADB，CI及APK检查待完成；普通debug产物不能给已装alpha.5覆盖安装。
+- 审查清单见docs/ANDROID-ALPHA6-OTA-REVIEW.md；真实手机仍alpha.5、Windows7、relay5。没有调用发布密钥、部署feed、停止连接器或发送任务。
+
 ## 2026-10-08 — 用户主动完成 Windows alpha.7 GUI 在线安装
 
 - 用户回报“我已经点击下载并安装了”。没有再触发安装、重发任务或停止窗口；立即只读核对current alpha.7、ledger3、主事务committed/success、old alpha.6，签名槽有效。
