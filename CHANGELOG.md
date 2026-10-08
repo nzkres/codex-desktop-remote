@@ -2,6 +2,12 @@
 
 这里按版本记录仓库更新。每个软件的完整历史、体验入口和验证方法分别见 [手机](docs/versions/ANDROID.md)、[Windows](docs/versions/WINDOWS.md)、[中继](docs/versions/RELAY.md)，也可从 [全部版本索引](docs/versions/README.md) 查找。每次软件发布必须同时更新本总览与相应组件文档；组件可以独立升级，旧记录保留。
 
+## Windows 0.1.0-alpha.7 — 配对失败提示与正常在线升级准备 — 2026-10-08
+
+配对请求已保存但服务器连接失败时，提交结果与重开窗口都会明确显示“申请未确认”和地址、端口、网络、证书核对项。已有申请保留，固定输入/服务器响应错误可理解，未知异常不回显；不再把持久待确认状态直接当作正在提交。没有更改配对协议、身份、任务权限或更新门禁。体验步骤见 [Windows 历史](docs/versions/WINDOWS.md)。
+
+本版从已实测的 alpha.6 准备正常 GUI HTTPS OTA，复用原私有源和发布密钥，Android/relay 保持 alpha.5。候选验证、发布顺序及回退边界见 [alpha.7 审查](docs/WINDOWS-ALPHA7-OTA-REVIEW.md)；发布/实际安装前仍需用户确认。实现、自动测试、CI包、签名及手机验收分别记录在 STATUS，不能相互替代。
+
 ## Windows 0.1.0-alpha.6 — 审批名称兼容修复（待发行）— 2026-10-08
 
 最新验证：本机已用原签名包从alpha.5维护升级至alpha.6，身份/权限/任务/回执保持，实际GUI和通道健康验证通过。重新连接后，原任务mobile-sync从409恢复到200，两条既有测试回复可读取，用户已确认手机两条都能看到。仅仓库维护工具补用户已正常关闭窗口后的受限续审，不改已签版本包；操作与失败停点见[维护指南](docs/WINDOWS-ALPHA5-MAINTENANCE.md)。当前未发布alpha.6 feed/Release、未升级Android或relay。最终9f6e93a的推送/PR两平台CI全部通过，包含六项实际Windows合成维护演练；下方保留各阶段历史验证结果。

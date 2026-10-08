@@ -1,5 +1,7 @@
 # OTA 交接
 
+**alpha.7准备入口：** 用户已同意先准备Windows正常GUI在线OTA，再逐端Android和relay。本轮独立分支`codex/windows-alpha7`从421a4c3开始；配对失败提示修复、版本记录和本地回归完成，真实alpha.6仍使用原身份/任务。先读STATUS最新段和[alpha.7发布审查](WINDOWS-ALPHA7-OTA-REVIEW.md)；候选准备后才请求实际feed发布/在线切换确认，不能把本轮方案批准当作已实施安装。签名使用原项目库，不重新create/provision；不重跑alpha.5维护器。后续结果追加STATUS。
+
 **当前停点（优先于下方全部历史）：Windows已实际升级到alpha.6，用户确认手机原任务两条回复都显示，同步验收通过。** 用户确认此前按“×”正常关闭；`resume-clean-exit --normal-close-confirmed`经完整绑定、签名账本、冷态双锁、保护键缺失、旧PID无人占用及新鲜alias探针续审后，原事务已`committed`。没有保留旧退出句柄，不声称追溯证明旧退出码；不删门禁/降账本/重配对。原signed ZIP保持`4df87881...7811cf`，实际新GUI唯一、签名槽正确，身份/配置/权限/任务和回执保持。详见STATUS与忽略目录`maintenance-committed-verification.json`。
 
 用户已重新连接；本机alpha.6 health与idle/permissionsVerified/receiptsCertain通过，原UUID的mobile-sync HTTP200且包含两条既有回复。用户已确认`PHONE_ALPHA5_OK`和`DESKTOP_ALPHA5_CONTINUE_OK`都显示；不要重发消息、重跑维护命令、重新配对或要求再关窗口。当前本次维护任务完成；Android/relay仍alpha.5、feed未发布alpha.6，三端联网OTA验收仍未完成。后续按OTA-ACCEPTANCE逐组件安排N→N+1，不把本地签名包维护交接计作HTTP OTA闭环。最新repo-only正常关闭恢复代码140项Python通过/6跳过，Node64、维护22单测与六项Windows合成演练通过；最终代码9f6e93a的Core push37775664273/PR37775672832均Windows/Linux成功，含六例真实合成维护演练；最后仅文档记录，不重新打包或改签。PR #2草稿未合并。

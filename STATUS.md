@@ -1,4 +1,12 @@
-# 当前验证状态：Windows alpha.6 实际维护升级与手机原任务同步验收通过
+# 当前验证状态：Windows alpha.7 准备正常在线升级，实际仍运行 alpha.6
+
+2026-10-08用户同意按“Windows alpha.6→alpha.7，然后 Android，再 relay”顺序推进。此次先完成源码、测试、签名候选和发布审查；实际私有feed发布和当前电脑在线升级仍为准备完成后的确认步骤。新独立工作树/分支`codex/windows-alpha7`基于已验收的`421a4c3`，原PR #2与已安装alpha.6保留。
+
+alpha.7只修配对失败显示：核心已记录的connection_unavailable不再被GUI忽略，提交结果与重开状态提示一致、保留原申请；白名单输入/响应错误有明确原因，未知错误不回显。没有改身份/协议/任务权限或运行保护。Node64通过、Python149项143通过/6跳过、合成Tk错误预览/后续状态恢复通过，实际截图已检查。新增实际回环TLS、设备鉴权、GUI worker/独立助手/Job演练由根代理复验：正常committed alpha.7与坏候选rolled_back alpha.6均通过，合成身份/任务保持，匿名metadata/ZIP拒绝、旧staged/candidate替换及旧maintenance记录保留均核对。Desktop/FRP健康是临时合成探针，两份夹具源取自当前checkout，不冒充真实alpha.6发布包或实机验收。最终CI与签名候选结果继续追加。
+
+发布和失败恢复方案见 [alpha.7 OTA 审查](docs/WINDOWS-ALPHA7-OTA-REVIEW.md)。实际手机/Windows同步基线已通过，具体证据如下；本轮未重新配对、切换现用实例或部署更新源。
+
+## Windows alpha.6 实际维护升级与手机同步基线
 
 2026-10-08最新实际结果：用户确认此前按“×”正常关闭原alpha.5窗口。补充并验收受限的`resume-clean-exit`后，按既有维护授权执行同一已签名alpha.6包，主/次事务与maintenance均`committed`，实际新GUI唯一且与可信启动门父进程匹配，应用锁持有。签名槽重新校验通过；原alpha.5槽保留，完整稳定身份、配置、权限、任务/回执和启动器摘要保持。没有重新配对、重发已完成消息、改手机/中继或发布新feed。
 

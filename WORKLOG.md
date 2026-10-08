@@ -1,5 +1,13 @@
 # 工作记录
 
+## 2026-10-08 — alpha.7 配对错误提示与 Windows 在线 OTA 准备
+
+- 根代理独立执行`python -B scripts/windows_https_ota_smoke.py`两例通过：synthetic_https_gui_committed / rolled_back，身份与任务保持。随机loopback TLS、临时CA、两项匿名401、真实GUI worker设备鉴权GET、seq2→3、独立helper原句柄与Job、旧primary归档/secondary原字节保持、陈旧candidate/staged替换均验收。新增CI step。代理首次演练漏持旧GUI应用锁，补为与原smoke同样的完整主窗口生命周期后重跑，根复验通过；没有改产品门禁。两版本为当前源码合成包，Desktop/FRP探针替换明确隔离，不使用真实身份/签槽。
+- 用户批准按先Windows、再Android、最后relay的小步方案执行；当前轮只准备alpha.7代码、测试、签名候选与私有源审查，发布和实际切换保持最终确认。远端main为4f50d30，原分支421a4c3和PR #2草稿未变；从该提交建立独立工作树codex-desktop-remote-alpha7 / codex/windows-alpha7，保留原开发与现用安装。
+- 根因在GUI忽略配对返回和status中的lastError，核心并非没有记录网络失败。新增固定文案status_message复用两个显示入口；安全退出保护优先，网络错误有核对项及原申请保留说明，后续成功清除错误，unknown exception/lastError不泄露正文。补固定输入/响应错误白名单，不改Controller、重发/取消策略或DPAPI数据。
+- GPT-6 Sol medium负责状态回归、版本/安装说明与在线演练辅助，根代理实现与验收。完整Node64通过；Python149项143通过/6跳过；状态定向3项通过。Tk合成窗口实际错误/状态重读/成功确认/连接/断开通过，截图只含测试数据；根代理缩短提示换行，并将合成后续成功改为原申请状态推进，未模拟对已有申请再次配对。最初测试硬编码旧generic文案失败，改为脱敏/操作语义断言后通过。
+- alpha.7 catalog与根版本同步、仓库历史生成并校验；旧版catalog保持不变。永久版本说明不包含“尚未构建/签名”等会过时的阶段结论；实际进度另记STATUS。草拟WINDOWS-ALPHA7-OTA-REVIEW：同源私有Windows feed、sequence3、完整签名和不可变包、原子metadata发布、撤回不能降ledger；无手机/服务器程序升级。实际包和CI结果后续追加。
+
 ## 2026-10-08 — 确认正常关闭后续审，真实 Windows alpha.6 提交完成
 
 - 最终代码提交`9f6e93a18bc76b218e7dcdbb322743d342194d17`已推送草稿PR #2。Core [push37775664273](https://github.com/nzkres/codex-desktop-remote/actions/runs/37775664273)/[PR37775672832](https://github.com/nzkres/codex-desktop-remote/actions/runs/37775672832)两平台全部成功。日志独立核对Windows Node64、Python140通过/6跳过、relay73通过/4跳过；Linux Node62通过/2跳过、Python126通过/20跳过、relay77通过。六项Windows维护演练与既有GUI/helper、Linux cgroup演练成功；CI产物已上传，但未取代本次安装的原签名alpha.6包。最后仅追加验证文档，main未合并。

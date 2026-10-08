@@ -19,7 +19,7 @@ def enable_dpi():
 
 _STATES = {
     "not_paired": "未配对",
-    "claim_pending": "正在提交配对",
+    "claim_pending": "配对申请待确认",
     "awaiting_confirmation": "等待手机确认配对",
     "connected": "登记心跳在线",
     "reconnecting": "正在重连",
@@ -29,6 +29,53 @@ _STATES = {
     "rejected": "配对被拒绝",
     "claim_failed": "配对失败",
 }
+
+_ERRORS = {
+    "previous_runtime_requires_review": "前次连接未能确认安全退出，保留现场，需维护者核对；不要删除身份或保护标志。",
+    "runtime_cleanup_requires_review": "断开结果未能完全确认，已保留保护。请在 Desktop 查看任务，由维护者核对连接现场。",
+    "identity_changed": "连接状态发生意外变化，已停止写入；请保留现场，由维护者核对。",
+    "legacy_identity_rejected": "发现旧连接器状态，已阻止接管。",
+    "connector_already_running": "这个测试连接器已经运行，请使用原窗口。",
+    "task_channel_unavailable": "服务器未授权或暂不可用，请在手机核对设备状态。",
+    "already_enrolled_or_pending": "已有配对身份或未完成申请，不能再次配对。请核对原申请状态；修改输入框不会更改原申请。",
+    "invalid_pairing_code": "配对码格式错误，请使用手机生成的 12 位配对码。",
+    "invalid_relay_url": "服务器地址格式错误。请填写 HTTPS 地址和端口，不要包含账号、密码、路径或查询参数。",
+    "https_required": "服务器必须使用 HTTPS，请核对手机与电脑填写的地址和端口。",
+    "invalid_device_name": "设备名须为 1–80 个字符，且不能包含换行或控制字符。",
+    "invalid_relay_response": "服务器响应格式不正确。请核对地址和端口是否指向配对中继；勿重复配对，请保留现场。",
+    "relay_response_too_large": "服务器响应超出允许大小。请核对配对中继地址，保留现场由维护者检查。",
+}
+
+
+def status_message(report, *, paired=False, connecting=False):
+    """Render fixed, credential-free status text without changing enrollment."""
+    if not isinstance(report, dict):
+        return "状态待确认"
+    if not connecting and report.get('runtimeNeedsReview'):
+        return '前次连接尚未确认安全退出；请保留现场，由维护者核对。'
+    state = report.get('state')
+    if report.get('lastError') == 'connection_unavailable':
+        if state == 'claim_pending':
+            next_step = ('正在继续查询原申请；地址填错请先断开并联系维护者。' if connecting
+                         else '地址正确点“连接”查询；地址填错请联系维护者。')
+            return ('配对申请未确认：服务器连接失败。\n'
+                    '请核对原服务器地址、端口、网络和证书。\n'
+                    '原申请已保留；修改输入框不会更改它，勿重复配对。\n'
+                    + next_step)
+        return ('服务器连接失败，当前状态未确认。请核对原服务器地址、端口、网络和证书。\n'
+                '已有身份和申请保留；请先核对连接状态，勿重复配对。')
+    if report.get('lastError'):
+        return '连接或配对结果未确认。请保留原申请与身份，由维护者检查；勿重复配对。'
+    if paired and state == 'awaiting_confirmation':
+        return '请在手机上确认配对，然后点击连接。'
+    message = _STATES.get(state, '状态待确认') if isinstance(state, str) else '状态待确认'
+    if 'dataChannel' in report:
+        channels = {'probe_verified': '转发通道探针通过；手机任务待验证',
+                    'unavailable': '转发通道未就绪', 'not_configured': '转发通道尚未启动',
+                    'unverified': '转发通道尚未实时检查'}
+        channel = report['dataChannel']
+        message += '\n' + (channels.get(channel, '转发通道待确认') if isinstance(channel, str) else '转发通道待确认')
+    return message
 
 
 class _Window:
@@ -245,8 +292,7 @@ class _Window:
                     self.events.put(('updatefailed', error.code if isinstance(error, UpdateError) else 'update_operation_failed'))
                     continue
                 # Controller exceptions can contain credentials or HTTP bodies.
-                safe_codes = {"previous_runtime_requires_review", "runtime_cleanup_requires_review", "identity_changed", "legacy_identity_rejected", "connector_already_running", "task_channel_unavailable", "already_enrolled_or_pending", "invalid_pairing_code"}
-                code = str(error) if str(error) in safe_codes else "operation_failed"
+                code = str(error) if str(error) in _ERRORS else "operation_failed"
                 self.events.put(("failed", code))
 
     def _drain(self):
@@ -281,21 +327,10 @@ class _Window:
                 if isinstance(value, dict):
                     if not self.relay.get() and isinstance(value.get('relay'), str):
                         self.relay.set(value['relay'])
-                    state = value.get("state")
-                    if state in _STATES:
-                        self.status_text.set(_STATES[state])
-                    if "dataChannel" in value:
-                        channels = {"probe_verified": "转发通道探针通过；手机任务待验证", "unavailable": "转发通道未就绪", "not_configured": "转发通道尚未启动", "unverified": "转发通道尚未实时检查"}
-                        self.status_text.set(_STATES.get(state, "状态待确认") + "\n" + channels.get(value["dataChannel"], "转发通道待确认"))
-                    if not self.connecting and value.get('runtimeNeedsReview'):
-                        self.status_text.set('前次连接尚未确认安全退出；请保留现场，由维护者核对。')
+                self.status_text.set(status_message(value, connecting=self.connecting))
             elif kind == "paired":
                 self.busy = False
-                state = value.get("state") if isinstance(value, dict) else None
-                self.status_text.set(
-                    "请在手机上确认配对，然后点击连接。"
-                    if state == "awaiting_confirmation" else _STATES.get(state, "配对未完成，请检查状态。")
-                )
+                self.status_text.set(status_message(value, paired=True, connecting=self.connecting))
             elif kind == "disconnected":
                 self.busy = False
                 self.connecting = False
@@ -304,15 +339,7 @@ class _Window:
             elif kind == "failed":
                 self.busy = False
                 self.connecting = False
-                messages = {"previous_runtime_requires_review": "前次连接未能确认安全退出，保留现场，需维护者核对；不要删除身份或保护标志。",
-                            "runtime_cleanup_requires_review": "断开结果未能完全确认，已保留保护。请在 Desktop 查看任务，由维护者核对连接现场。",
-                            "identity_changed": "连接状态发生意外变化，已停止写入；请保留现场，由维护者核对。",
-                            "legacy_identity_rejected": "发现旧连接器状态，已阻止接管。",
-                            "connector_already_running": "这个测试连接器已经运行，请使用原窗口。",
-                            "task_channel_unavailable": "服务器未授权或暂不可用，请在手机核对设备状态。",
-                            "already_enrolled_or_pending": "已有配对身份，请在手机确认后点击连接。",
-                            "invalid_pairing_code": "配对码格式错误，请使用手机生成的 12 位配对码。"}
-                self.status_text.set(messages.get(value, "操作失败。请检查连接器状态后重试。"))
+                self.status_text.set(_ERRORS.get(value, "操作未完成。请检查连接状态，勿重复配对或删除身份。"))
             self._buttons()
 
         if self.closing:
