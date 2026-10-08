@@ -1,5 +1,7 @@
 # 三端 OTA 落地与首轮验收
 
+**2026-10-08最新增量：** Windows已用签名本地包维护安装alpha.6，用户确认手机原任务两条回复均显示；Android/relay仍alpha.5。此次维护交接没有走普通HTTPS OTA，故下一轮Windows的实际N/N+1改为**alpha.6→alpha.7**，之后再逐端Android和relay。Windows alpha.7私有feed已发布sequence3；用户经原GUI完成真实下载和安装，实际alpha.7/ledger3/committed，身份/权限/任务保持与新窗口/探针独立验证通过；随后用户确认手机显示PHONE_ALPHA7_OK和DESKTOP_ALPHA7_CONTINUE_OK两条新回复，Windows OTA及同任务接续闭环通过。Android/relay真实N→N+1仍待测。固定发布输入与边界见[审查清单](WINDOWS-ALPHA7-OTA-REVIEW.md)和STATUS。下方alpha.5→alpha.6统一组合为历史初始计划，不应据此降级或重复首装。
+
 2026-10-08最新授权与结果：用户已批准PR #1合并、专用测试签名，以及在现有服务器部署**独立隔离**的alpha.5 relay/FRPS/HTTPS/私有OTA。服务器内安装、鉴权、合成更新/回退、受管启停均通过；主电脑公网 `9443` HTTPS 鉴权下载及 `17443` FRPS 合成夹具亦通过。现用服务和身份未接管；真实身份迁移、手机安装和真实任务N→N+1不在本次授权范围。分层证据见[STATUS](../STATUS.md)与[隔离部署记录](OTA-ISOLATED-DEPLOYMENT-20261008.md)。
 
 2026-10-08 制定。第一目标是一台 Windows 电脑、一部 Android 手机和一个隔离中继，能持续接续同一条 Codex Desktop 原生任务，并分别完成一次真实在线升级。先完成这个闭环，再分批修复 BUG；不扩大到多电脑、自动数据库迁移或新的任务执行器。
@@ -8,7 +10,7 @@
 
 alpha.3 已交付更新程序、隔离测试和归档包，alpha.4 增加三端私有下载鉴权。alpha.5受控首装构件基于`1a4b4c0`：Windows/Linux CI和main受控Android CI均成功；Windows/WSL新临时home首装通过。隔离服务器Python3.12.3/systemd255/cgroupv2环境已完成alpha.5安装、合成0.0.2升级/坏候选回退及四棵自有树验收；主电脑公网完成三组件鉴权下载、TLS/RSA/大小/哈希核对与FRPS无任务夹具转发。真实手机/电脑首装和真实设备N→N+1尚未验收，不能以合成公网结果替代它们。
 
-alpha.4保留为私有鉴权开发预览，普通debug APK信任为空。**alpha.5作为受控首装N，alpha.6作为下一OTA候选N+1**；alpha.5已构建，alpha.6尚未构建。各端必须使用本机实际版本比较，Android versionCode递增。既有归档不换包；已签元数据过期时，以新序号重新签发相同已验证文件，不改包字节或关闭验证。以后可独立更新某个组件。
+alpha.4保留为私有鉴权开发预览，普通debug APK信任为空。**当前Windows在线验收为已安装的alpha.6→alpha.7；Android/relay仍从alpha.5开始逐端准备下一版本。**原始alpha.5→alpha.6统一组合仅是历史计划。各端必须使用本机实际版本比较，Android versionCode递增。既有归档不换包；已签元数据过期时，以新序号重新签发相同已验证文件，不改包字节或关闭验证。以后可独立更新某个组件。
 
 完成须同时满足：真实 HTTPS 下载、发布者及包校验、实际运行版本改变、身份/数据/权限保留、手机与 Desktop 同任务继续交互、失败行为可解释。没有执行的步骤记“待测”，下载成功、CI 成功与 `probe_verified` 均不能代替这些结果。
 

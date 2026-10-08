@@ -1,4 +1,38 @@
-# 当前验证状态：Windows alpha.6 实际维护升级与手机原任务同步验收通过
+# 当前验证状态：Windows alpha.6→alpha.7 真实 OTA 与手机同任务接续验收通过
+
+## 2026-10-08 — 用户点击下载并安装，alpha.6→alpha.7 实际事务完成
+
+用户明确回报已点击“下载并安装”。只读核对实际current为alpha.7、ledger3、主事务`committed/success=true`，old为alpha.6；staged原签名metadata、releaseDigest、目标槽和95,085字节原发布包绑定全部一致，实际暂存ZIP重新验SHA通过。不是仅下载或仅准备记录。
+
+独立验收通过：签名alpha.7槽有效、原alpha.6槽完整保留；重新计算完整稳定身份、配置/权限和任务目录逐文件摘要，与事务preserved完全相同；应用锁持有。唯一实际新GUI标题为「Desktop 手机联调 · 0.1.0-alpha.7」、窗口句柄有效，准确签名槽路径及可信child_gate父子归属一致。当前真实Desktop只读探针`idle=true/permissionsVerified=true/receiptsCertain=true/version=alpha.7`，自动模型输入0；核验前后安装及事务记录原字节未变。
+
+脱敏证据位于忽略目录`artifacts/alpha7-preparation-20261008/final/installed-alpha7-verification.json`和`installed-alpha7-gui.json`。**Windows真实GUI升级及升级后手机/电脑同任务双向接续均已通过。** 用户按要求重新连接，于手机发送PHONE_ALPHA7_OK并在Desktop同一任务接续DESKTOP_ALPHA7_CONTINUE_OK后，明确回复“手机两条回复都能看到”。这一层证据来自用户实机确认，与自动事务/探针核验分开记录；不要重发这两条已完成消息。Android/relay仍alpha.5，无本轮更新或服务切换。
+
+下方“本机仍alpha.6/安装未执行”均为此前发布阶段记录，已由本段实际安装结果取代。
+
+## 2026-10-08 — 已批准并完成 Windows 私有源发布
+
+用户明确批准“发布 Windows 私有更新源”，本轮只发布，不启动本机安装。已在原隔离服务器Windows目录落位原签名alpha.7包并原子切换`latest.json`至sequence3；服务端签名/95,085字节/SHA/43源文件清单全部通过。旧alpha.5包及原索引审计副本保留；Android/relay feed逐文件摘要、relay当前槽、旧Caddy配置与测试relay/FRPS进程身份均保持，未重启服务。固定包及metadata哈希如下方候选记录，未重新打包或签发。
+
+主电脑正常TLS公网验收通过：metadata和ZIP匿名均401；**已有隔离测试管理员临时会话**取得alpha.7索引并下载完整包，RSA/平台/兼容档/序号/大小/SHA和清单通过；会话注销后再次访问被拒。验证前后本机install/current/trust/ledger/transaction原字节相同，实际仍alpha.6/ledger2，未调用check/stage/apply。
+
+**设备端真实下载与在线安装尚未验收。** 原设备更新鉴权返回`identity_or_runtime_requires_review`；连接核心运行期间会设置该保护，正常断开并证明自有树退出后才清除。没有绕过、删除该标记或停止连接，改用上述账号完成本次源发布验收。下一步是用户准备好后安排本机正常断开、设备鉴权检查及alpha.6→alpha.7 GUI在线升级，再核对同一Desktop任务。不能把本次账号下载当作设备OTA成功。
+
+本机脱敏报告：忽略目录`artifacts/alpha7-preparation-20261008/final/feed-preflight.json`、`feed-published.json`、`feed-server-verification.json`、`feed-https-after.json`。服务器root-only审计：`/opt/codex-desktop-remote-test/operator/windows-alpha7-feed-20261008/`，包含旧/新索引、固定包、前后快照；没有发布私钥或身份。alpha.7仍未创建GitHub Release、PR #3未合并；私有feed已可下载，不依赖14天CI artifact。
+
+## 以下为候选准备记录（发布停点已由上方取代）
+
+2026-10-08用户同意按“Windows alpha.6→alpha.7，然后 Android，再 relay”顺序推进。此次先完成源码、测试、签名候选和发布审查；实际私有feed发布和当前电脑在线升级仍为准备完成后的确认步骤。新独立工作树/分支`codex/windows-alpha7`基于已验收的`421a4c3`，原PR #2与已安装alpha.6保留。
+
+alpha.7只修配对失败显示：核心已记录的connection_unavailable不再被GUI忽略，提交结果与重开状态提示一致、保留原申请；白名单输入/响应错误有明确原因，未知错误不回显。没有改身份/协议/任务权限或运行保护。Node64通过；最终完整Python152项146通过/6跳过，合成Tk错误预览/后续状态恢复通过，实际截图已检查。新增实际回环TLS、设备鉴权、GUI worker/独立助手/Job演练由根代理复验：正常committed alpha.7与坏候选rolled_back alpha.6均通过，合成身份/任务保持，匿名metadata/ZIP拒绝、旧staged/candidate替换及旧maintenance记录保留均核对。Desktop/FRP健康是临时合成探针，两份夹具源取自当前checkout，不冒充真实alpha.6发布包或实机验收。
+
+最终代码`c20c2036e6319f9dca1ef108f7e8830f893c7f89`的[push37781824455](https://github.com/nzkres/codex-desktop-remote/actions/runs/37781824455)和[PR37781829558](https://github.com/nzkres/codex-desktop-remote/actions/runs/37781829558)均Windows/Linux成功，六种维护与真实合成HTTPS提交/回退通过。首轮PR旧维护夹具的即时Job空断言失败及修正过程保留在WORKLOG；产品树检查未放宽。[PR #3](https://github.com/nzkres/codex-desktop-remote/pull/3)为叠加在PR #2上的草稿，main未合并。
+
+Linux CI的Windows包已逐43文件核对Git；与实际已签alpha.6相比仅GUI和版本目录两源文件变化。已用原项目DPAPI密钥在本机签发sequence3，并按现用安装trust/ledger只读复验。ZIP **95,085字节**、SHA256 `91676bd9b0e1526c5808fb6a8d8156c2511f38ea4f306b1069d20d95d0412266`；元数据SHA256 `aa6dbad8c3eb1e1bf941008cc31c5bcd46277af91059d6bdbcce9c7db3cec81c`，有效至北京时间2026-10-15 21:12:09。固定文件在忽略目录`artifacts/alpha7-preparation-20261008/final/`。**已实现、自动测试通过、CI产物可下载、候选已本地签名；尚未发布alpha.7 feed/Release、未在线安装或实机验收。当前实际仍alpha.6/ledger2/committed，安装内容保持。**
+
+发布和失败恢复方案见 [alpha.7 OTA 审查](docs/WINDOWS-ALPHA7-OTA-REVIEW.md)。实际手机/Windows同步基线已通过，具体证据如下；本轮未重新配对、切换现用实例或部署更新源。
+
+## Windows alpha.6 实际维护升级与手机同步基线
 
 2026-10-08最新实际结果：用户确认此前按“×”正常关闭原alpha.5窗口。补充并验收受限的`resume-clean-exit`后，按既有维护授权执行同一已签名alpha.6包，主/次事务与maintenance均`committed`，实际新GUI唯一且与可信启动门父进程匹配，应用锁持有。签名槽重新校验通过；原alpha.5槽保留，完整稳定身份、配置、权限、任务/回执和启动器摘要保持。没有重新配对、重发已完成消息、改手机/中继或发布新feed。
 

@@ -1,5 +1,13 @@
 # OTA 交接
 
+**最高优先级停点：用户已在原窗口点击下载并安装，Windows alpha.6→alpha.7 GUI在线事务现已committed/success、ledger3；不是待安装。** 根代理只读独立验收实际签名槽/发布包绑定、原alpha.6保留、完整身份/配置/权限/任务摘要保持、应用锁及唯一新GUI与可信启动门归属全部通过；真实Desktop探针idle/permissionsVerified/receiptsCertain与版本alpha.7通过，自动模型输入0。用户随后在新窗口连接，在同一原测试任务完成PHONE_ALPHA7_OK与DESKTOP_ALPHA7_CONTINUE_OK，并明确确认“手机两条回复都能看到”。**Windows真实OTA及升级后同任务接续闭环已通过**；下一阶段才准备Android alpha.5的独立OTA，不捎带更新relay。不要重试安装、重跑维护或重复未知消息；先读STATUS最新段。本机脱敏证据final/installed-alpha7-{verification,gui}.json。下面发布前/待安装停点均属历史。
+
+**最新停点优先：Windows alpha.7 test私有源已按用户明确授权发布sequence3；本机未安装，仍alpha.6/ledger2。** 服务器旧包保留、其他feed/服务保持，正常TLS公网匿名metadata/ZIP均401，隔离测试管理员会话完整下载并验签/大小/SHA/43文件通过，注销后拒绝。设备鉴权曾因现用连接的`runtimeNeedsReview`保护拒绝，未清标记、未断开或改身份；故不声称真实设备下载或OTA通过。用户本次仅批准源发布，实际客户端安装留到下一阶段安排。先读STATUS最新段及[发布审查](WINDOWS-ALPHA7-OTA-REVIEW.md)，不要重发sequence3或重跑发布助手；未知状态先只读检查。下一步正常断开后验证设备入口，再按原GUI执行检查/下载/独立助手和同任务验收，不重跑alpha.5维护器。公网可用包为原`91676bd9...412266`，有效至北京时间2026-10-15 21:12:09。
+
+以下保留发布前候选记录，其“待发布”已由上方完成状态取代。
+
+**alpha.7当前停点：** 独立分支`codex/windows-alpha7`的c20c203已通过push37781824455/PR37781829558两平台CI；本机Node64、Python146通过/6跳过、六种维护及HTTPS GUI提交/回退通过。已核验43文件并用原项目库签发sequence3，ZIP95,085字节/SHA`91676bd9b0e1526c5808fb6a8d8156c2511f38ea4f306b1069d20d95d0412266`，有效至北京时间2026-10-15 21:12:09；仅使用忽略目录`artifacts/alpha7-preparation-20261008/final/`中固定ZIP和metadata。草稿PR #3叠加PR #2，未合并main。先读STATUS与[发布审查](WINDOWS-ALPHA7-OTA-REVIEW.md)；**准备完成，实际feed发布和当前alpha.6→alpha.7在线切换仍待用户最终确认**。当前真实alpha.6/ledger2保持，Android/relay仍alpha.5；不提前让用户检查旧feed、关闭窗口或重新配对，不重跑alpha.5维护器。发布须CAS旧metadata、包不可变、保留鉴权与原数据；不能降ledger来撤回。获批后先验证源，再让用户在原窗口正常断开并安装，最终核对同一任务。
+
 **当前停点（优先于下方全部历史）：Windows已实际升级到alpha.6，用户确认手机原任务两条回复都显示，同步验收通过。** 用户确认此前按“×”正常关闭；`resume-clean-exit --normal-close-confirmed`经完整绑定、签名账本、冷态双锁、保护键缺失、旧PID无人占用及新鲜alias探针续审后，原事务已`committed`。没有保留旧退出句柄，不声称追溯证明旧退出码；不删门禁/降账本/重配对。原signed ZIP保持`4df87881...7811cf`，实际新GUI唯一、签名槽正确，身份/配置/权限/任务和回执保持。详见STATUS与忽略目录`maintenance-committed-verification.json`。
 
 用户已重新连接；本机alpha.6 health与idle/permissionsVerified/receiptsCertain通过，原UUID的mobile-sync HTTP200且包含两条既有回复。用户已确认`PHONE_ALPHA5_OK`和`DESKTOP_ALPHA5_CONTINUE_OK`都显示；不要重发消息、重跑维护命令、重新配对或要求再关窗口。当前本次维护任务完成；Android/relay仍alpha.5、feed未发布alpha.6，三端联网OTA验收仍未完成。后续按OTA-ACCEPTANCE逐组件安排N→N+1，不把本地签名包维护交接计作HTTP OTA闭环。最新repo-only正常关闭恢复代码140项Python通过/6跳过，Node64、维护22单测与六项Windows合成演练通过；最终代码9f6e93a的Core push37775664273/PR37775672832均Windows/Linux成功，含六例真实合成维护演练；最后仅文档记录，不重新打包或改签。PR #2草稿未合并。

@@ -8,9 +8,16 @@ sys.path.insert(0,str(Path(__file__).resolve().parents[1]/'windows'))
 from gui import _Window, enable_dpi
 class Fake:
     review=False
-    def status(self):return {'state':'not_paired'}
+    def __init__(self):
+        self.report={'state':'not_paired'}
+        self.pair_calls=0
+    def status(self):return dict(self.report)
     def pair(self,relay,code,name):
-        assert code=='012345ABCDEF';return {'state':'awaiting_confirmation'}
+        assert code=='012345ABCDEF'
+        self.pair_calls+=1
+        self.report=({'state':'claim_pending','lastError':'connection_unavailable','relay':relay}
+                     if self.pair_calls==1 else {'state':'awaiting_confirmation','lastError':None,'relay':relay})
+        return dict(self.report)
     def connect(self,stop,on_status):
         on_status({'state':'connected','dataChannel':'probe_verified'})
         stop.wait(2);return {**self.status(),'runtimeNeedsReview':self.review}
@@ -22,7 +29,20 @@ try:
  pump();assert window.status_text.get()=='未配对'
  window.relay.set('https://relay.example.test')
  window.code.set('012345ABCDEF');window.pair();assert window.code.get()==''
- pump();assert '手机上确认' in window.status_text.get()
+ pump();pending=window.status_text.get()
+ assert '未确认' in pending and '服务器' in pending and '端口' in pending
+ assert '012345ABCDEF' not in pending
+ window.commands.put(('status',));pump();assert window.status_text.get()==pending
+ if len(sys.argv)>3:
+    from PIL import ImageGrab
+    root.lift();pump()
+    x,y=root.winfo_rootx(),root.winfo_rooty()
+    ImageGrab.grab(bbox=(x,y,x+root.winfo_width(),y+root.winfo_height())).save(sys.argv[3])
+ # The existing claim progresses; do not model re-pairing over a pending identity.
+ window.controller.report={'state':'awaiting_confirmation','lastError':None}
+ window.commands.put(('status',));pump()
+ assert '手机确认配对' in window.status_text.get()
+ assert window.controller.pair_calls == 1
  window.connect();pump();assert '手机任务待验证' in window.status_text.get()
  window.notes_button.invoke();pump()
  notes = window.notes_text.get('1.0', 'end')

@@ -1,0 +1,163 @@
+"""Synthetic GUI status and worker contracts; no Tk window or real identity."""
+
+import queue
+import sys
+import threading
+import unittest
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "windows"))
+from gui import _Window, status_message
+
+
+class Value:
+    def __init__(self, value=""):
+        self.value = value
+
+    def get(self):
+        return self.value
+
+    def set(self, value):
+        self.value = value
+
+
+class Root:
+    def after(self, *_args):
+        pass
+
+
+class SyntheticController:
+    def __init__(self, report, pair_result=None, pair_error=None):
+        self.report = dict(report)
+        self.pair_result = pair_result
+        self.pair_error = pair_error
+        self.calls = []
+
+    def status(self):
+        self.calls.append("status")
+        return dict(self.report)
+
+    def pair(self, relay, code, name):
+        self.calls.append(("pair", relay, code, name))
+        if self.pair_error is not None:
+            raise self.pair_error
+        result = dict(self.pair_result)
+        self.report = dict(result)
+        return result
+
+
+def worker_and_drain(controller, command):
+    """Exercise the real worker/event drain without creating a Tk interpreter."""
+    window = _Window.__new__(_Window)
+    window.root = Root()
+    window.controller = controller
+    window.commands = queue.Queue()
+    window.events = queue.Queue()
+    window.stop_event = threading.Event()
+    window.busy = True
+    window.connecting = False
+    window.closing = False
+    window.update_blocked = False
+    window.relay = Value()
+    window.status_text = Value()
+    window._buttons = lambda: None
+    window.commands.put(command)
+    window.commands.put(("close",))
+    worker = threading.Thread(target=window._work)
+    worker.start()
+    worker.join(3)
+    if worker.is_alive():
+        raise AssertionError("synthetic GUI worker did not stop")
+    window._drain()
+    return window.status_text.get()
+
+
+class GuiStatusTests(unittest.TestCase):
+    def test_pending_connection_error_is_actionable_and_survives_reopen(self):
+        report = {"state": "claim_pending", "lastError": "connection_unavailable",
+                  "relay": "https://relay.example.test"}
+        controller = SyntheticController({"state": "not_paired"}, pair_result=report)
+        paired = worker_and_drain(controller, ("pair", report["relay"], "012345ABCDEF", "fixture"))
+        reopened = worker_and_drain(controller, ("status",))
+        self.assertEqual(paired, reopened)
+        for phrase in ("未确认", "服务器", "端口", "网络", "证书", "保留", "勿重复配对"):
+            self.assertIn(phrase, paired)
+        self.assertNotEqual(paired, "正在提交配对")
+        self.assertNotIn("012345ABCDEF", paired)
+
+        controller.report = {"state": "awaiting_confirmation", "lastError": None,
+                             "relay": report["relay"]}
+        accepted = worker_and_drain(controller, ("status",))
+        self.assertIn("手机", accepted)
+        self.assertIn("确认", accepted)
+        self.assertNotIn("网络", accepted)
+
+    def test_status_priority_and_unknown_error_are_bounded(self):
+        error = "secret-token-012345ABCDEF"
+        guarded = status_message({"state": "claim_pending", "lastError": "connection_unavailable",
+                                  "runtimeNeedsReview": True})
+        self.assertIn("安全退出", guarded)
+        self.assertNotIn("端口", guarded)
+        connecting = status_message({"state": "connected", "dataChannel": "probe_verified",
+                                     "runtimeNeedsReview": True}, connecting=True)
+        self.assertNotIn("安全退出", connecting)
+        self.assertIn("手机任务待验证", connecting)
+        connecting_pending = status_message({"state": "claim_pending",
+                                             "lastError": "connection_unavailable"}, connecting=True)
+        self.assertIn("继续查询原申请", connecting_pending)
+        self.assertNotIn("点击“连接”", connecting_pending)
+        pending_without_error = status_message({"state": "claim_pending", "lastError": None})
+        self.assertIn("待确认", pending_without_error)
+        self.assertNotIn("正在提交", pending_without_error)
+
+        for report in ({"state": "claim_pending", "lastError": error},
+                       {"state": "awaiting_confirmation", "lastError": error},
+                       {"state": "connected", "lastError": error}):
+            message = status_message(report)
+            self.assertNotIn(error, message)
+            self.assertNotIn("手机确认配对", message)
+
+        awaiting = status_message({"state": "awaiting_confirmation", "lastError": None})
+        self.assertIn("手机", awaiting)
+        self.assertIn("确认", awaiting)
+        failed_awaiting = status_message({"state": "awaiting_confirmation",
+                                          "lastError": "connection_unavailable"}, paired=True)
+        self.assertNotIn("等待手机确认配对", failed_awaiting)
+        self.assertIn("状态未确认", failed_awaiting)
+        unverified = status_message({"state": "connected", "dataChannel": "unverified"})
+        self.assertIn("尚未实时检查", unverified)
+        self.assertNotIn("失败", unverified)
+        probed = status_message({"state": "connected", "dataChannel": "probe_verified"})
+        self.assertIn("手机任务待验证", probed)
+        self.assertNotIn("任务完成", probed)
+        self.assertEqual(status_message(None), "状态待确认")
+        self.assertEqual(status_message(["secret-token"]), "状态待确认")
+        for channel in ("secret-token", {"secret": "token"}):
+            message = status_message({"state": "connected", "dataChannel": channel})
+            self.assertIn("转发通道待确认", message)
+            self.assertNotIn("secret", message)
+            self.assertNotIn("token", message)
+
+    def test_worker_exception_codes_are_fixed_and_do_not_echo_credential(self):
+        for code in ("invalid_relay_url", "https_required", "invalid_device_name",
+                     "invalid_relay_response", "relay_response_too_large"):
+            with self.subTest(code=code):
+                controller = SyntheticController({"state": "not_paired"}, pair_error=ValueError(code))
+                message = worker_and_drain(controller, ("pair", "https://relay.example.test",
+                                                        "012345ABCDEF", "fixture"))
+                self.assertNotIn(code, message)
+                self.assertNotIn("012345ABCDEF", message)
+                self.assertNotEqual(message, "操作失败。请检查连接器状态后重试。")
+
+        secret = "bearer fixture-private-value"
+        controller = SyntheticController({"state": "not_paired"}, pair_error=RuntimeError(secret))
+        message = worker_and_drain(controller, ("pair", "https://relay.example.test",
+                                                "012345ABCDEF", "fixture"))
+        self.assertNotIn(secret, message)
+        self.assertNotIn("012345ABCDEF", message)
+        self.assertIn("勿重复配对", message)
+        self.assertIn("删除身份", message)
+
+
+if __name__ == "__main__":
+    unittest.main()

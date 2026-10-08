@@ -35,6 +35,9 @@ jobs:
       - name: Windows paired maintenance handoff and failed candidate fence
         if: runner.os == 'Windows'
         run: python -B scripts/windows_maintenance_smoke.py
+      - name: Windows private HTTPS GUI update and healthy rollback
+        if: runner.os == 'Windows'
+        run: python -B scripts/windows_https_ota_smoke.py
       - name: Real Linux cgroup relay upgrade and rollback
         if: runner.os == 'Linux'
         shell: bash

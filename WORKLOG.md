@@ -1,5 +1,36 @@
 # 工作记录
 
+## 2026-10-08 — 用户主动完成 Windows alpha.7 GUI 在线安装
+
+- 用户回报“我已经点击下载并安装了”。没有再触发安装、重发任务或停止窗口；立即只读核对current alpha.7、ledger3、主事务committed/success、old alpha.6，签名槽有效。
+- 执行忽略目录`python -B artifacts/alpha7-preparation-20261008/verify-installed-alpha7.local.py`：staged envelope与原发布metadata一致、事务releaseDigest和candidate/old指针匹配；原信任/兼容档/seq3签名通过，暂存ZIP95,085字节/SHA与发布包一致，旧alpha.6槽重验保留。用产品snapshot重新计算完整稳定身份、配置/权限、任务目录所有文件摘要，与事务preserved完全相同；应用锁持有。只读专用Desktop探针idle/permissionsVerified/receiptsCertain=true、version alpha.7。install/current/trust/ledger/transaction核验前后原字节相同，自动模型输入0。
+- 只读CIM与窗口核对仅限本安装精确路径：唯一非gate GUI标题「Desktop 手机联调 · 0.1.0-alpha.7」、窗口句柄有效，其父进程为同一签名槽启动命令的可信child_gate；两者创建身份记录仅存忽略目录。脱敏报告final/installed-alpha7-verification.json和installed-alpha7-gui.json。没有按PID或名称终止任何进程。
+- 已请用户在新窗口连接，于手机原任务发送一次PHONE_ALPHA7_OK，收到后由Desktop同一任务发送一次DESKTOP_ALPHA7_CONTINUE_OK，确认手机两条均显示。用户随后明确回复“手机两条回复都能看到”；实际GUI在线升级和升级后同任务接续闭环验收通过，手机结果来自用户确认，不把探针当完成。Android/relay仍alpha.5；本轮只写验收记录，无产品代码/版本变化。
+
+## 2026-10-08 — 已批准的 Windows alpha.7 私有源发布
+
+- 用户明确回复“批准发布 Windows 私有更新源”；本轮不执行当前电脑安装、手机/relay升级或服务停止。最初正常SSH执行自动审批两次超时，受限环境被拒；随后取得本轮网络及SSH目录只读权限，正常用户上下文成功连接，StrictHostKeyChecking保持，无跳过指纹、无私钥打印/复制。此执行权限问题已解决。
+- 原目录cdrtest/0700，latest cdrtest/0600；只读签名/包核对原源alpha.5 seq1，metadata SHA `c67f65f67a32b42a4e1c8ea5444146aaa3d97159bedf130ba9dd0d8e8f020db2`。记录Android/relay全部feed摘要、relay current、旧Caddy配置和测试relay/FRPS原进程身份。GPT-6 Sol medium只读审查发布助手，指出root导入源码/审计目录权限必须先证实；根代理补所有相关祖先/root源码树root-owned且不可由group/other写的断言，并用Python -B -I执行，复验通过。
+- 命令入口均为忽略目录一次性本机助手：`python -B artifacts/alpha7-preparation-20261008/publish-feed.local.py inspect`（只读）；`verify-feed-https.local.py before`使用产品for_installation遭`identity_or_runtime_requires_review`拒绝。源码确认连接运行期保留此保护，未绕过或删除、未断开连接。改为已有隔离测试账号临时会话：`verify-feed-https.local.py before --account`通过，凭据只在内存；只注销本次会话、不影响手机会话。
+- 执行`publish-feed.local.py publish`成功：原包95,085字节/固定SHA及原metadata签名复验、磁盘检查、root-only审计、独占发布锁、旧完整快照比较、独立暂存和43文件校验；新ZIP无覆盖落位、再次核对旧索引原字节后原子替换latest并fsync。仅Windows seq1→3，旧alpha.5包保留，其他feed/relay当前槽/旧Caddy/服务进程均未变。发布者私钥未上传，源包未重新构建。
+- 独立`publish-feed.local.py verify-server`只读复验通过；`verify-feed-https.local.py after --account`从主电脑公网正常TLS下载alpha.7，metadata/ZIP匿名401，原信任/兼容档/seq3/95,085字节/SHA `91676bd9b0e1526c5808fb6a8d8156c2511f38ea4f306b1069d20d95d0412266`及43文件清单全部通过，临时会话注销后拒绝。客户端install/current/trust/ledger/transaction前后原字节相同，仍alpha.6/ledger2，未调用engine check/stage/apply。
+- 服务器root-only审计`/opt/codex-desktop-remote-test/operator/windows-alpha7-feed-20261008/`保留旧新索引、固定ZIP、前后报告；本机final/feed-{preflight,published,server-verification,https-after}.json脱敏报告保留在忽略目录。本轮只更新仓库发布/安装/交接证据，不改软件版本或重跑不相关产品测试；检查版本文档与diff。下一步安排用户正常断开后的真实设备下载、alpha.6→7 GUI安装及同任务验证，未将账号下载冒充设备OTA。
+
+## 2026-10-08 — alpha.7 配对错误提示与 Windows 在线 OTA 准备
+
+- 最终代码`c20c2036e6319f9dca1ef108f7e8830f893c7f89`的Core push37781824455/PR37781829558均Windows/Linux成功，Windows六种维护与HTTPS GUI提交/健康回退均通过。日志核对Windows Node64、Python146通过/6跳过、relay73通过/4跳过；Linux Node62通过/2跳过、Python132通过/20跳过、relay77通过、deploy3通过。根代理额外完整Python152项146通过/6跳过，耗时122.354s。原生GUI、Linux cgroup演练均成功。
+- `gh run download 37781824455 --name desktop-remote-source-Linux --dir artifacts/alpha7-preparation-20261008/final/ci`；根代理用updates.security清单/解包和逐文件Git原字节核对43源文件，确认与实际已签alpha.6相比仅windows/gui.py、windows/releases.json变化。原unsigned候选未签未发布，独立final目录保存本次固定包；CI重打relay包不替换已部署同版本资产。
+- 使用原DPAPI库执行`python -B -m updates.publish sign windows --artifact <final/windows-0.1.0-alpha.7.zip> --output <final/windows-latest.json> --signing-home <原项目库> --key-id cdr-ota-test-20261008-v1 --source https://106.53.126.69:9443/desktop-remote-updates/test/windows/latest.json --url https://106.53.126.69:9443/desktop-remote-updates/test/windows/windows-0.1.0-alpha.7.zip --sequence 3 --channel test`。只在内存中解封原私钥，不导出/重建/配置Secrets。包95,085字节/SHA256 `91676bd9b0e1526c5808fb6a8d8156c2511f38ea4f306b1069d20d95d0412266`；metadata SHA256 `aa6dbad8c3eb1e1bf941008cc31c5bcd46277af91059d6bdbcce9c7db3cec81c`，issuedAt1791465129/expiresAt1792069929。
+- 根代理用真实安装trust/ledger/兼容档只读验证签名、包大小/哈希和序号2→3可接受，实际current仍alpha.6、ledger仍2、transaction committed；install/current/trust/ledger/transaction原字节前后不变。脱敏证据final/signed-candidate-verification.json。未发布alpha.7 Release/feed、未暂存进真实安装、未断开/退出窗口或发送任务。
+- GPT-6 Sol medium复核版本/安装/发布文档，根代理修正旧alpha.6未构建说法，并补发布seq3前不要查旧seq1 feed、安装弹窗只描述成功路径、未知结果保留needs_review等操作说明。alpha.7仅配对提示，不继续扩大GUI范围；签名后只追加仓库证据，不重打包。下一步按审查清单请求Windows私有test源发布及本机alpha.6→7在线升级确认，Android/relay后续分开推进。
+- 首轮 ab738c0 的 Core push37779857781 两平台通过；PR37779946976 的 Linux通过、Windows在既有maintenance第4例失败：原helper句柄退出后立即读取外层Job仍非零。保留失败结果，未签发该轮候选。夹具改为同一原Job最多5秒观测，必须实际归零才能通过；不终止进程制造通过、不按旧PID重开、不改产品树清理或保护，持续残留/观测错误仍失败。后续定向实测与两轮CI结果单独补记。
+- 上述夹具修正根代理复验：`python -B scripts/windows_maintenance_smoke.py` 六例全部通过，初次/等待续审/正常关闭续审各 committed 与 needs_review；`python -B -m unittest discover -s test -p test_maintenance_smoke.py -v` 三项通过，包含持续残留超时和观测异常失败。版本目录检查、diff检查通过。真实安装只读校验仍为alpha.6、ledger2、transaction committed、签名槽有效；未解密身份、未改变连接或状态。
+- 根代理独立执行`python -B scripts/windows_https_ota_smoke.py`两例通过：synthetic_https_gui_committed / rolled_back，身份与任务保持。随机loopback TLS、临时CA、两项匿名401、真实GUI worker设备鉴权GET、seq2→3、独立helper原句柄与Job、旧primary归档/secondary原字节保持、陈旧candidate/staged替换均验收。新增CI step。代理首次演练漏持旧GUI应用锁，补为与原smoke同样的完整主窗口生命周期后重跑，根复验通过；没有改产品门禁。两版本为当前源码合成包，Desktop/FRP探针替换明确隔离，不使用真实身份/签槽。
+- 用户批准按先Windows、再Android、最后relay的小步方案执行；当前轮只准备alpha.7代码、测试、签名候选与私有源审查，发布和实际切换保持最终确认。远端main为4f50d30，原分支421a4c3和PR #2草稿未变；从该提交建立独立工作树codex-desktop-remote-alpha7 / codex/windows-alpha7，保留原开发与现用安装。
+- 根因在GUI忽略配对返回和status中的lastError，核心并非没有记录网络失败。新增固定文案status_message复用两个显示入口；安全退出保护优先，网络错误有核对项及原申请保留说明，后续成功清除错误，unknown exception/lastError不泄露正文。补固定输入/响应错误白名单，不改Controller、重发/取消策略或DPAPI数据。
+- GPT-6 Sol medium负责状态回归、版本/安装说明与在线演练辅助，根代理实现与验收。完整Node64通过；Python149项143通过/6跳过；状态定向3项通过。Tk合成窗口实际错误/状态重读/成功确认/连接/断开通过，截图只含测试数据；根代理缩短提示换行，并将合成后续成功改为原申请状态推进，未模拟对已有申请再次配对。最初测试硬编码旧generic文案失败，改为脱敏/操作语义断言后通过。
+- alpha.7 catalog与根版本同步、仓库历史生成并校验；旧版catalog保持不变。永久版本说明不包含“尚未构建/签名”等会过时的阶段结论；实际进度另记STATUS。草拟WINDOWS-ALPHA7-OTA-REVIEW：同源私有Windows feed、sequence3、完整签名和不可变包、原子metadata发布、撤回不能降ledger；无手机/服务器程序升级。实际包和CI结果后续追加。
+
 ## 2026-10-08 — 确认正常关闭后续审，真实 Windows alpha.6 提交完成
 
 - 最终代码提交`9f6e93a18bc76b218e7dcdbb322743d342194d17`已推送草稿PR #2。Core [push37775664273](https://github.com/nzkres/codex-desktop-remote/actions/runs/37775664273)/[PR37775672832](https://github.com/nzkres/codex-desktop-remote/actions/runs/37775672832)两平台全部成功。日志独立核对Windows Node64、Python140通过/6跳过、relay73通过/4跳过；Linux Node62通过/2跳过、Python126通过/20跳过、relay77通过。六项Windows维护演练与既有GUI/helper、Linux cgroup演练成功；CI产物已上传，但未取代本次安装的原签名alpha.6包。最后仅追加验证文档，main未合并。
