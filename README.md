@@ -10,13 +10,13 @@
 | --- | --- | --- |
 | [下载 APK、安装、登录与配对](docs/install/ANDROID.md) | [准备 Python、打开窗口、连接测试任务](docs/install/WINDOWS.md) | [本地隔离启动、认证与公网前置条件](docs/install/RELAY.md) |
 
-当前先核对首装资料、预览合成窗口；隔离HTTPS中继部署和真实设备安装需分别确认后联调。Windows是源码窗口，中继是源码服务，尚无一键安装包；中继本地启动不等于手机可从公网连接。
+alpha.5 已在现有服务器的独立隔离环境完成中继、FRPS、HTTPS 与私有 OTA 的服务器内安装和验收；Windows 外网访问 `9443`、`17443` 仍超时，待云控制台网络规则处理与外部复测。手机安装和真实设备联调尚未验收。Windows是源码窗口，中继是源码服务，尚无一键安装包；服务器内可用不等于手机可从公网连接。
 
 ## 版本更新记录
 
-**alpha.5受控测试首装候选已构建并复验。** PR #1已合并，专用RSA/APK签名和六项Android CI Secrets已配置；main受控构建通过，Windows/WSL新临时目录bootstrap通过。实际指纹、测试与归档证据见[STATUS](STATUS.md)。服务器预检、固定测试origin和撤回步骤见[部署审查清单](docs/OTA-DEPLOYMENT-REVIEW.md)，尚未部署。
+**alpha.5受控测试首装包已构建并复验。** PR #1已合并，专用RSA/APK签名和六项Android CI Secrets已配置；main受控构建通过，Windows/WSL新临时目录bootstrap通过。独立服务器环境已安装并完成 loopback HTTPS/鉴权、FRP 和受管启停等验收；外网两端口超时，尚不能视为公网可用。实际指纹、测试与归档证据见[STATUS](STATUS.md)，隔离部署证据见[本轮记录](docs/OTA-ISOLATED-DEPLOYMENT-20261008.md)。
 
-三端沿用alpha.4的私有下载鉴权：手机复用账号登录，Windows复用配对身份，中继管理员交互登录后更新。元数据与包都受控，仅向同源HTTPS固定目录发送凭据，发布签名独立验证。alpha.5有受控**测试**签名；公网源、真实设备首装及alpha.5→alpha.6仍待验收。普通CI包不能直接作为OTA基线。按[三阶段验收](docs/OTA-ACCEPTANCE.md)、[实现边界](docs/OTA.md)、[发布](docs/OTA-PUBLISH.md)和[恢复](docs/OTA-RECOVERY.md)推进。
+三端沿用alpha.4的私有下载鉴权：手机复用账号登录，Windows复用配对身份，中继管理员交互登录后更新。元数据与包都受控，仅向同源HTTPS固定目录发送凭据，发布签名独立验证。alpha.5有受控**测试**签名；服务器内私有源已验证，但公网可达、真实设备首装及alpha.5→alpha.6仍待验收。普通CI包不能直接作为OTA基线。按[三阶段验收](docs/OTA-ACCEPTANCE.md)、[实现边界](docs/OTA.md)、[发布](docs/OTA-PUBLISH.md)和[恢复](docs/OTA-RECOVERY.md)推进。
 
 **仓库文档是查看每次更新的主要入口。** 三个软件分别保存完整历史，按版本从新到旧排列：
 

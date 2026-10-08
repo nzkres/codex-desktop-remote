@@ -1,8 +1,10 @@
-# Review candidate only. Not installed on the server.
+# Reviewed isolated template; see deployment records for current installation status.
 # Runs in a NEW container; do not replace the existing :443 Caddyfile.
 {
 	admin 127.0.0.1:22019
 	auto_https off
+	# IP-address clients can omit TLS SNI; select the existing IP certificate.
+	default_sni 106.53.126.69
 	servers {
 		protocols h1 h2
 	}

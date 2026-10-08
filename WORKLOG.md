@@ -1,5 +1,17 @@
 # 工作记录
 
+## 2026-10-08 — 获批隔离部署，服务器内验收完成
+
+- 用户明确选择“批准隔离部署”，范围为106.53.126.69独立用户/目录/数据库、alpha.5 relay/FRPS/HTTPS/私有OTA、TCP9443/17443、独立续证hook与鉴权回退；保留现用服务和身份，不含手机安装/真实身份迁移。按最新授权执行，没有重复要求部署确认。
+- 上传并逐文件核对Git1a4b4c0源码、已发布alpha.5包/bootstrap、官方FRP0.71.0包；创建cdrtest和全新受管home，调用现有bootstrap.install/configure初始化专属账号和数据库。填写独立transport六字段及准确config引用；FRPS CA/token/服务私钥仅远端保护保存，测试管理员口令不输出，RSA/APK发布私钥仍在本机。
+- 两单元通过`systemd-analyze verify`；固定真实FRPS通过`verify -c`。实际Caddy发现固定镜像二进制file capability与cap_drop ALL冲突，保留唯一NET_BIND_SERVICE后执行成功；IP无SNI客户端握手失败由`default_sni 106.53.126.69`修复。保留正常TLS验证，只更新本轮新容器；无状态代理unless-stopped，relay仍Restart=no。部署模板同步修正，不换alpha.5包。
+- 服务器内loopback TCP+正常IP证书HTTPS真实检查：六项匿名metadata/包401；新账号三组件完整下载/RSA/SHA/大小匹配Release，退出后拒绝；合成设备仅Windows可下，Android/relay403，暂停/撤销拒绝。实际FRPC0.71→独立FRPS0.71，经专用TLS/设备插件/代理至无任务HTTP夹具成功。不明活动状态阻止受管stop；测试设备最终撤销、会话退出，无活动设备或待配对。
+- 目标Python3.12.3/systemd255/cgroupv2下，临时委派单元运行`python3 -B scripts/relay_ota_smoke.py`，committed0.0.2、坏候选rolledBack0.0.2、ownedTrees4，临时单元回收。新真实alpha.5以cdr UID的受管CLI stop确认整组退出后systemctl start，auth/registry逻辑摘要保持，phase ready/healthy true。未使用systemctl restart绕过维护门禁。
+- 一次诊断脚本遗漏-B导致安装槽出现两个root-owned pyc，完整性门禁报package_file_set_changed。核对29个签名源文件全部未变、额外文件仅两个确切诊断字节码、归属/格式/路径/无链接符合后仅移除这两文件和空目录；保留脱敏修复报告，没有删保护标志或数据库。后续所有导入安装代码的诊断统一-B/dont_write_bytecode，完整复验通过；不隐藏首次失败。
+- 安装独立Certbot deploy hook，实际匹配lineage调用成功且容器ID不变；现有codex-remote-certbot-renew.timer active，固定renew命令未禁用hooks。没有强制续证或调用旧hooks；证书实际轮换待观察，当前证书到2026-10-13 22:07:54 UTC。旧Caddy文件SHA前后相同，旧443/7443/7000监听保留。
+- 系统UFW仅增加IPv4 TCP9443/17443，内部端口保持loopback。Windows外部请求两新端口超时；18秒只抓SYN的诊断同期443连接成功且1个SYN到达，新端口均0，未读取请求载荷。云控制台在登录页，无法核对云端规则，已请用户登录或补两条规则。公网OTA不可宣称通过。
+- 本轮本机回归：固定Node20.19 `--test`33通过；Python3.12 `-B -m unittest discover -s test -p 'test_*.py' -q`124项118通过/6跳过；relay77项73通过/4跳过。GPT-6 Sol medium整理安装/OTA/交接文档，主代理负责部署与验收。详细结果和剩余步骤见docs/OTA-ISOLATED-DEPLOYMENT-20261008.md；alpha.6/手机安装/真实Windows接入尚未执行。
+
 ## 2026-10-08 — alpha.5 受控签名构建与首装复验
 
 - 完成本轮已批准范围：实际配置六项Secrets，构件输入`1a4b4c0`先经分支Core37736389583/Android37736389589成功；核对远端main仍为预期`1e405ad`后以非强制快进推进main，再执行`gh workflow run android.yml --ref main -f signed_ota=true`。main Core37736836192和普通Android37736836186也成功。
