@@ -45,6 +45,9 @@ class MainActivityTargetSelectionTest {
                         server.paths.contains("/control-api/terminals") &&
                             compose.onAllNodesWithTag("terminal-open-${server.terminal}").fetchSemanticsNodes().isNotEmpty()
                     }
+                    // Cross the real 8-second metadata poll interval; Compose virtual time alone
+                    // does not drive the lifecycle coroutine or HTTP worker.
+                    Thread.sleep(9_000)
                     assertFalse("No selection must not poll old task routes",
                         server.paths.any { it == "/api/projects" || it == "/api/sessions" || it == "/api/activity" })
                     assertFalse("No selection must not poll any task route",
@@ -67,9 +70,10 @@ class MainActivityTargetSelectionTest {
     }
 
     @Test fun terminalDiscovery401ReturnsToLoginAndPreservesSelectionMetadata() = controlFailure(401)
+    @Test fun terminalDiscovery401WithoutSelectionReturnsToLogin() = controlFailure(401, selected = false)
     @Test fun terminalDiscovery403ShowsPermissionErrorWithoutLoggingOut() = controlFailure(403)
 
-    private fun controlFailure(status: Int) {
+    private fun controlFailure(status: Int, selected: Boolean = true) {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         val credentials = Credentials(context)
         TargetSelectionGateway(controlStatus = status).use { server ->
@@ -80,7 +84,7 @@ class MainActivityTargetSelectionTest {
             credentials.url = "http://127.0.0.1:${server.port}"
             credentials.token = "a".repeat(64)
             credentials.account = "synthetic-control-failure"
-            credentials.selectTarget(TaskTarget(server.terminal, "合成电脑"))
+            if (selected) credentials.selectTarget(TaskTarget(server.terminal, "合成电脑"))
             try {
                 ActivityScenario.launch<MainActivity>(Intent(context, MainActivity::class.java)).use {
                     compose.onNodeWithContentDescription("远程终端页面").performClick()
@@ -98,7 +102,7 @@ class MainActivityTargetSelectionTest {
                         compose.onNodeWithText("登录统一账号，查看已连接的电脑").assertDoesNotExist()
                     }
                     assertEquals("synthetic-control-failure", credentials.account)
-                    assertEquals(server.terminal, credentials.taskTarget().id)
+                    assertEquals(if (selected) server.terminal else "", credentials.taskTarget().id)
                     assertFalse(server.paths.any { it.startsWith("/api/") })
                 }
             } finally {
