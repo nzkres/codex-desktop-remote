@@ -6,7 +6,9 @@
 
 **当前运行三端仍是原 alpha.5。** alpha.6 尚未签名发行、安装或获得手机显示验收。旧版更新预检也使用同一错误比较，普通 OTA 会被拒绝；须先完成可审查的维护切换与失败恢复方案，再确认停用这条新配对连接。不得改原 permissionsHash、删除 runtimeNeedsReview 或覆盖已签 alpha.5 槽。详见[设备基线记录](docs/OTA-DEVICE-BASELINE-20261008.md)。
 
-修复提交67302e7的Core [push37756849170](https://github.com/nzkres/codex-desktop-remote/actions/runs/37756849170)两平台通过，含真实合成GUI/helper与cgroup升级/回退；[PR37756853884](https://github.com/nzkres/codex-desktop-remote/actions/runs/37756853884)的Windows演练在事务完成后临时目录清理WinError32，不能视为全部CI已通过。已定位测试未等待独立helper的收尾退出，正在修正夹具。成功run源码包已下载、解包和逐文件对比Git；Linux产Windows alpha.6包92767字节、SHA256 `d0d32f2b6f062f0252411dcc34c763793d2feeb9199ab2fd62f57d9372e11f3d`，未签名或发行。CI重新生成的relay alpha.5包不用于覆盖旧发布资产。
+最终提交ea45239的Core [push37758224837](https://github.com/nzkres/codex-desktop-remote/actions/runs/37758224837) / [PR37758232762](https://github.com/nzkres/codex-desktop-remote/actions/runs/37758232762) Windows/Linux均成功：Node Windows45通过、Linux43通过/2跳过；Python Windows118通过/6跳过、Linux104通过/20跳过；relay Windows73通过/4跳过、Linux77通过。真实合成Windows GUI/helper提交0.0.2与坏候选回退0.0.1、Linux cgroup提交/回退0.0.2及4棵树退出均通过。它们不模拟本次真实alias阻断的旧版维护升级。
+
+最终Linux产Windows alpha.6包已下载复验：92767字节、SHA256 `a7c92ee9e4d12826c7e27a2e93b1fd010f263ece90ac15bf784c25c7494ca0f6`，43文件清单/内容与已按Git67302e7逐文件核对的产品源相同；ea45239仅改夹具和文档。包未签名、未发布到feed、未安装，CI artifact保留14天。CI重打的relay alpha.5包不用于覆盖旧发布资产。早期PR37756853884曾在终态记录后清理临时目录WinError32；已修为父测试先固定helper原始句柄、等其实际退出才清理，失败经过保留在WORKLOG。
 
 本轮发现并保留记录的缺口：未选择电脑时请求旧任务路由导致顶部404；AppX逻辑/物理home不一致导致启动拒绝；错误端口944造成申请失败但界面仍显示提交中，且无受控重新配对入口。旧失败目录CodexDesktopRemoteTest完整保留，用户取消申请后另建新安装完成配对；未重置身份或保护。alpha.5原包没有修改，后续版本修复项见[设备基线记录](docs/OTA-DEVICE-BASELINE-20261008.md)。
 

@@ -86,3 +86,5 @@ Windows alpha.6 的 permissionsMatch 先按原算法比较，失败后只尝试�
 验证：Node45/45（含旧摘要正反方向及10类差异拒绝、实际快照与完整配置不变），Python124项118通过/6跳过。新源码只读跟随真实原任务，用同一 mobile-sync 转换取得两条精确回复；原始摘要仍不同而 aliasMatch=true，实时 idle/permissionsVerified/receiptsCertain=true，模型输入0。current/install/trust/ledger/fixture/加密身份及回执文件摘要前后相同。脱敏报告在忽略目录 reviewer-alias-source-verification.json；它是候选源码验证，不是运行安装升级或手机屏幕验收。
 
 当前不重复配对、不重发消息，也不改已签 alpha.5。普通 OTA 的旧 GUI/helper 会先执行旧版本 update_probe，仍因同一缺陷拒绝；回退旧版也无法保证其权限健康检查通过。维护切换必须单独验证签名候选、原进程正常退出、独占锁、原身份/配置/回执保持和失败停点，再由用户确认实际切换；不能用修改 permissionsHash、删除保护或强停进程绕开。
+
+最终ea45239的Windows/Linux push及PR CI均通过，Windows alpha.6源码ZIP已下载、清单和内容验证完成，构件大小/哈希见STATUS；未签名或装机。CI使用合成权限探针，证明普通升级/回退及助手生命周期，不覆盖本次旧版本alias拒绝的恢复路径。需要另行实现该维护交接，当前手机故障尚未恢复。

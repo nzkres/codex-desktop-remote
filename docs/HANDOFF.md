@@ -2,7 +2,9 @@
 
 **最新停点：** 两条 PHONE_ALPHA5_OK、DESKTOP_ALPHA5_CONTINUE_OK 已在原 Desktop UUID 完成，但手机因 permissions_changed 无法读取；不得重发。根因是 guardian_subagent/auto_review 兼容别名切换。Windows alpha.6 已实现最小修复，45项Node、118项Python通过（另6跳过）；新源码只读实机能返回这两条手机协议消息，原权限摘要/身份/配置/回执未改。运行中的三端仍为 alpha.5，手机恢复及 OTA 未验收。具体物理路径见忽略报告windows-retry-install.json，故障与新源码证据见alpha5-sync-failure.json、reviewer-alias-source-verification.json。
 
-下一步先核对 CI/构件，再完成维护切换的审查与合成验证。alpha.5 的 GUI/helper 仍会执行旧 update_probe，原生 OTA 会被同一比较缺陷阻断；候选失败后的 alpha.5 健康检查也不能保证通过。不要简单点击安装后宣称成功，不改 permissionsHash、已签槽或 runtimeNeedsReview；保持当前实例，实际停用/切换需按已有用户边界确认。
+ea45239的Core push37758224837和PR37758232762两平台均已通过；已下载复验43文件Windows候选包，大小/SHA见STATUS。仅合成GUI/helper收尾等待修正，不改产品槽；候选尚未签名/发布/安装。PR #2仍draft/open，main未合并。
+
+下一步需实现独立维护交接工具并做合成验证，之后才形成可执行的切换审查。alpha.5 的 GUI/helper 仍会执行旧 update_probe，原生 OTA 会被同一比较缺陷阻断；候选失败后的 alpha.5 健康检查也不能保证通过。新工具必须保留固定原GUI句柄正常退出、独占锁、完整身份/配置/回执CAS、签名候选/账本和事务门禁；只接受已核实的顶层alias差异，真实权限变化仍拒绝。失败保留needs_review，不冒称健康回退。不要简单点击安装后宣称成功，不改 permissionsHash、已签槽或 runtimeNeedsReview；保持当前实例，实际停用/切换需按已有用户边界确认。**这一维护路径尚未实现，普通合成OTA演练不证明能恢复本次现场。**
 
 原任务UUID为`01a1158c-72ea-7db3-84d1-b47471220252`「回复 DESKTOP_REMOTE_READY」。先读[设备基线记录](OTA-DEVICE-BASELINE-20261008.md)：早期逻辑home因AppX重定向启动失败，随后原安装误填944端口；失败目录CodexDesktopRemoteTest完整保留，用户取消申请后另建当前新安装，未重置或迁移身份。账号显示工具仍在原目录operator；不要重复bootstrap/configure、删除保护或修改签名槽。alpha.6仅Windows修复，Android和中继未改版本。
 

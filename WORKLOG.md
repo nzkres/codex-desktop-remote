@@ -11,6 +11,8 @@
 - 修复提交67302e7已推送到原独立分支和草稿PR #2，未合并main。Core push37756849170的Windows/Linux全部通过并产出包；但同提交PR37756853884的Windows GUI演练在两种事务通过后清理临时目录失败，WinError32指向 `.update-*`。检查发现终态journal可早于独立helper收尾写入完成，测试不应立即终止其Job；本次失败保留，不仅采用另一组绿色结果。
 - 下载push两平台源码包并用updates.security解包/清单/SHA核验，逐文件对比Git67302e7原字节。Linux产Windows alpha.6 ZIP为92767字节、SHA256 d0d32f2b6f062f0252411dcc34c763793d2feeb9199ab2fd62f57d9372e11f3d，43文件完全相同；Windows checkout仅两项TXT换行不同。均未签名、安装或上传feed；CI重打的relay alpha.5 ZIP仅作验证，不能替换已发同版本旧包。
 - GPT-6 Sol medium仅修scripts/windows_ota_smoke.py，主代理验收：旧合成GUI交接后提供自有helper身份；父测试先固定该进程原始句柄并回ACK，旧GUI才正常退出；终态journal后再wait同一helper退出，才清理原合成Job与临时目录。没有扩大删除重试或吞掉异常，没有改产品进程/版本。实际 `python -B scripts/windows_ota_smoke.py` 两例各一次：committed0.0.2、坏候选rolled_back0.0.1，退出码0；新CI仍待复验。
+- 最终ea45239的Core push37758224837、PR37758232762两平台均success。读取日志确认Node W45/L43+skip2；Python W118+skip6/L104+skip20；relay W73+skip4/L77；Windows真实合成GUI/helper提交0.0.2、坏候选回退0.0.1，Linux cgroup提交/回退0.0.2、4棵树通过。`gh run download 37758224837 --name desktop-remote-source-Linux`后复验Windows alpha.6 ZIP92767字节、SHA256 a7c92ee9e4d12826c7e27a2e93b1fd010f263ece90ac15bf784c25c7494ca0f6；43源文件与先前逐字节Git核验完全相同，完整清单验证通过。未签名、上线或安装；PR #2仍draft/open，main未变。
+- 最小下一步是实现并合成验收独立的维护交接路径，再提交具体切换审查：固定原GUI句柄等用户正常退出，保留应用/运行锁、完整身份/配置/回执CAS、已签候选及事务检查；只用明确的alias等价证据处理旧探针缺陷。候选失败不能宣称旧alpha.5健康回退，应保留可诊断现场。此路径目前未实现，不能拿本轮普通合成OTA演练替代。新旧真实身份和当前服务本轮均未切换。
 
 ## 2026-10-08 — 错误端口导致配对申请未送达，准备全新重试安装
 
