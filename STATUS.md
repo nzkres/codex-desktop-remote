@@ -4,7 +4,7 @@
 
 候选实际隔离启动通过固定Desktop兼容性、空闲/权限/回执检查及真实登记/传输探针，再清理自有连接进入新GUI。用户随后重新连接；独立只读检查确认alpha.6本机health正常、实时任务检查通过、`mobile-sync` HTTP200、UUID不变，两条已有`PHONE_ALPHA5_OK`和`DESKTOP_ALPHA5_CONTINUE_OK`均可读取。**用户随后明确确认手机两条回复都能看到，原任务同步验收通过。** 本次完成Windows本地签名包维护升级；Android/relay联网N→N+1和三端OTA验收仍未完成。 脱敏证据见忽略目录`artifacts/alpha6-maintenance-20261008/maintenance-committed-verification.json`；自动模型输入0。
 
-本次维护工具仅在仓库运行，不修改已签alpha.6 ZIP。完整Python146项中140通过/6跳过、Node64通过、维护定向22通过；Windows合成初次/等待续审/正常关闭续审各成功和失败共六例通过。先前`resume-wait`提交0b3532f的Core [push37773618452](https://github.com/nzkres/codex-desktop-remote/actions/runs/37773618452) / [PR37773623778](https://github.com/nzkres/codex-desktop-remote/actions/runs/37773623778)均两平台成功；最新正常关闭续审增量CI待核。PR #2仍草稿，main未合并；Android和relay仍alpha.5。
+本次维护工具仅在仓库运行，不修改已签alpha.6 ZIP。完整Python146项中140通过/6跳过、Node64通过、维护定向22通过；Windows合成初次/等待续审/正常关闭续审各成功和失败共六例通过。先前`resume-wait`提交0b3532f的Core [push37773618452](https://github.com/nzkres/codex-desktop-remote/actions/runs/37773618452) / [PR37773623778](https://github.com/nzkres/codex-desktop-remote/actions/runs/37773623778)均两平台成功；最终正常关闭续审代码`9f6e93a`的Core [push37775664273](https://github.com/nzkres/codex-desktop-remote/actions/runs/37775664273) / [PR37775672832](https://github.com/nzkres/codex-desktop-remote/actions/runs/37775672832)也均Windows/Linux成功，六项Windows维护演练及既有GUI/cgroup升级回退通过；只追加文档证据，不替换已签包。PR #2仍草稿，main未合并；Android和relay仍alpha.5。
 
 ## 此前等待退出超时的历史现场（已由上述续审完成）
 

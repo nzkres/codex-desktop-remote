@@ -2,6 +2,7 @@
 
 ## 2026-10-08 — 确认正常关闭后续审，真实 Windows alpha.6 提交完成
 
+- 最终代码提交`9f6e93a18bc76b218e7dcdbb322743d342194d17`已推送草稿PR #2。Core [push37775664273](https://github.com/nzkres/codex-desktop-remote/actions/runs/37775664273)/[PR37775672832](https://github.com/nzkres/codex-desktop-remote/actions/runs/37775672832)两平台全部成功。日志独立核对Windows Node64、Python140通过/6跳过、relay73通过/4跳过；Linux Node62通过/2跳过、Python126通过/20跳过、relay77通过。六项Windows维护演练与既有GUI/helper、Linux cgroup演练成功；CI产物已上传，但未取代本次安装的原签名alpha.6包。最后仅追加验证文档，main未合并。
 - 首次`resume-wait`现场核对发现原GUI已不存在，返回`old_process_owner_unverified`，没有改原超时journal或切换；用户随后明确确认按“×”正常关闭。只读核对原控制器已正常移除运行保护、应用/运行锁释放、完整身份/任务配置保持。保留原时点记录，不按旧PID重新打开句柄或强杀。
 - 新增仅等待退出超时场景的`resume-clean-exit --normal-close-confirmed`：完整复算已签旧/新metadata账本和staging，secondary必须不存在；双锁下要求runtimeNeedsReview键完全缺失及CIM旧PID完全未被占用。fresh alias探针前后再次确认冷态/全部绑定，生成新30分钟审查，继续原AliasRecoveryDriver/MaintenanceTransaction。用户确认不替代树证明或旧退出码；工具不在发行包内，原签名alpha.6 ZIP未改。
 - GPT-6 Sol medium补22项维护回归、操作说明及独立只读审查，根代理验收。`python -B -m unittest discover -s test -p 'test_*.py'`146项140通过/6跳过；本轮Node64通过；实际Windows合成DPAPI/Tk/Job/独立助手初次、resume-wait、resume-clean-exit各成功/失败共六例通过。release catalog与diff检查通过。0b3532f的Core push37773618452/PR37773623778两平台success；正常关闭增量新CI另记。

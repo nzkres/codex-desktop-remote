@@ -4,7 +4,7 @@
 
 ## Windows 0.1.0-alpha.6 — 审批名称兼容修复（待发行）— 2026-10-08
 
-最新验证：本机已用原签名包从alpha.5维护升级至alpha.6，身份/权限/任务/回执保持，实际GUI和通道健康验证通过。重新连接后，原任务mobile-sync从409恢复到200，两条既有测试回复可读取，用户已确认手机两条都能看到。仅仓库维护工具补用户已正常关闭窗口后的受限续审，不改已签版本包；操作与失败停点见[维护指南](docs/WINDOWS-ALPHA5-MAINTENANCE.md)。当前未发布alpha.6 feed/Release、未升级Android或relay。下方保留各阶段历史验证结果。
+最新验证：本机已用原签名包从alpha.5维护升级至alpha.6，身份/权限/任务/回执保持，实际GUI和通道健康验证通过。重新连接后，原任务mobile-sync从409恢复到200，两条既有测试回复可读取，用户已确认手机两条都能看到。仅仓库维护工具补用户已正常关闭窗口后的受限续审，不改已签版本包；操作与失败停点见[维护指南](docs/WINDOWS-ALPHA5-MAINTENANCE.md)。当前未发布alpha.6 feed/Release、未升级Android或relay。最终9f6e93a的推送/PR两平台CI全部通过，包含六项实际Windows合成维护演练；下方保留各阶段历史验证结果。
 
 修复手机和 Desktop 在同一任务接续后，审批字段 guardian_subagent/auto_review 名称切换引发的权限误报。读取历史、更新预检、发送与停止使用相同比较；保存的权限摘要和完整配置不变，真正的审批、目录、网络和权限配置变化仍阻断。体验与验证步骤见 [Windows 版本说明](docs/versions/WINDOWS.md)。Android、relay 保持 alpha.5。
 
