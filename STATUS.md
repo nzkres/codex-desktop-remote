@@ -1,4 +1,8 @@
-# 当前验证状态：Windows alpha.6 本地签名候选与维护审查通过，等待实际切换确认
+# 当前验证状态：维护升级已批准，等待旧窗口退出超时，原alpha.5现场保留
+
+**最新实际结果：用户已明确批准维护升级，无需重复请求该授权。** 独立助手复验成功并报告guiPinned/waitingNormalExit；原GUI在120秒内未退出，助手返回 `old_process_exit_unconfirmed`，主journal与maintenance结果保持 `needs_review`。随后只读复核：当前槽仍alpha.5、稳定身份/配置/任务/回执与审查一致、候选事务尚未开始、原GUI仍能通过创建身份/路径/用户/会话核验。候选已暂存且ledger接受sequence2，故不能直接重跑原review/apply，也不能删屏障或回退ledger。没有启动alpha.6或停止原GUI，手机恢复未验收。下一次须在用户准备操作时先复核本次中断和原句柄，安排受审查的继续交接；不要让用户提前关掉原窗口。原始脱敏结果在忽略目录`apply-timeout-verification.json`。
+
+## 已完成的候选与审查准备（以下“待批准”是执行前记录）
 
 最终维护输入 `56f488eb3fbeb752d21d8af87b5fb5dd02ab3016` 的Core [push37763446214](https://github.com/nzkres/codex-desktop-remote/actions/runs/37763446214) / [PR37763453724](https://github.com/nzkres/codex-desktop-remote/actions/runs/37763453724) 均Windows/Linux成功。Windows Node64、Python135通过/6跳过、relay73通过/4跳过；Linux Node62通过/2跳过、Python121通过/20跳过、relay77通过。新维护Tk/helper合成两例committed/needs_review和既有GUI/helper、cgroup升级回退均通过。
 

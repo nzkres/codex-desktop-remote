@@ -1,5 +1,12 @@
 # 工作记录
 
+## 2026-10-08 — 已批准维护的实际等待超时
+
+- 用户明确回复“批准维护升级”，范围为当前配对Windows测试连接器alpha.5→签名alpha.6，保留原身份/权限/任务，不更新手机或服务器。
+- 执行已审查工具apply后，独立助手完成原GUI固定/包复验/暂存/ledger与primary屏障，输出guiPinned=true、waitingNormalExit=true；随后请用户正常关闭alpha.5窗口、保留Desktop。120秒内原句柄未退出，助手以old_process_exit_unconfirmed退出1，未启动候选事务。
+- 只读复核currentVersion=alpha.5，stableIdentityAndDataPreserved=true，candidateTransactionStarted=false，oldGuiStillVerified=true，phase=needs_review。未结束进程、回写旧数据库/ledger、删保护或重配对。原窗口应保持，下一次在用户准备好后先审查继续交接路径；原apply会因已持久屏障拒绝，不能盲重试。用户切换授权持续有效，不再重复询问。
+- 文档推送与PR描述更新首轮遇TLS握手/GraphQL EOF，原分支推送重试成功，未改远端历史；该网络故障与维护窗口超时分开记录。
+
 ## 2026-10-08 — alpha.5 别名故障维护交接与冷启动屏障
 
 - 在独立分支codex/controlled-alpha5保留现用状态，新增仓库专用review/apply工具；固定alpha.5→alpha.6/test、签名大小哈希与manifest、原GUI原始句柄/用户/会话/路径、全身份/配置/回执绑定。review只读与输出脱敏哈希；apply等待用户正常退出并持独占锁，不按PID终止或重配对。
