@@ -1,20 +1,22 @@
 # Linux 中继：全新受管安装
 
-返回[安装起点](README.md)，版本变化见 [中继历史](../versions/RELAY.md)。本页说明 **alpha.4 起支持的私有 OTA**；构建/归档证据见 [STATUS](../../STATUS.md)，公网部署与实机验收尚未完成。新受管安装**不接管现用服务器、账号库、端口或公网入口**。旧中继没有 `/desktop-remote-updates/*` 私有下载路由，必须先用包含新实现的已签中继 ZIP/trust 在新目录本地 bootstrap，不能靠上传 feed 把旧服务变为新服务。受控首装计划使用未发布新版本，见 [验收计划](../OTA-ACCEPTANCE.md)；不对已归档预览换签或换包。
+返回[安装起点](README.md)，版本变化见 [中继历史](../versions/RELAY.md)。[alpha.5 私有 prerelease](https://github.com/nzkres/codex-desktop-remote/releases/tag/v0.1.0-alpha.5) 已发布 `relay-0.1.0-alpha.5.zip` 与独立 `bootstrap-0.1.0-alpha.5.zip`；服务端大小/SHA 与本地一致，详见 [STATUS](../../STATUS.md)。它是需外部依赖的源码运行包，不是一键安装器。测试 origin `https://106.53.126.69:9443` 尚未部署；可本地解压及隔离临时首装复验，不在现用服务器启动新服务、登录或升级。新受管安装**不接管现用服务器、账号库、端口或公网入口**；旧中继没有私有下载路由，不能靠上传 feed 启用它，也不对已归档 alpha.4 换签或换包。
 
-受管宿主只支持 Linux，需 Python 3.12 与 `updates/requirements.txt` 中的 `cryptography`。还需要管理员预先提供经过审核的测试渠道发布公钥、已签名 relay 元数据和 ZIP；其后私有 OTA 下载走与中继账号登录和配对**同一 HTTPS origin**。宿主必须得到**显式委派的 cgroup v2 子树**，能创建子组并使用 `cgroup.kill`；`--cgroup-root` 不能用任意目录替代，也不能从 PID 空闲推断整树退出。本页不猜测 systemd 委派配置或宣称服务器已满足它。
+受管宿主只支持 Linux，目标环境需 Python 3.12 与 `updates/requirements.txt` 中的 `cryptography`。首装输入来自已核验 bootstrap ZIP 的 `relay/trust.json`、`relay/latest.json`，与 `relay-0.1.0-alpha.5.zip` 配套。公钥须对照**已认证仓库记录**：`keyId=cdr-ota-test-20261008-v1`、DER SPKI SHA-256 `c3835e3e59b362e0b356d3a7b3589c255187ddce34692167f5160b0e5f5e3a4d`；同一下载页的哈希表只能辅助检查传输完整性。元数据 sequence 1，有效至 2026-10-15 06:33:03 UTC（北京时间 14:33:03）；过期由维护者重新受控签发，不能关闭验证。其后私有 OTA 下载走与中继账号登录和配对**同一 HTTPS origin**。宿主必须得到**显式委派的 cgroup v2 子树**，能创建子组并使用 `cgroup.kill`；`--cgroup-root` 不能用任意目录替代，也不能从 PID 空闲推断整树退出。本页不猜测 systemd 委派配置或宣称服务器已满足它。
 
-以下在**源码根目录**的 Linux shell 运行，只使用专门的新目录和未被占用的测试端口。`HOME_DIR` 必须是尚不存在的新路径；不要指向现用中继或复制旧数据库、token。每一项输入需先核对来源，示例占位符须替换：
+以下可用于**本地隔离临时目录**复验；目标服务器部署仍须单独批准。将两个 ZIP 分别解到新目录；bootstrap 根目录已核对有 `README.txt`，`relay/` 下有 `trust.json`、`latest.json`。在 Linux shell 使用绝对路径和专门的新目录；`HOME_DIR` 必须尚不存在，不指向现用中继或复制旧数据库、token。WSL Linux Python 3.14.4 临时首装已成功，重复首装被拒且原目录未变；未启动服务或任务，不能代替目标服务器 Python 3.12 验收。候选端口须届时重新核对：
 
 ```sh
 PYTHON=/absolute/path/to/python3.12
+SOURCE_ROOT=/absolute/path/to/extracted-relay-zip
+BOOTSTRAP_ROOT=/absolute/path/to/extracted-bootstrap-zip
 HOME_DIR=/absolute/path/to/new-managed-relay
-TRUST=/absolute/path/to/reviewed-test-trust.json
-METADATA=/absolute/path/to/signed-relay-latest.json
-PACKAGE=/absolute/path/to/matching-relay.zip
+TRUST="$BOOTSTRAP_ROOT/relay/trust.json"
+METADATA="$BOOTSTRAP_ROOT/relay/latest.json"
+PACKAGE=/absolute/path/to/relay-0.1.0-alpha.5.zip
 "$PYTHON" -B -c 'import cryptography; print("dependency available")'
-"$PYTHON" -B updates/bootstrap.py --home "$HOME_DIR" --trust "$TRUST" --metadata "$METADATA" --package "$PACKAGE" --component relay
-"$PYTHON" -B relay/configure_managed.py --home "$HOME_DIR" --username admin --auth-port 28181 --api-port 28191 --plugin-port 28192 --port-start 28200 --port-end 28220
+"$PYTHON" -B "$SOURCE_ROOT/updates/bootstrap.py" --home "$HOME_DIR" --trust "$TRUST" --metadata "$METADATA" --package "$PACKAGE" --component relay
+"$PYTHON" -B "$SOURCE_ROOT/relay/configure_managed.py" --home "$HOME_DIR" --username admin --auth-port 28181 --api-port 28191 --plugin-port 28192 --port-start 28200 --port-end 28220
 ```
 
 配置命令交互读取新测试账号密码，创建私有 `data/auth.sqlite3`、`data/registry.sqlite3` 和本机控制 token；它拒绝覆盖已有身份。示例端口仅用于新隔离实例，先核对没有冲突，不可直接套用到现用服务。`transportConfig` 初始为空，因而**只配置完账号与监听不等于手机任务转发可用**；真实 HTTPS、FRPS、转发配置及设备配对须另外审查。

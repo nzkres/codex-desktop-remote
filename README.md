@@ -10,13 +10,13 @@
 | --- | --- | --- |
 | [下载 APK、安装、登录与配对](docs/install/ANDROID.md) | [准备 Python、打开窗口、连接测试任务](docs/install/WINDOWS.md) | [本地隔离启动、认证与公网前置条件](docs/install/RELAY.md) |
 
-先安装手机 APK、预览电脑窗口；准备好测试 HTTPS 中继后再联调。当前 Windows 是源码窗口，中继是源码服务，尚无一键安装包；中继本地启动不等于手机可从公网连接。
+当前先核对首装资料、预览合成窗口；隔离HTTPS中继部署和真实设备安装需分别确认后联调。Windows是源码窗口，中继是源码服务，尚无一键安装包；中继本地启动不等于手机可从公网连接。
 
 ## 版本更新记录
 
-最新阶段是[OTA本地准备](docs/OTA-LOCAL-PREPARATION.md)：部署草稿、发布前校验与合成演练已提交，`be5a01c`的Windows/Linux和Android CI均通过。用户现已批准专用测试签名、PR #1合并及alpha.5首装构建；服务器预检、候选入口和撤回步骤见[部署审查清单](docs/OTA-DEPLOYMENT-REVIEW.md)，尚未部署。
+**alpha.5受控测试首装候选已构建并复验。** PR #1已合并，专用RSA/APK签名和六项Android CI Secrets已配置；main受控构建通过，Windows/WSL新临时目录bootstrap通过。实际指纹、测试与归档证据见[STATUS](STATUS.md)。服务器预检、固定测试origin和撤回步骤见[部署审查清单](docs/OTA-DEPLOYMENT-REVIEW.md)，尚未部署。
 
-**alpha.4 在三端 OTA 上增加私有下载鉴权。** 手机复用账号登录，Windows 复用配对身份，中继管理员交互登录后更新。元数据与包都受控，仅向同源 HTTPS 的固定目录发送凭据，发布签名仍独立验证。正式更新源、稳定签名首装与真实设备升级尚未配置/验收，普通 CI 包不能直接成为正式 OTA 基线。按 [三阶段落地与验收](docs/OTA-ACCEPTANCE.md)逐项推进；[实现边界](docs/OTA.md)、[发布](docs/OTA-PUBLISH.md)和[恢复](docs/OTA-RECOVERY.md)提供具体说明。
+三端沿用alpha.4的私有下载鉴权：手机复用账号登录，Windows复用配对身份，中继管理员交互登录后更新。元数据与包都受控，仅向同源HTTPS固定目录发送凭据，发布签名独立验证。alpha.5有受控**测试**签名；公网源、真实设备首装及alpha.5→alpha.6仍待验收。普通CI包不能直接作为OTA基线。按[三阶段验收](docs/OTA-ACCEPTANCE.md)、[实现边界](docs/OTA.md)、[发布](docs/OTA-PUBLISH.md)和[恢复](docs/OTA-RECOVERY.md)推进。
 
 **仓库文档是查看每次更新的主要入口。** 三个软件分别保存完整历史，按版本从新到旧排列：
 
@@ -28,9 +28,9 @@
 
 [全部版本索引](docs/versions/README.md) · [仓库更新总览](CHANGELOG.md) · [后续维护规则](docs/ITERATION.md)
 
-以后每次软件版本更新，都必须把更新内容追加到对应文档并随代码提交；已发布记录持续保留。目前三份文档包含 alpha.4 的私有鉴权变化，并保留更早历史。
+以后每次软件版本更新，都必须把更新内容追加到对应文档并随代码提交；已发布记录持续保留。目前三份文档包含alpha.5受控首装、alpha.4私有鉴权及更早历史。
 
-可下载开发预览：[v0.1.0-alpha.4](https://github.com/nzkres/codex-desktop-remote/releases/tag/v0.1.0-alpha.4)。登录有权限的 GitHub 账号后，可下载 Android 测试 APK、Windows/relay 源码 ZIP、校验值和报告；alpha.2 / alpha.1 继续归档。Android 预览包更新信任为空，Windows/relay 源码包需外部运行时及首装信任配置，尚无一体化 EXE 安装器。建议先看 [原型关系图](docs/ARCHITECTURE.md)，再运行下面的合成自测/窗口预览，最后按 [测试指南](docs/TESTING.md) 做专用任务联调。遇到问题可用 [测试反馈](https://github.com/nzkres/codex-desktop-remote/issues/new?template=test-feedback.yml) 记录版本、步骤和结果。
+受控测试归档：[v0.1.0-alpha.5](https://github.com/nzkres/codex-desktop-remote/releases/tag/v0.1.0-alpha.5)。七项附件已发布且服务端大小/哈希核对一致；有权限的GitHub账号可下载三端程序、bootstrap公开信任/已签元数据、校验值和报告。旧alpha.4及更早版本保留。Android受控包已内置test信任，仍为debuggable测试构建；Windows/relay需要外部运行时，尚无一体化EXE或托盘。建议先看[原型关系图](docs/ARCHITECTURE.md)，再运行合成自测/窗口预览，最后依[测试指南](docs/TESTING.md)做专用任务联调。问题按[测试反馈](https://github.com/nzkres/codex-desktop-remote/issues/new?template=test-feedback.yml)记录实际版本与结果。
 
 ## 先安全自测
 

@@ -1,5 +1,17 @@
 # 工作记录
 
+## 2026-10-08 — alpha.5 受控签名构建与首装复验
+
+- 完成本轮已批准范围：实际配置六项Secrets，构件输入`1a4b4c0`先经分支Core37736389583/Android37736389589成功；核对远端main仍为预期`1e405ad`后以非强制快进推进main，再执行`gh workflow run android.yml --ref main -f signed_ota=true`。main Core37736836192和普通Android37736836186也成功。
+- main受控Android run37736837251成功：94 JVM测试、lint0errors/45warnings，apksigner在minSdk26校验单签名者及预设证书SHA，APK trust严格比对，临时签名输入清理成功。用`gh run download ... --name desktop-remote-android-ota-test`取得成品；下载SHA/大小与CI输出完全相符。APK不含v1 META-INF证书块，未用缺少v1推定签名失败；签名证据来自CI的真实apksigner和同一文件SHA。
+- 官方Google Maven的AAPT2 8.11.1-12782657独立工具核对实际AndroidManifest：包名dev.codex.desktopremote.lite、code5、alpha.5、minSdk26、targetSdk36、debuggable。ZIP CRC、包内releases与Git原始字节、trust与外部受控文件逐字节相等。沙箱无权读私有库的公开trust，改在正常用户上下文复核，没有放宽ACL或DPAPI。
+- Windows43/relay29文件采用Linux CI来源包，完整manifest/单文件哈希/Git原始字节一致。早期本机打包仅作dry run，不发布混合CRLF构件，也未批量改动工作树换行符。最终程序包指纹见STATUS。
+- 以`updates.publish.sign(... signing_home=..., sequence=1)`在内存解封RSA，为三端实际包签名；固定已批准origin，2026-10-15 06:33:03 UTC过期。公开bootstrap包包含三个组件各自trust/latest及README；完整扫描待发包和解压成员，未发现本次真实APK keystore字节、base64或口令。私钥/秘密不进入日志或附件。
+- 调用`updates.bootstrap.install`，分别在Windows Python3.12.14和WSL Python3.14.4的全新临时目录核对实际alpha.5版本、清单、trust与sequence1；data为空，第二次安装拒绝且全目录摘要不变。未配置或启动连接/中继，没有真实身份、账号、任务或公网访问。
+- GPT-6 Sol medium整理五份安装/版本索引文档，主代理复核包名、bootstrap子目录和命令；同步状态、交接、授权和过期说明。普通CI调试包不冒称受控包，测试签名不冒称生产发布。
+- 创建私有alpha.5草稿，独立核对7个附件的uploaded状态、大小和GitHub服务端digest全部与本地一致后，执行`gh release edit v0.1.0-alpha.5 --draft=false --prerelease --latest=false`。已发布于2026-10-08 06:41:33 UTC，目标1a4b4c0，旧alpha.4不替换。部署、手机安装、真实三端OTA与独立密钥恢复尚未执行。
+- 发布后核对tag实际指向1a4b4c0。最终仅15份Markdown记录更新：版本校验、121个本地链接目标和diff检查通过；文档提交标记`[skip ci]`，不重跑未变更产品，也不改变已发布包。后续从部署审查开始，保留“暂不部署”的边界。
+
 ## 2026-10-08 — 批准受控首装，合并PR #1
 
 - 用户明确选择“批准签名与合并，暂不部署”：确认测试origin `https://106.53.126.69:9443`、本项目专用RSA/APK测试签名、本机加密保存、六项Android Secrets和alpha.5首装构件。公网部署、停现用服务、真实身份迁移与手机安装仍不在范围；不再重复询问已批准的签名/合并。

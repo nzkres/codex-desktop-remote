@@ -1,15 +1,30 @@
 # OTA 交接
 
-下一阶段工具已补：`updates.signing`提供仅本机CurrentUser DPAPI的RSA库，发布器通过`--signing-home`直接内存签名；Android受控构建增加trust预检/包内比对及PKCS12格式。先读[发行工具与待确认执行范围](OTA-PUBLISH.md#windows发行密钥与受控android构建)，不要把临时密钥测试算作真实签名已配置；密钥备份/恢复与实际首装仍待处理。本次CI结果见STATUS，旧be5a01c仅代表上一阶段。
+2026-10-08：用户已批准并完成PR #1合并、专用测试签名、六项Android Secrets和alpha.5构建/复验；**暂不部署**。此前“先本地准备、不合并或签名”已被明确替代，不需重复确认。公网部署、开放端口、停止现用服务、真实身份迁移及手机安装仍未批准或执行。
 
-**最新授权：用户已批准签名与PR #1合并，暂不部署。** 部署草稿、发布路径校验和合成测试已随`be5a01c`推送至`codex/ota-implementation`。Core push37726150384/PR37726153483与Android37726153367全成功；后续仅补文档，软件版本与alpha.4资产不变。下一位先读[本地准备记录](OTA-LOCAL-PREPARATION.md)，再核对最新head、未提交改动与PR状态，本轮已经明确批准新项目测试签名与六项Secrets、固定测试origin及alpha.5构建；公网部署和真实设备切换仍未批准。
+先读[STATUS](../STATUS.md)、[落地验收](OTA-ACCEPTANCE.md)、[部署审查](OTA-DEPLOYMENT-REVIEW.md)、[发布](OTA-PUBLISH.md)、[安装起点](install/README.md)和[恢复](OTA-RECOVERY.md)。保留旧alpha.4资产，核对当前远端、分支及未提交改动后再继续；不要只凭本页旧提交猜测最新状态。
 
-2026-10-08增量：用户已选定**现有中继服务器新增隔离环境**。已只读核对106.53.126.69及候选资源，独立HTTPS9443配置通过实际Caddy校验；没有部署。后续按[部署审查](OTA-DEPLOYMENT-REVIEW.md)确认入口、签名保管与最终安装清单，处理IP短期证书续期，不再重新询问环境选项。origin已由用户确认为https://106.53.126.69:9443；具体公网变更仍待确认。
+## 已完成的受控基线
 
-alpha.3 已完成私有开发预览归档；alpha.4 新增私有下载鉴权。实际代码/CI/下载/安装/真机层级以根目录 [STATUS](../STATUS.md) 为准。PR #1已合并为main 1e405ad；正在独立codex/controlled-alpha5分支准备获批的首装构件，仍需核对最新远端和验证结果。
+- PR #1合并提交`1e405ad`。alpha.5程序输入为`1a4b4c0ced91d1a384e723374a6141d84e43de9e`，分支`codex/controlled-alpha5`经Core37736389583/Android37736389589通过后，main非强制快进。后续文档提交不改变这些程序输入。
+- main受控Android构建[37736837251](https://github.com/nzkres/codex-desktop-remote/actions/runs/37736837251)成功：94 JVM、lint0errors/45warnings、apksigner证书验证和包内trust比对。实际APK下载SHA与CI相同，AAPT2核对包名/code5/minSdk26。它仍为debuggable测试构建，不是生产发行包。
+- [alpha.5私有归档](https://github.com/nzkres/codex-desktop-remote/releases/tag/v0.1.0-alpha.5)已发布，七项资产服务端大小/哈希与本地一致，见STATUS。包含APK、Windows/relay源码ZIP、bootstrap公开信任/已签元数据、Android报告、verification和SHA256SUMS。三端版本说明在仓库`docs/versions/`，不以Release文字代替。
+- Windows43/relay29源码文件与Git输入逐字节相符。三端实际包已签RSA元数据；Windows Python3.12/WSL Python3.14在全新临时home通过bootstrap、账本与重复安装拒绝。没有启动真实连接或使用账号/身份；真实GUI/helper及cgroup升级/回退来自CI合成演练。
 
-下一位维护者先读 [落地验收](OTA-ACCEPTANCE.md)、[OTA 边界](OTA.md)、[发布步骤](OTA-PUBLISH.md)、[安装起点](install/README.md)和[恢复说明](OTA-RECOVERY.md)，再核对分支、未提交改动、CI 与发布资产。用户已经确定“保持私有，先补下载鉴权”，不要重新提议公开源码包。Android 使用既有登录、Windows 使用本机配对身份，relay 管理员交互 login/logout；仅限同 HTTPS origin 固定组件目录，元数据和包均鉴权。先核验匿名/过期/撤销/暂停/跨源拒绝，再审查服务器部署。服务器已选定；尚需确定最终 HTTPS origin、受控 RSA 发布密钥保管和连续 Android 证书。普通 CI debug APK 的空 trust 和临时签名不能成为 OTA 首装基线；14 天 Actions artifact 也不能成为 feed。
+## 签名资料与有效期
 
-隔离验收按组件独立做两个连续构件：签名与 served hash、全新 bootstrap/首装、在线 N→N+1、版本/数据/任务证据、失败与中断恢复。Windows 还须固定 Python 3.12 + cryptography、Node 20.19.0、FRP 0.71.0 和 Desktop 26.930.7945.0 精确 pin；新 `$InstallRoot` 不迁旧身份。Relay 只在专用 Linux 受管目录与显式委派 cgroup v2 上验；现用服务不自动接管。Android 的系统安装回执须在重开后核对实际 APK 与新鲜任务状态，取消安装不报成功。
+专用库在本机`%LOCALAPPDATA%\CodexDesktopRemoteSigning\test-v1`，CurrentUser DPAPI保护RSA和Android加密PKCS12/口令。RSA私钥没有上传；Android六项Secrets已配置在固定私有仓库。`github-provision.json`为configured。**不要重复执行create/provision、覆盖文件或重新生成同名证书。** Git克隆不能恢复该库；独立备份和跨电脑恢复尚未实现/验收，不把复制DPAPI文件当作可靠备份。
 
-任何公网源上线、现用服务切换和真实用户身份迁移都需要独立现场审查。测试时只用合成身份/临时数据库与专用 Desktop 任务，记录失败码和证据层级，勿复制凭据或私密任务内容。
+keyId为`cdr-ota-test-20261008-v1`，公开SPKI/APK证书指纹见STATUS。首次trust须核对已认证仓库中的公开指纹；同页SHA表只能核对完整性。后续Android构建必须沿用同一APK签名证书，RSA发布私钥不传CI/服务器，不在客户端嵌入PAT。
+
+三端alpha.5元数据为test、sequence1，固定`https://106.53.126.69:9443/desktop-remote-updates/test/{component}/latest.json`，有效至**2026-10-15 06:33:03 UTC（北京时间14:33:03）**。部署/首装前重查时间。过期时由维护者以新序号重新签发相同已核验程序包，单独归档新元数据；不能修改已签字段、替换同版本包或删除ledger绕过保护。
+
+## 最小下一步
+
+具体隔离部署还需确认，候选已可审查，见部署清单。用户已选择现有中继服务器隔离环境、确认origin与保持私有，不再询问这些选择。部署前重新检查106.53.126.69候选端口/目录、云安全组权限和IP证书；上次证书有效至2026-10-13 22:07:54 UTC，新容器必须有独立续证重载。部署草稿不是运行证据。
+
+获准后先建立新的Linux账号/受管home、数据库和明确委派的cgroup v2，再完成HTTPS/FRPS与私有feed；保持现用服务/数据不变。验证匿名/过期/撤销/暂停拒绝、账号三组件、设备仅Windows、每次元数据与包均鉴权，同origin固定目录且不转发跨源凭据。私有GitHub Release和14天Actions artifact都不是OTA服务。
+
+随后分别确认Windows新目录和测试手机首装，用户手动登录、配对和系统安装；未知手机签名不能默认卸载。Windows需Python3.12/Tk/cryptography、Node20.19.0、FRP0.71.0、Desktop26.930.7945.0及精确文件指纹，不放宽pin。只选择一条专用Desktop原生任务，先完成手机→Desktop同任务接续→手机的N基线，再构建尚不存在的alpha.6并逐组件验收N→N+1。
+
+下载、bootstrap或probe_verified都不能替代真实交互与数据保全。每条证据记实际版本、包哈希、签名标识、事务状态与结果；未知操作不重放，回退失败保留needs_review，不覆盖新数据库。只保存脱敏结果，不把私钥、token、DPAPI文件、数据库和原始任务内容放进仓库。
