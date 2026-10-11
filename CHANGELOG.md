@@ -2,6 +2,10 @@
 
 这里按版本记录仓库更新。每个软件的完整历史、体验入口和验证方法分别见 [手机](docs/versions/ANDROID.md)、[Windows](docs/versions/WINDOWS.md)、[中继](docs/versions/RELAY.md)，也可从 [全部版本索引](docs/versions/README.md) 查找。每次软件发布必须同时更新本总览与相应组件文档；组件可以独立升级，旧记录保留。
 
+## Windows 0.1.0-alpha.8 — 精确新版 Desktop 识别与重连诊断（候选）— 2026-10-11
+
+增加26.1007.2314.0精确双指纹，保留原26.930检查；新增仓库只读诊断，区分兼容、原任务、权限/空闲/回执失败。现用alpha.7身份和保护未更改，尚未维护切换、签名发布或手机验收。见[Windows历史](docs/versions/WINDOWS.md)和[恢复审查](docs/DESKTOP-26-1007-RECOVERY.md)。
+
 ## Windows 0.1.0-alpha.7 — 配对失败提示与正常在线升级准备 — 2026-10-08
 
 实机安装增量：用户经原GUI点击下载并安装后，alpha.6→alpha.7事务实际committed/success、ledger3；发布包绑定、原身份/权限/任务保持、旧alpha.6保留、唯一新GUI与实时Desktop探针均独立核验通过。用户随后明确确认手机显示PHONE_ALPHA7_OK及DESKTOP_ALPHA7_CONTINUE_OK两条新回复，升级后手机/电脑同任务接续验收通过。下方保留准备与发布阶段记录。

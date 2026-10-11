@@ -1,5 +1,7 @@
 # Windows 连接器：源码预览与全新受管安装
 
+2026-10-11重连提示：本机Desktop已到26.1007.2314.0，已装连接器仍alpha.7且需维护复核。alpha.8仅为精确兼容与只读诊断候选，未签名安装；不要重装、复制身份或清保护。旧版普通OTA不能越过已消失的Desktop路径，先按[恢复审查](../DESKTOP-26-1007-RECOVERY.md)核对，实际状态以STATUS为准。
+
 返回[安装起点](README.md)，版本变化见 [Windows 历史](../versions/WINDOWS.md)。[alpha.5 私有 prerelease](https://github.com/nzkres/codex-desktop-remote/releases/tag/v0.1.0-alpha.5) 已发布 `windows-0.1.0-alpha.5.zip` 和独立的 `bootstrap-0.1.0-alpha.5.zip`；服务端大小/SHA 与本地一致，详见 [STATUS](../../STATUS.md)。它是受控测试渠道的**源码运行包**，不是 EXE 或一键安装器。测试 origin `https://106.53.126.69:9443` 已从主电脑公网通过正常 TLS、账号鉴权和完整包校验；公网 FRPS `17443` 的合成 FRPC 夹具也已连通。alpha.6 已在测试电脑经受控维护安装，用户确认手机看到同一 Desktop 任务的两条接续回复；这不证明普通 GUI OTA 或 alpha.7 已验收，最新证据见[STATUS](../../STATUS.md)。全新受管安装不读取、迁移或停用旧连接器、旧 Gateway/FRP 和现用身份。
 
 ## 前置条件
