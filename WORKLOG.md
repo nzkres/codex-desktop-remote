@@ -1,5 +1,12 @@
 # 工作记录
 
+## 2026-10-12 — 一次性修复进入重启等待
+
+- 用户完成REMOTE_RECONNECT_READY，recheck.local.mjs实机确认标记completed、原权限摘要匹配、idle/receipts通过。此前profile推断差异不是需要改权限的证据；原permissionsHash保持。
+- 用户正常关闭GUI。忽略目录repair-once.local.py复用现有签名/存储/Transaction/WindowsDriver，只针对本home的alpha.7→alpha.8，不进入产品包。预期唯一配置变化desktopRoot；原数据完整CAS、完整重启边界、旧版本禁止健康回退。7项合成测试覆盖prepare保持、同boot拒绝、回执变化、重复实例、未结旧维护、事务间竞争、成功及坏候选；boot/probe/GUI在这些测试中模拟，签名/DPAPI/文件与事务真实。
+- 代理复核发现事务间数据竞争和旧维护未结检查缺口，修正后复核通过；不把prepare双写中间中断称启动围栏成功，原运行guard仍阻止通道。当前脚本摘要4d8014b72c68668e43cdc84a30799eb38e326d366417451d69e8c4dbb53ed131。
+- prepare实机成功，verify-prepared.local.py独立复核身份/配置/任务/信任/账本/current前后不变，primary围栏确实写入，原guard仍true。未执行resume，等待用户完整重启后再验。不重发未知消息、不关闭Desktop、不修改Desktop内部文件或授权。
+
 ## 2026-10-12 — 简化维护准备
 
 - 最终移除未接入模块后，完整Python152项146通过/6跳过（正常用户隔离环境），Node72通过；版本历史只读校验及git diff --check通过。候选未安装，继续等待用户原任务标记。

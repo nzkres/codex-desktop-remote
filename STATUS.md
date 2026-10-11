@@ -1,5 +1,11 @@
 # 当前验证状态：Desktop 26.1007 重连准备，现用 alpha.7 仍被保护阻断
 
+## 2026-10-12 — 原权限通过，重启准备已完成，等待用户重启
+
+用户完成REMOTE_RECONNECT_READY后，实机只读确认completed/sameTask/permissionsPreserved/idle/receiptsCertain全部通过，**无需更换权限摘要**。用户已正常关闭alpha.7 GUI。一次性本机维护脚本7项合成测试通过，独立代码复核后执行prepare成功，主transaction已写入needs_review/one_time_repair_waiting_restart，保留原committed记录；这是维护围栏，不是已升级或新故障。原runtimeNeedsReview仍true。
+
+随后独立复核原DPAPI身份、配置、任务文件、trust/ledger/current原字节均保持，现用仍alpha.7；仅准备审查记录与主围栏，未安装alpha.8、未启动进程或改变Desktop授权。忽略目录prepared-audit.json记录review摘要 `a85cd245b4e631ef5b80d85a98e0b244d96af648f8fa3071824fa23e4cac6970` 和一次性脚本摘要 `4d8014b72c68668e43cdc84a30799eb38e326d366417451d69e8c4dbb53ed131`。用户接下来手动完整重启Windows，打开Desktop原任务后告知；不要手动启动旧连接器。后续仅在新boot、原数据CAS和新鲜任务检查全部通过后执行resume，详见HANDOFF。
+
 ## 2026-10-12 — 简化为本次维护，候选已签名，未切换
 
 用户要求保留原身份/任务，先修好安卓连接，停止增加通用恢复框架。已移除未接入的恢复证据模块及其测试，仅保留精确版本识别与分项只读诊断。实机安装清单完整、原身份存在、回执2条accepted、原事务committed；新鲜诊断中任务空闲且回执确定，权限不匹配。后续快照又出现profile=null的推断状态，一次性审查及时拒绝，未写安装配置。已请用户在原任务完成REMOTE_RECONNECT_READY，不需重复配对；尚未要求关闭窗口或重启。

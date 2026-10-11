@@ -60,7 +60,19 @@ keyId为`cdr-ota-test-20261008-v1`，公开SPKI/APK证书指纹见STATUS。首�
 随后分别确认Windows新目录和测试手机首装，用户手动登录、配对和系统安装；未知手机签名不能默认卸载。Windows需Python3.12/Tk/cryptography、Node20.19.0、FRP0.71.0、Desktop26.930.7945.0及精确文件指纹，不放宽pin。只选择一条专用Desktop原生任务，先完成手机→Desktop同任务接续→手机的N基线，再构建尚不存在的alpha.6并逐组件验收N→N+1。
 
 下载、bootstrap或probe_verified都不能替代真实交互与数据保全。每条证据记实际版本、包哈希、签名标识、事务状态与结果；未知操作不重放，回退失败保留needs_review，不覆盖新数据库。只保存脱敏结果，不把私钥、token、DPAPI文件、数据库和原始任务内容放进仓库。
-# 2026-10-12 优先接续：只修原任务连接
+# 2026-10-12 最新接续：已准备，等待完整重启
+
+本段取代下方“等待标记/未部署围栏”旧状态。用户已完成REMOTE_RECONNECT_READY并正常关闭旧GUI。原权限摘要实时通过，无需换绑。用户已同意准备好后手动重启；现在prepare已成功，独立verify-prepared通过。现用仍alpha.7，primary transaction为needs_review/error=one_time_repair_waiting_restart，原runtimeNeedsReview=true；这是有意围栏，禁止删标志或再运行prepare。
+
+本机忽略目录`artifacts/desktop1007/repair-once.local.py`为一次性工具，sha256 `4d8014b72c68668e43cdc84a30799eb38e326d366417451d69e8c4dbb53ed131`。`repair-review.local.json`的storage.digest为`a85cd245b4e631ef5b80d85a98e0b244d96af648f8fa3071824fa23e4cac6970`；prepared-audit.json可复核。不要编辑已绑定脚本或review。原committed日志保留在review/主围栏previousJournal。该本机工具不进Git/产品包，跨电脑不可执行。
+
+收到用户“已重启”后：先核对boot已晚于review.boot、原文件摘要及围栏一致，确认Desktop原任务已打开。用正常用户Node执行`artifacts/desktop1007/recheck.local.mjs`，必须compatible/sameTask/permissionsPreserved/idle/receipts全部true；若Desktop恢复后快照仍推断/权限不匹配，只读停下，必要时请用户在原任务完成新无工具标记，不能改权限摘要。
+
+满足上述条件才使用正常用户Python `-B artifacts/desktop1007/repair-once.local.py resume`。它复验签名/boot/完整CAS，将原配置仅desktopRoot切至固定26.1007，保留permissionsHash；在主围栏保护及运行锁下消除已由完整重启证明的旧运行标志，复用既有事务验证新版本身份数据和真实通道。签名槽旧版保留，但旧Desktop不兼容，候选失败不得启动旧版；失败保持needs_review。仅允许一次尝试，中断后人工复核，不重复resume。
+
+完成后核验primary/secondary committed、实际GUI标题alpha.8、原身份/权限/任务保持，再让用户点击连接、安卓重试原任务。真实手机读取仍未验收；不要把7项合成测试（模拟boot/probe/GUI）当作实际重启或任务验收。签名包SHA见STATUS。本机工具仍需后续实际执行验收，不宣称是通用冷恢复或OTA闭环。
+
+# 以下为此前准备记录
 
 用户要求简化，不再开发通用恢复框架；未接入恢复模块已移除。现用alpha.7未更改。用户允许准备后手动重启，但现在不要让其重启；未部署启动围栏或完成一次性恢复执行器。
 
