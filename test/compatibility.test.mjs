@@ -3,12 +3,12 @@ import { mkdtemp, mkdir, rm, symlink, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
-import { COMPATIBILITY_PIN, verifyCompatibility, verifyCompatibilityEvidence } from '../src/compatibility.js';
+import { COMPATIBILITY_PIN, COMPATIBILITY_PINS, verifyCompatibility, verifyCompatibilityEvidence } from '../src/compatibility.js';
 
 const rejectsCode = (promise, code) => assert.rejects(promise, (error) =>
   error?.code === code && error.message === code && !String(error.stack).includes('relative-secret'));
 
-test('the only accepted synthetic evidence is the fixed Windows pin', () => {
+test('accepted synthetic evidence is an exact measured Windows pin', () => {
   assert.deepEqual(verifyCompatibilityEvidence({
     platform: COMPATIBILITY_PIN.platform,
     desktopVersion: COMPATIBILITY_PIN.desktopVersion,
@@ -25,6 +25,18 @@ test('the only accepted synthetic evidence is the fixed Windows pin', () => {
       { ok: false, code });
   }
   assert.deepEqual(verifyCompatibilityEvidence(null), { ok: false, code: 'invalid_evidence' });
+});
+
+test('new Desktop requires both matching fingerprints; versions cannot mix or float', () => {
+  const newest = COMPATIBILITY_PINS.find(p => p.desktopVersion === '26.1007.2314.0');
+  assert.ok(newest);
+  assert.deepEqual(verifyCompatibilityEvidence(newest), { ok: true, code: 'compatible' });
+  for (const field of ['appAsarSha256', 'codexExeSha256']) {
+    assert.deepEqual(verifyCompatibilityEvidence({ ...newest, [field]: COMPATIBILITY_PIN[field] }),
+      { ok: false, code: 'hash_mismatch' });
+  }
+  assert.deepEqual(verifyCompatibilityEvidence({ ...newest, desktopVersion: '26.1007.2315.0' }),
+    { ok: false, code: 'unsupported_version' });
 });
 
 test('invalid package input fails without exposing its value', async () => {

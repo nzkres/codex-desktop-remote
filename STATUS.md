@@ -1,4 +1,14 @@
-# 当前验证状态：Windows alpha.6→alpha.7 真实 OTA 与手机同任务接续验收通过
+# 当前验证状态：Desktop 26.1007 重连准备，现用 alpha.7 仍被保护阻断
+
+## 2026-10-11 — 新 Desktop 精确兼容候选，未恢复连接
+
+实际alpha.7仍已配对、上次OTA committed；当前runtimeNeedsReview=true，旧26.930路径消失，系统为26.1007.2314.0。未清标志、重配对、停止进程或改权限。独立分支codex/desktop-1007-recovery源自515313d，Android alpha.6工作树保留。
+
+alpha.8候选增加新版精确双指纹并保留旧pin；本机asar关键协议表已只读比对。实机候选读取原测试任务及marker通过，但permissions_changed阻断，不是连接成功。新增scripts/diagnose_desktop.mjs只读阶段诊断，成功也不授权冷恢复。Node70通过、版本校验通过；其他测试/构建后续记录。恢复证据缺口见[专项审查](docs/DESKTOP-26-1007-RECOVERY.md)。用户已打开任务，等待DESKTOP_1007_READY后复验。
+
+以下10月8日是当时验收基线，不代表10月11日仍在线。未签发/安装alpha.8、未发布feed、未捎带Android部署。
+
+本机最终Node70通过；Python152项中146通过/6平台跳过；版本历史与diff校验通过。未签名源码ZIP95,914字节，SHA-256 `e054754f8eba28afe6ef60762bdd295b9aeec1ae5b61252f1a2435881f744932`，打包器解包/清单自检通过（首次沙箱pack失败，正常用户环境重跑成功）。它不是可安装的已签OTA包。最终诊断仍为compatible=true、sameTask=true、taskReady=false、permissions_changed，reconnectAuthorized=false。CI待远端运行核对。
 
 ## 2026-10-08 — 用户点击下载并安装，alpha.6→alpha.7 实际事务完成
 

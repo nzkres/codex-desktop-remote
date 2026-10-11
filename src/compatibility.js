@@ -9,6 +9,15 @@ export const COMPATIBILITY_PIN = Object.freeze({
   appAsarSha256: '611d6da979d8bbabfec97dd90dcce27a9522e7016e6ccf135d59cab693ab08da',
   codexExeSha256: '3b8f6e33caa75f232558a3cf76ff9b87bb5ef6dbcf4996372f24e55c78b1b916',
 });
+export const COMPATIBILITY_PINS = Object.freeze([
+  COMPATIBILITY_PIN,
+  Object.freeze({
+    platform: 'win32',
+    desktopVersion: '26.1007.2314.0',
+    appAsarSha256: 'c5fdef328cfa2ad9095786f9c3a7aaa447e68834d31299d6ef2592da02029038',
+    codexExeSha256: 'd13914ced6c7af174d8d638db938284231227312104b06a25e9608c632a7daec',
+  }),
+]);
 
 const fail = (code) => ({ ok: false, code });
 
@@ -17,9 +26,10 @@ export function verifyCompatibilityEvidence(evidence) {
   try {
     if (!evidence || typeof evidence !== 'object') return fail('invalid_evidence');
     if (evidence.platform !== COMPATIBILITY_PIN.platform) return fail('unsupported_platform');
-    if (evidence.desktopVersion !== COMPATIBILITY_PIN.desktopVersion) return fail('unsupported_version');
-    if (evidence.appAsarSha256 !== COMPATIBILITY_PIN.appAsarSha256 ||
-        evidence.codexExeSha256 !== COMPATIBILITY_PIN.codexExeSha256) return fail('hash_mismatch');
+    const pin = COMPATIBILITY_PINS.find(p => p.desktopVersion === evidence.desktopVersion);
+    if (!pin) return fail('unsupported_version');
+    if (evidence.appAsarSha256 !== pin.appAsarSha256 ||
+        evidence.codexExeSha256 !== pin.codexExeSha256) return fail('hash_mismatch');
     return { ok: true, code: 'compatible' };
   } catch {
     return fail('invalid_evidence');
@@ -80,7 +90,7 @@ async function inspectCompatibility(config) {
     if ((await lstat(manifest)).size > 1024 * 1024) return fail('invalid_manifest');
     const version = manifestVersion(await readFile(manifest, 'utf8'));
     if (!version) return fail('invalid_manifest');
-    if (version !== COMPATIBILITY_PIN.desktopVersion) return fail('unsupported_version');
+    if (!COMPATIBILITY_PINS.some(p => p.desktopVersion === version)) return fail('unsupported_version');
     return verifyCompatibilityEvidence({
       platform: process.platform,
       desktopVersion: version,

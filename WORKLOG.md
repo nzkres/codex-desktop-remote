@@ -1,5 +1,13 @@
 # 工作记录
 
+## 2026-10-11 — 新版 Desktop 重连候选
+
+- 重新fetch确认PR2/3/4仍open，保留三个已有worktree，从515313d新建codex/desktop-1007-recovery。没有改Android工作树。
+- 本机26.1007.2314.0双文件哈希与asar关键协议只读核对；保留旧pin并新增精确pin。独立代理复核兼容及恢复证据，原句柄丢失不能凭PID/端口清保护。
+- 实机只读sameTask/marker通过，permissionsMatch=false、permissions_changed，模型输入0。原任务历史仅核对权限字段，原始数据留在本机；忽略目录artifacts/desktop1007存诊断与日志。不改安装配置、身份、权限摘要或Desktop文件。
+- 新增只读诊断脚本与5项合成测试；完整node --test 70通过，check_versions.py通过。用户已打开任务，等待DESKTOP_1007_READY完成后复验；冷恢复未实现/切换，详见专项审查。
+- 最终Node70、Python146通过/6跳过；未签名源码pack及内部解包清单自检通过，95,914字节/SHA e054754f8eba28afe6ef60762bdd295b9aeec1ae5b61252f1a2435881f744932。沙箱首次pack_failed，正常用户重跑通过。正式诊断实机输出compatible/sameTask=true、taskReady/reconnectAuthorized=false、permissions_changed；未写原配置。
+
 ## 2026-10-08 — 用户主动完成 Windows alpha.7 GUI 在线安装
 
 - 用户回报“我已经点击下载并安装了”。没有再触发安装、重发任务或停止窗口；立即只读核对current alpha.7、ledger3、主事务committed/success、old alpha.6，签名槽有效。
