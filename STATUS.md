@@ -1,5 +1,17 @@
 # 当前验证状态：Desktop 26.1007 重连准备，现用 alpha.7 仍被保护阻断
 
+## 2026-10-12 — 简化为本次维护，候选已签名，未切换
+
+用户要求保留原身份/任务，先修好安卓连接，停止增加通用恢复框架。已移除未接入的恢复证据模块及其测试，仅保留精确版本识别与分项只读诊断。实机安装清单完整、原身份存在、回执2条accepted、原事务committed；新鲜诊断中任务空闲且回执确定，权限不匹配。后续快照又出现profile=null的推断状态，一次性审查及时拒绝，未写安装配置。已请用户在原任务完成REMOTE_RECONNECT_READY，不需重复配对；尚未要求关闭窗口或重启。
+
+本地alpha.8新候选96,115字节，SHA256 `e9ae53cced437131a8220ec461d00978f1555cfd8245329c5feac2430d1225d8`；使用既有测试密钥签发sequence4，现用trust/ledger验签通过，metadata SHA256 `1baa44100e1aa6d8ddaf7f8e1bb744fc3da7aab53d014057038f9cb80d920ba7`。只在忽略目录artifacts/desktop1007，未发布、未安装、手机仍待恢复。此包取代此前未签名ZIP作为本次候选，不能称CI产物。证据与睡眠时间线见[专项记录](docs/DESKTOP-26-1007-RECOVERY.md)。
+
+## 2026-10-11 — 用户标记已完成，仍未授权重连
+
+原任务`DESKTOP_1007_READY`已由只读IPC确认completed，不需重复发送。兼容与同任务检查通过，权限检查仍为permissions_changed。已将差异定位至sandbox写入根与两个临时目录标志；历史执行记录与旧摘要可匹配，但不能替代实时授权。原身份、配置和runtimeNeedsReview保持；未安装alpha.8或恢复连接。后续需完成权限语义核对和受控冷恢复实现/隔离验证，再提交具体切换清单。
+
+CI更新：Windows/Linux测试及打包步骤通过，最终上传因GitHub Actions存储配额满失败；整体CI失败，未产生本轮可下载产物。详见[审查记录](docs/DESKTOP-26-1007-RECOVERY.md)。下方“等待标记”和“CI待核对”为此前状态，由本段取代。
+
 ## 2026-10-11 — 新 Desktop 精确兼容候选，未恢复连接
 
 实际alpha.7仍已配对、上次OTA committed；当前runtimeNeedsReview=true，旧26.930路径消失，系统为26.1007.2314.0。未清标志、重配对、停止进程或改权限。独立分支codex/desktop-1007-recovery源自515313d，Android alpha.6工作树保留。

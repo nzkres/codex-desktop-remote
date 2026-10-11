@@ -57,3 +57,27 @@ test('a different task never reaches permission or receipt checks',async t=>{
   assert.equal((await diagnoseDesktop(f.config,f.deps)).code,'outside_scope');
   assert.deepEqual(f.counts(),{closed:1,reads:1});
 });
+
+test('permission refusal does not conceal active work and unknown sends',async t=>{
+  const f=fixture(t);
+  f.state.currentPermissions.sandboxPolicy.networkAccess=true;
+  f.state.threadRuntimeStatus.type='active';
+  writeFileSync(join(f.receipts,'b'.repeat(64)+'.json'),JSON.stringify({state:'pending'}));
+  const r=await diagnoseDesktop(f.config,f.deps);
+  assert.equal(r.checks.permissions.code,'permissions_changed');
+  assert.equal(r.checks.idle.code,'thread_busy');
+  assert.equal(r.checks.receipts.code,'send_unknown');
+  assert.equal(r.taskReady,false);
+  assert.equal(r.reconnectAuthorized,false);
+  assert.deepEqual(f.counts(),{closed:1,reads:1});
+});
+
+test('missing approvals state and unexpected receipt files stay unknown',async t=>{
+  const f=fixture(t); delete f.state.requests;
+  writeFileSync(join(f.receipts,'unfinished.tmp'),'private-payload');
+  const r=await diagnoseDesktop(f.config,f.deps);
+  assert.equal(r.checks.idle.code,'pending_desktop_action');
+  assert.equal(r.checks.receipts.code,'receipt_invalid');
+  assert.equal(r.taskReady,false);
+  assert.equal(JSON.stringify(r).includes('private-payload'),false);
+});

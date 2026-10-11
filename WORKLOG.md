@@ -1,5 +1,20 @@
 # 工作记录
 
+## 2026-10-12 — 简化维护准备
+
+- 最终移除未接入模块后，完整Python152项146通过/6跳过（正常用户隔离环境），Node72通过；版本历史只读校验及git diff --check通过。候选未安装，继续等待用户原任务标记。
+
+- 用户要求停止新增通用恢复框架并继续修原任务连接。删除本轮未接入的recovery_evidence模块及测试，无现用功能删除。保留分项诊断，Node72项通过。
+- 本机只读audit-install确认alpha.7包清单、committed成功事务、DPAPI存在、2条accepted回执和受保护文件前后原字节相同。当前端口无监听，原Job不可恢复；Windows休眠/唤醒时间不能充当断线因果证明。
+- review-current.local.mjs限定原任务和既定目录、网络关闭，未通过实时profile核对即停止，未生成或应用新配置；已请用户在原任务执行无工具REMOTE_RECONNECT_READY。
+- check_versions.py --write和pack windows通过；sign-candidate.local.py在内存解封原DPAPI密钥签发sequence4，按现用trust/ledger验签通过。新ZIP96,115字节/SHA e9ae53cced437131a8220ec461d00978f1555cfd8245329c5feac2430d1225d8；未发布安装。忽略目录保留脱敏证据和本机维护脚本，不将真实状态提交Git。
+
+## 2026-10-11 — 标记完成后的只读核对
+
+- 用户回报已回复；recheck.local.mjs读取原任务确认DESKTOP_1007_READY completed、compatible/sameTask=true、permissionsPreserved=false，permissions_changed；自动模型输入0。未发新消息或改变安装。
+- diagnose.local.mjs在内存对比10条turn_context，仅替换sandbox writableRoots和两个tmp排除标志时均匹配原摘要。历史记录不能成为实时授权依据；没有修改产品权限判断。asar只读跟踪发现具名profile和sandbox投影并存，完整等价性仍未证明。
+- 核对PR CI38124021866：两平台测试、构建及合成生命周期步骤通过，upload-artifact因存储配额满失败；整体失败，无可下载CI产物。保留现有产物和配额配置。本轮仅增补证据文档，不重复无变化的产品测试。
+
 ## 2026-10-11 — 新版 Desktop 重连候选
 
 - 重新fetch确认PR2/3/4仍open，保留三个已有worktree，从515313d新建codex/desktop-1007-recovery。没有改Android工作树。
