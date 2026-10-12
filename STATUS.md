@@ -1,5 +1,11 @@
 # 当前验证状态：Desktop 26.1007 重连准备，现用 alpha.7 仍被保护阻断
 
+## 2026-10-12 — 已重启，仍未安装；当前权限记录待用户确认
+
+真实完整启动时间为2026-10-12 01:25:15北京时间，晚于prepare记录。verify-prepared复验原身份/配置/任务/信任/账本/current与围栏完全一致。用户完成REMOTE_AFTER_RESTART_READY后已可读取原任务；但新鲜快照恢复为auto_review、sandbox写根1项/tmp排除true，而不是重启前通过旧摘要的guardian_subagent、写根2项/tmp排除false。最新turn_context仍记录后者的有效sandbox形式；源码追踪不足以证明两种表示完全等价，未放宽匹配或修改旧摘要。
+
+只读review-current.local.mjs核对原任务/既定目录、网络关闭、idle与回执通过，在忽略目录生成permission-review.json及reviewed-fixture.local.json，**未应用**。已向用户请求明确同意按Desktop当前设置重新确认连接器权限记录；不得将之前“修好连接”的笼统授权当作此次确认。没有执行repair-once resume，现用仍alpha.7且保持围栏。若用户批准，需先修订/审查本机维护计划（保留旧review/boot证明/原摘要），不能直接执行此前要求原摘要保持不变的脚本；无需再让用户重启或重复发标记。
+
 ## 2026-10-12 — 原权限通过，重启准备已完成，等待用户重启
 
 用户完成REMOTE_RECONNECT_READY后，实机只读确认completed/sameTask/permissionsPreserved/idle/receiptsCertain全部通过，**无需更换权限摘要**。用户已正常关闭alpha.7 GUI。一次性本机维护脚本7项合成测试通过，独立代码复核后执行prepare成功，主transaction已写入needs_review/one_time_repair_waiting_restart，保留原committed记录；这是维护围栏，不是已升级或新故障。原runtimeNeedsReview仍true。

@@ -1,5 +1,11 @@
 # 工作记录
 
+## 2026-10-12 — 重启后权限差异复现，尚未resume
+
+- 完整重启已实测，verify-prepared通过；首次owner_unavailable后用户打开原任务并完成REMOTE_AFTER_RESTART_READY。随后实时快照仍permissions_changed，不能把之前匹配的状态当现在通过。
+- 只读源码复核具名profile请求虽不直接发送snapshot sandbox，但追加目录筛选仍使用它，缺完整后端展开证据；未实现忽略或自动规范化。当前任务只读审查idle/receipts通过，网络关闭、原任务和目录固定，候选设置仅保存忽略目录。
+- 已请求用户明确允许按当前任务设置重新确认连接器记录，等待答复。原安装、权限摘要、DPAPI、任务数据及维护围栏未改；没有运行resume，不要求再次重启。
+
 ## 2026-10-12 — 一次性修复进入重启等待
 
 - 用户完成REMOTE_RECONNECT_READY，recheck.local.mjs实机确认标记completed、原权限摘要匹配、idle/receipts通过。此前profile推断差异不是需要改权限的证据；原permissionsHash保持。
