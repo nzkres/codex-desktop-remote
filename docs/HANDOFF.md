@@ -1,5 +1,11 @@
 # OTA 交接
 
+## 当前停点：2026-10-12 alpha.8 已安装，安卓原任务恢复
+
+用户已明确批准当前任务权限重新确认，随后本机维护事务 committed/success。独立签名/身份/任务/批准配置/旧槽/新鲜探针检查通过；用户在 alpha.8 点击连接后，确认安卓原任务能看到 REMOTE_AFTER_RESTART_READY。本次修复已完成，不再运行 prepare/amend/resume，不要求重启、重配对或重复标记。
+
+这只证明本次实际安装和手机原任务读取恢复；未新增双向消息执行验收，未发布 alpha.8 公网 OTA，未更新 Android/relay。完整证据见 STATUS 最新段与本机忽略目录 installed-alpha8-audit.json。后续如果再次失败，先检查当时真实状态，不能用旧探针证明当前健康，也不能忽略权限差异。以下带“最新/最高优先级”字样的旧停点均为历史记录，以本段为准。
+
 **2026-10-11最新停点：重连未恢复。** codex-desktop-remote-desktop1007 / codex/desktop-1007-recovery准备alpha.8双pin和只读诊断；实际alpha.7有runtimeNeedsReview，旧26.930文件消失。候选新26.1007只读同任务/marker通过，权限摘要不匹配。用户已打开任务，等待DESKTOP_1007_READY后复验。先读STATUS和DESKTOP-26-1007-RECOVERY.md，不清保护/改摘要/复用旧维护器。原句柄丢失的冷恢复未实现、未切换；Android PR4工作树保持。
 
 **最高优先级停点：用户已在原窗口点击下载并安装，Windows alpha.6→alpha.7 GUI在线事务现已committed/success、ledger3；不是待安装。** 根代理只读独立验收实际签名槽/发布包绑定、原alpha.6保留、完整身份/配置/权限/任务摘要保持、应用锁及唯一新GUI与可信启动门归属全部通过；真实Desktop探针idle/permissionsVerified/receiptsCertain与版本alpha.7通过，自动模型输入0。用户随后在新窗口连接，在同一原测试任务完成PHONE_ALPHA7_OK与DESKTOP_ALPHA7_CONTINUE_OK，并明确确认“手机两条回复都能看到”。**Windows真实OTA及升级后同任务接续闭环已通过**；下一阶段才准备Android alpha.5的独立OTA，不捎带更新relay。不要重试安装、重跑维护或重复未知消息；先读STATUS最新段。本机脱敏证据final/installed-alpha7-{verification,gui}.json。下面发布前/待安装停点均属历史。

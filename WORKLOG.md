@@ -1,5 +1,12 @@
 # 工作记录
 
+## 2026-10-12 — 获准修复、安装及安卓验收完成
+
+- 用户明确同意以当前原任务设置继续修复。保留原审查记录、启动证明和完整状态检查，新增本机忽略目录 approved-repair.local.py，先审查后 amend/resume；没有将一次性维护代码加入产品。
+- 一次性维护测试最终 10/10 通过（含原 7 项；首次夹具缺文件失败已修正重跑），独立代码审查无阻断。真实 amend 保持安装未变；resume 返回 committed/success、0.1.0-alpha.8。
+- python -B artifacts/desktop1007/verify-alpha8.local.py 独立核验签名槽、身份、任务、批准配置、旧槽、应用锁和新鲜任务探针，结果保存 installed-alpha8-audit.json。窗口检查确认 alpha.8 GUI 已启动。未修改 Desktop 设置、未重配对。
+- 用户连接后在安卓原任务读到 REMOTE_AFTER_RESTART_READY，回复“能看到，原任务已恢复”。标记未重发；手机读取通过，不额外声称本轮新消息双向执行通过。此次只补文档，不改签名包、不发布源、不变更 Android/relay。
+
 ## 2026-10-12 — 重启后权限差异复现，尚未resume
 
 - 完整重启已实测，verify-prepared通过；首次owner_unavailable后用户打开原任务并完成REMOTE_AFTER_RESTART_READY。随后实时快照仍permissions_changed，不能把之前匹配的状态当现在通过。
