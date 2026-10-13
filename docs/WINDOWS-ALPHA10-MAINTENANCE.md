@@ -36,7 +36,7 @@ alpha.10 在现有 permissionsHash 外支持唯一可选 approvedAlternatePermis
 
 ## 当前执行状态
 
-alpha.10 已实际安装并 committed/success、sequence6；原身份/任务保全、主摘要保持且只追加获批备用摘要、旧配置与 staged 精确归档、双事务与完整保全摘要均独立通过。真实候选通道健康和原任务探针通过，新 GUI 已激活并持有应用锁。手机读取两条已有回复待用户确认，本次未发布在线 feed 或修改 Android/relay。
+alpha.10 已实际安装并 committed/success、sequence6；原身份/任务保全、主摘要保持且只追加获批备用摘要、旧配置与 staged 精确归档、双事务与完整保全摘要均独立通过。真实候选通道健康和原任务探针通过，新 GUI 已激活并持有应用锁。用户已确认手机原任务能看到 PHONE_ALPHA9_OK 与 DESKTOP_ALPHA9_CONTINUE_OK，两条消息均未重发，真实历史读取恢复通过。新消息 PHONE_ALPHA10_OK → DESKTOP_ALPHA10_CONTINUE_OK 的双向接续待用户确认。本次未发布在线 feed 或修改 Android/relay。
 
 原助手等待600秒超时且未修改安装；用户随后确认正常断开关闭。复用既有 verify_clean_exit 检查旧签名控制器自身清理记录、两把独占锁及旧PID缺席，完整 binding/proof/prior/priorState 与原审查一致。仅在本机新增 continue.local.py，原脚本/审查未改，先验原助手字节再执行相同字节，三次完整复查及新鲜探针后调用原 apply_after_exit。6/6 续接回归和独立复审通过。不宣称保留了已关闭的原句柄或观察到退出码，不重新打开旧PID，不删除 runtimeNeedsReview。
 
