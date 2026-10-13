@@ -1,3 +1,17 @@
+## 2026-10-14 — 独立恢复助手已启动，等待本轮对话空闲
+
+GPT-6 Sol medium只读复核等待器通过。固定SHA一致后已启动独立助手PID15156，实际输出waitingTasksIdle=true、switched=false；标准错误为空。它将在当前维护回合结束、两条任务明确空闲且完整CAS不变后执行原已审查resume；无需再次批准或重启。此时尚未确认安装提交，不得重复启动助手/运行resume或提前打开旧连接器。
+
+助手输出位于artifacts/alpha12/resume-wait-output.txt，错误位于resume-wait-error.txt。下一轮先检查输出、primary与alpha12-repair-transaction双记录、current指针、签名、scope-only配置、原身份/任务数据和旧槽归档，再检查新窗口；不能仅凭出现窗口宣布升级或手机验收成功。用户看到alpha.12窗口后先回报，未出现或报错直接报告，不重配对。
+
+## 2026-10-14 — alpha.12重启后保全核对通过，原测试任务已恢复
+
+用户确认已完整重启；只读审计确认boot严格增加、原review SHA-256仍189b383b0bb2683f24d6c83dde4732a0bdf67ecc1b194b079ab2977ea22d5614，primary围栏、完整身份/配置/保护文件/任务数据及代码指纹一致，三锁可得，guard保留，候选签名有效。脱敏证据artifacts/alpha12/post-restart-audit.json。未重复prepare，未清保护。
+
+原测试任务最初owner_unavailable；用户随后在原任务收到ALPHA12_AFTER_RESTART_READY。只读独立诊断两任务兼容/同任务/权限/回执均通过，原测试任务idle、当前维护对话thread_busy；首次原生快照历史标为未完整，后续完整历史联合探针补取成功后返回thread_busy。不能把首份诊断incomplete_history隐藏为始终成功。
+
+为等待当前维护回合结束新增本机独立等待器artifacts/alpha12/resume-when-idle.local.py（SHA-256 84a965492764c27744d23019cd649e3b3f670c0841ef0160a610cf52ab73309f）；探针wait-idle.mjs（28fda2b74b5a63a608018d26f4a1e0e8bed823d8e737e957afe56483474d11d7）。不改原恢复助手或review；循环前后复核全部状态，只等待明确thread_busy，15分钟超时退出，其他错误立即拒绝；idle后仅调用原resume一次。6项合成等待门禁测试通过。此刻尚未启动等待器或执行真实安装，完成独立复核后启动，另记结果。
+
 ## 2026-10-13 — alpha.12重启前恢复记录已保存，等待用户完整重启
 
 用户已确认正常关闭alpha.11窗口。执行固定SHA-256为4316f8d8c116678d4a8139154d3fae2e1bf55fadc1b765bed7ab5b4d47aeffea的本机助手 `artifacts/alpha12/repair.local.py prepare` 成功，返回prepared=true、restartRequired=true、configurationUnchanged=true。没有执行resume，没有停止Desktop或其他服务。
