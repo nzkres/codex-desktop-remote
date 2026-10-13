@@ -11,9 +11,10 @@ import { checkUpdate } from './update_probe.mjs';
 import { configuredPermissionsMatch } from '../src/service.js';
 import { assertIdle } from '../src/vendor/desktop-state.js';
 import { Receipts } from '../src/receipts.js';
+import { taskConfigs } from '../src/tasks.js';
 
 const PUBLIC_CODES = new Set([
-  'invalid_config', 'unsupported_platform', 'unsupported_version', 'hash_mismatch',
+  'invalid_task_scope', 'invalid_config', 'unsupported_platform', 'unsupported_version', 'hash_mismatch',
   'missing_file', 'io_error', 'reparse_path', 'invalid_file', 'invalid_manifest',
   'desktop_unavailable', 'owner_unavailable', 'owner_unverified', 'owner_changed',
   'snapshot_unavailable', 'incomplete_history', 'permissions_changed', 'permissions_unverified',
@@ -62,6 +63,11 @@ export async function diagnoseDesktop(config, {
     taskReady: false, reconnectAuthorized: false };
   let follower;
   try {
+    if (Object.hasOwn(config,'additionalTasks')) {
+      const tasks = [];
+      for (const task of taskConfigs(config)) tasks.push({threadId:task.threadId, ...await diagnoseDesktop(task,{verify,createFollower})});
+      return {...report, phase:'all_tasks', taskReady:tasks.every(task => task.taskReady), tasks};
+    }
     await verify(config);
     report.compatible = true;
     report.phase = 'snapshot';

@@ -52,3 +52,5 @@ sequenceDiagram
 ```
 
 多电脑路由使用目标电脑标识隔离请求，但当前只验收一台电脑的一条任务；不得据此声称所有电脑、Android 新包或新提取中继已通过。原公网服务和用户现装 APK 不在本原型变更范围。
+
+alpha.11 候选保持同一电脑连接，只在本机加入显式 `additionalTasks` 清单。每项有独立 Follower/Service/权限摘要；HTTP按任务ID路由，原手机任务列表与中继API复用。TaskService统一写操作/断开/OTA检查，Receipts和MobileSync均以任务ID区分数据。当前仅用户指定的原测试任务与开发对话被准备接入，安装和手机验收状态见STATUS。

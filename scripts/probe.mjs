@@ -15,6 +15,7 @@ const config=JSON.parse(readFileSync(filename,'utf8'));
 const report={schema:1,fixtureOnly:true,threadId:config.threadId,modelTurnsStarted:0};
 let follower,server;
 try {
+ if(Object.hasOwn(config,'additionalTasks')) throw new Error('single_task_harness_required');
  await verifyCompatibility(config);
  follower=new Follower(config);
  if(config.permissionsHash) permissionDigests(config);

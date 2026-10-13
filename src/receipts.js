@@ -8,7 +8,7 @@ import { ControlError } from './vendor/desktop-ipc.js';
 
 // Only IDs/digests/acknowledgements persist. A pending record is never resent.
 export class Receipts {
-  // 一个实例对应一个任务的数据目录；持久化内容只有标识、摘要和确认回执。
+  // 一个实例对应一个连接器的数据目录；不同任务的编号共同参与 key；持久化内容只有标识、摘要和确认回执。
   constructor(directory) {
     this.directory = directory;
     mkdirSync(directory, { recursive: true });
@@ -20,7 +20,7 @@ export class Receipts {
   file(key) { return join(this.directory, key + '.json'); }
   assertCertain() {
     // 发送前或断开/更新前扫描目录：存在 pending、损坏记录或链接时，拒绝继续操作。
-    // The directory belongs to one configured Desktop task. Changing a message
+    // The directory belongs to all explicitly configured tasks. Changing a message
     // ID must never escape an earlier uncertain send, including after restart.
     const files = readdirSync(this.directory).filter(name => name.endsWith('.json'));
     if (files.length > 10000) throw new ControlError('receipt_limit','发送记录需维护者核对，消息未发送。');
@@ -30,7 +30,7 @@ export class Receipts {
       let record;
       try { record=JSON.parse(readFileSync(join(this.directory,name),'utf8')); } catch { record=null; }
       if (record?.schema !== 1 || record.state !== 'accepted' || typeof record.turnId !== 'string' || !record.turnId)
-        throw new ControlError('send_unknown','这个任务有一条发送结果未确认，请在 Desktop 核对；更换消息编号也不会重发。');
+        throw new ControlError('send_unknown','已开放任务中有一条发送结果未确认，请在 Desktop 核对；更换消息编号也不会重发。');
     }
   }
   get(key, digest) {

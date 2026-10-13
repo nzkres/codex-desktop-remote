@@ -71,6 +71,8 @@ export class Service {
     this.draining = false; this.stopUncertain = false; this.drainWaiters = new Set();
     this.drainTimeoutMs = drainTimeoutMs; this.quarantine = quarantine;
   }
+  projects() { return [{id:'desktop-fixture', name:'Desktop 联调', path:this.config.projectPath}]; }
+  async sessions() { return [(await this.read(this.config.threadId)).session]; }
   target(id) { if (id !== this.config.threadId) throw new ControlError('outside_scope', '未开放这个任务。', 403); }
   permissions(state) {
     // 每次依赖快照的操作都要与启动配置里的权限摘要核对。
@@ -91,7 +93,7 @@ export class Service {
     const status = active ? 'RUNNING'
       : latest?.status === 'failed' ? 'FAILED' : latest?.status === 'interrupted' ? 'INTERRUPTED' : 'COMPLETED';
     return {
-      session: { id, project_id: 'desktop-fixture', title: this.config.title, status, active_turn_id: active,
+      session: { id, project_id: this.config.projectId ?? 'desktop-fixture', title: this.config.title, status, active_turn_id: active,
         mode: state.latestCollaborationMode?.mode ?? 'default', updated_at: latest?.turnStartedAtMs ?? latest?.startedAtMs ?? 0 },
       thread: { id, cwd: this.config.projectPath, turns },
       observation: { state: active ? 'running' : 'idle', source: 'desktop-ipc',
@@ -236,12 +238,12 @@ export function httpServer(service, token, instance, controlToken = null) {
       if (req.method === 'GET' && url.pathname === '/api/connector/update-status')
         return reply(200, await service.updateStatus());
       if (req.method === 'GET' && url.pathname === '/api/projects')
-        return reply(200, {projects:[{id:'desktop-fixture', name:'Desktop 联调', path:service.config.projectPath}]});
+        return reply(200, {projects:service.projects()});
       if (req.method === 'GET' && url.pathname === '/api/sessions')
-        return reply(200, {sessions:[(await service.read(service.config.threadId)).session]});
+        return reply(200, {sessions:await service.sessions()});
       if (req.method === 'GET' && url.pathname === '/api/activity') return reply(200, {activity:[]});
       const match = /^\/api\/sessions\/([A-Za-z0-9-]+)\/(mobile-sync|mobile-items|mobile-tasks|signals|messages|stop)(?:\/([a-f0-9]{32}))?$/.exec(url.pathname);
-      if (!match) throw new ControlError('unsupported_route', '本轮仅支持已有 Desktop 测试任务的文字交互；其他操作请在 Desktop 完成。', 501);
+      if (!match) throw new ControlError('unsupported_route', '本轮仅支持已授权 Desktop 任务的文字交互；其他操作请在 Desktop 完成。', 501);
       const [, id, route, itemKey] = match;
       service.target(id);
       if (req.method === 'POST' && route === 'messages') return reply(200, {result:await service.send(id, await bodyOf(req))});

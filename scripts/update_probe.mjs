@@ -9,8 +9,10 @@ import { Follower } from '../src/follower.js';
 import { Service, permissionDigest, permissionsMatch, permissionDigests } from '../src/service.js';
 import { Receipts } from '../src/receipts.js';
 import { verifyCompatibility } from '../src/compatibility.js';
+import { TaskService, taskConfigs } from '../src/tasks.js';
 
 export async function checkUpdate(config, follower, reviewerAliasOnly = false) {
+  if (Object.hasOwn(config,'additionalTasks')) throw new Error('all_task_probe_required');
   if (!/^[a-f0-9]{64}$/.test(config.permissionsHash) || typeof reviewerAliasOnly !== 'boolean')
     throw new Error('permissions_unverified');
   permissionDigests(config);
@@ -51,6 +53,16 @@ export async function checkUpdate(config, follower, reviewerAliasOnly = false) {
   return { ...result, reviewerAliasOnly: true };
 }
 
+export async function checkAllTasks(config, createFollower = cfg => new Follower(cfg)) {
+  taskConfigs(config);
+  const directory = join(config.dataDir, 'receipts');
+  const info = lstatSync(directory);
+  if (!info.isDirectory() || info.isSymbolicLink()) throw new Error('unsafe_receipt_directory');
+  const receipts = Object.create(Receipts.prototype); receipts.directory = directory;
+  const service = new TaskService(config, receipts, {createFollower});
+  try { return await service.updateStatus(); } finally { service.close(); }
+}
+
 async function main(argv = process.argv.slice(2)) {
   let follower;
   try {
@@ -60,8 +72,11 @@ async function main(argv = process.argv.slice(2)) {
     const config = JSON.parse(readFileSync(resolve(argv[0]), 'utf8'));
     if (!/^[a-f0-9]{64}$/.test(config.permissionsHash)) throw new Error('permissions_unverified');
     await verifyCompatibility(config);
-    follower = new Follower(config);
-    console.log(JSON.stringify(await checkUpdate(config, follower, argv.length === 2)));
+    if (argv.length === 2) {
+      if (Object.hasOwn(config,'additionalTasks')) throw new Error('reviewer_alias_not_proven');
+      follower = new Follower(config);
+      console.log(JSON.stringify(await checkUpdate(config, follower, true)));
+    } else console.log(JSON.stringify(await checkAllTasks(config)));
   } catch {
     console.log(JSON.stringify({idle:false,code:'active_or_unverified_desktop_task'}));
     process.exitCode = 1;
