@@ -1,3 +1,11 @@
+## 2026-10-13 — 已批准清理完成，原任务恢复；权限差异待选择
+
+用户批准固定清单的26项清理。执行前再次核对 review-list.csv SHA、26份本机ZIP的大小/CRC/SHA，以及远端ID/名称/来源run/创建时间/大小；26个DELETE均成功。删除后完整清单确认恰好只少这26项，最新debug样本11558639319和其余产物保持，剩余87项。共296503472字节，未碰Release或签名APK。忽略目录 ci-artifact-backup/deletion-verification.json 与逐项journal保存证据；尚未验证GitHub配额重算或重新上传成功。
+
+用户完成 ALPHA9_PREFLIGHT_READY；Desktop read_thread 独立确认同一原任务 completed/idle。新鲜只读快照 sameTask/兼容/空闲/回执通过，但 permissions_changed；历史快照 isComplete=false，未在权限不匹配时发起历史加载。对照此前已批准权限记录，其摘要仍与现用配置吻合：当前审批者名称为已支持的旧别名，sandbox writableRoots从1到2（新增项是原任务可视化目录，原runtimeWorkspaceRoots已包含）；excludeSlashTmp/excludeTmpdirEnvVar从true到false，networkAccess仍false。不能据此推定整套权限等价或自动重写摘要。
+
+已请用户选择沿用旧授权还是采用Desktop当前设置。真实alpha.8、身份、配置、权限记录、运行保护和主事务均未修改，未执行prepare/resume或安装alpha.9，不要求立即重启；已完成的标记不再重发。下一步按用户选择完成权限核对及具体维护准备，不能直接运行此前要求原配置不变的一次性脚本。
+
 ## 2026-10-13 — Android 模拟器 14 项实测通过，剩余配额阻断
 
 最终 `e77079a` 的 [Android PR run 38345972326](https://github.com/nzkres/codex-desktop-remote/actions/runs/38345972326) completed/failure：单测/lint/debug APK、包内版本核验、API35 AOSP 实际仪器回归三步骤 success；最后保存产物 failure。日志实际报告 Starting 14 tests / Finished 14 tests / BUILD SUCCESSFUL in 2m 58s。根代理独立查看步骤结论，GPT-6 Sol medium 提取日志证据；记录在忽略 JSON，未更改 App 功能或上传门禁。

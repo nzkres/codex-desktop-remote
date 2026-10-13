@@ -1,3 +1,11 @@
+## 2026-10-13 — 已批准清理完成，原任务恢复；权限差异待选择
+
+用户批准固定清单的26项清理。执行前再次核对 review-list.csv SHA、26份本机ZIP的大小/CRC/SHA，以及远端ID/名称/来源run/创建时间/大小；26个DELETE均成功。删除后完整清单确认恰好只少这26项，最新debug样本11558639319和其余产物保持，剩余87项。共296503472字节，未碰Release或签名APK。忽略目录 ci-artifact-backup/deletion-verification.json 与逐项journal保存证据；尚未验证GitHub配额重算或重新上传成功。
+
+用户完成 ALPHA9_PREFLIGHT_READY；Desktop read_thread 独立确认同一原任务 completed/idle。新鲜只读快照 sameTask/兼容/空闲/回执通过，但 permissions_changed；历史快照 isComplete=false，未在权限不匹配时发起历史加载。对照此前已批准权限记录，其摘要仍与现用配置吻合：当前审批者名称为已支持的旧别名，sandbox writableRoots从1到2（新增项是原任务可视化目录，原runtimeWorkspaceRoots已包含）；excludeSlashTmp/excludeTmpdirEnvVar从true到false，networkAccess仍false。不能据此推定整套权限等价或自动重写摘要。
+
+已请用户选择沿用旧授权还是采用Desktop当前设置。真实alpha.8、身份、配置、权限记录、运行保护和主事务均未修改，未执行prepare/resume或安装alpha.9，不要求立即重启；已完成的标记不再重发。下一步按用户选择完成权限核对及具体维护准备，不能直接运行此前要求原配置不变的一次性脚本。
+
 ## 2026-10-13 — alpha.9 候选就绪，真实安装尚未切换
 
 - 功能代码已在 `codex/simple-reconnect-alpha9`、草稿 PR #6；Windows alpha.9 / Android alpha.6 / relay alpha.6 的用户体验说明均已入库。程序候选输入固定 `2a783a06cac7ff0f4fe527280a92af031ca28cac`，后续仅修复 Android CI 环境。

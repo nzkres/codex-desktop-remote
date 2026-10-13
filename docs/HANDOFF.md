@@ -1,5 +1,13 @@
 # OTA 交接
 
+## 最新增量：2026-10-13 清理完成、原任务执行端恢复
+
+26个用户批准的旧debug临时artifact已实际删除并独立核对其余产物保持；本机完整备份保留。不是等待清理批准，且尚不能声称配额已刷新或新CI包可下载。read_thread确认原任务ALPHA9_PREFLIGHT_READY completed/idle，不再要求重发。
+
+当前唯一新增前检阻断是权限差异：原已批准权限摘要仍匹配安装记录；最新snapshot的临时目录排除标志true→false，sandbox写根新增原任务可视化目录（runtimeWorkspaceRoots原已含它），网络仍关闭。审批者名称别名已被现有代码处理，不足以解释其他差异。没有绕过匹配或加载未完整历史，真实安装保持alpha.8及runtimeNeedsReview保护。
+
+已向用户询问本次授权范围选择，等待答复。若采用当前设置，先固定/复验当前权限与原配置的具体差异，调整本次维护方案并隔离验证；不能直接运行现有要求配置不变的repair-once.local.py，也不能借旧批准自动改权限。若保持旧范围则继续语义核对。下方“等待标记/等待清理”的旧停点已被本段取代。
+
 ## 当前停点：2026-10-13 简化重连已实现，三端 OTA 候选待实机切换
 
 源码在 `C:\code\my-code\codex-desktop-remote`，独立分支 `codex/simple-reconnect-alpha9`，草稿 [PR #6](https://github.com/nzkres/codex-desktop-remote/pull/6)。先读 [本轮实施与候选哈希](RECONNECT-AND-OTA-20261013.md) 和 [STATUS](../STATUS.md) 顶部；下方旧停点仅为历史，不重跑旧维护脚本。

@@ -88,3 +88,12 @@ GPT-6 Sol medium 实现及另一代理独立审查；根代理检查代码并独
 `e77079a` 使用明确 AVD 路径、API35 AOSP default x86_64 镜像、2048M 临时数据分区，KVM与启动诊断保持。run `38345972326` 的四组仪器回归实际执行 14 项：日志先报 `Starting 14 tests on emulator-5554 - 15`，随后 `Finished 14 tests` / `BUILD SUCCESSFUL in 2m 58s`；主代理独立核验该步骤 success。它覆盖首页选择目标、任务目标切换、远程终端界面和通知服务，不等于真实手机 OTA 安装。
 
 同一运行单元测试/lint/debug APK 构建与包内说明核验均 success；最后 `Save untrusted debug APK and reports` 因 `Artifact storage quota has been hit` failure，整体 failure。没有跳过回归或软化上传门禁。下一步仍需获批清理已完整备份的精确临时产物、等待额度恢复，然后受控 main 构建与真机 OTA；普通 debug 产物不能代替原证书签名包。
+
+## 2026-10-13 — 已批准清理完成，原任务恢复；权限差异待选择
+
+用户批准固定清单的26项清理。执行前再次核对 review-list.csv SHA、26份本机ZIP的大小/CRC/SHA，以及远端ID/名称/来源run/创建时间/大小；26个DELETE均成功。删除后完整清单确认恰好只少这26项，最新debug样本11558639319和其余产物保持，剩余87项。共296503472字节，未碰Release或签名APK。忽略目录 ci-artifact-backup/deletion-verification.json 与逐项journal保存证据；尚未验证GitHub配额重算或重新上传成功。
+
+用户完成 ALPHA9_PREFLIGHT_READY；Desktop read_thread 独立确认同一原任务 completed/idle。新鲜只读快照 sameTask/兼容/空闲/回执通过，但 permissions_changed；历史快照 isComplete=false，未在权限不匹配时发起历史加载。对照此前已批准权限记录，其摘要仍与现用配置吻合：当前审批者名称为已支持的旧别名，sandbox writableRoots从1到2（新增项是原任务可视化目录，原runtimeWorkspaceRoots已包含）；excludeSlashTmp/excludeTmpdirEnvVar从true到false，networkAccess仍false。不能据此推定整套权限等价或自动重写摘要。
+
+已请用户选择沿用旧授权还是采用Desktop当前设置。真实alpha.8、身份、配置、权限记录、运行保护和主事务均未修改，未执行prepare/resume或安装alpha.9，不要求立即重启；已完成的标记不再重发。下一步按用户选择完成权限核对及具体维护准备，不能直接运行此前要求原配置不变的一次性脚本。
+
