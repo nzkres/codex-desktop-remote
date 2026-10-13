@@ -61,7 +61,7 @@ windows metadata SHA-256：`5e9afe18f2d42d3bf49b59fb2720490b5d384b8bfb1bfe0c32fa
 
 relay metadata SHA-256：`a49869d58599a5c2f1c43ddb0f67001a68d179e514ed1dfecfc407523bcda880`。
 
-Android 当前没有受控签名 alpha.6 APK，不能用普通 debug APK代替。Core CI 38343263687 两平台测试、演练与打包成功，整体因 artifact 存储配额失败；没有本轮可下载 CI 包。Android 模拟器路径、磁盘问题已按实际日志修复并重跑，不能把 CI 尚未成功写成已通过。
+Android 当前没有受控签名 alpha.6 APK，不能用普通 debug APK代替。Core CI 38343263687 两平台测试、演练与打包成功，整体因 artifact 存储配额失败；没有本轮可下载 CI 包。Android 最终 [e77079a / 38345972326](https://github.com/nzkres/codex-desktop-remote/actions/runs/38345972326) 实际模拟器 14/14 仪器测试、单测/lint/编译/版本检查通过；artifact 上传因配额失败，整体失败，尚无受控签名 alpha.6 APK。
 
 ## 当前真实现场与后续切换
 
@@ -82,3 +82,9 @@ GPT-6 Sol medium 实现及另一代理独立审查；根代理检查代码并独
 另由根代理实际运行 `python -B artifacts/alpha9/repair-gui-smoke.local.py`：完全临时合成 home 中真实 `RepairDriver.start/verify/activate` 成功提交 alpha.9（一次启动）；故意让新候选健康检查失败后回退 alpha.8（两次启动）。两例激活窗口持有应用锁，外层原始 Windows Job 完整清理自有树。此演练的 boot 和 Desktop 探针是合成夹具，不是实际重启或原任务验收。
 
 真实 `prepare/resume` 均未执行。只有原任务新鲜探针通过、用户审查具体维护并批准后才准备；之后通知用户保存工作并完整重启。恢复时重新验证所有固定摘要及原任务，不要求重新配对、不修改 Desktop 或连接器权限配置。任一步出现差异停在可诊断状态，不反复尝试或删除围栏。
+
+## Android CI 最终回归结果
+
+`e77079a` 使用明确 AVD 路径、API35 AOSP default x86_64 镜像、2048M 临时数据分区，KVM与启动诊断保持。run `38345972326` 的四组仪器回归实际执行 14 项：日志先报 `Starting 14 tests on emulator-5554 - 15`，随后 `Finished 14 tests` / `BUILD SUCCESSFUL in 2m 58s`；主代理独立核验该步骤 success。它覆盖首页选择目标、任务目标切换、远程终端界面和通知服务，不等于真实手机 OTA 安装。
+
+同一运行单元测试/lint/debug APK 构建与包内说明核验均 success；最后 `Save untrusted debug APK and reports` 因 `Artifact storage quota has been hit` failure，整体 failure。没有跳过回归或软化上传门禁。下一步仍需获批清理已完整备份的精确临时产物、等待额度恢复，然后受控 main 构建与真机 OTA；普通 debug 产物不能代替原证书签名包。

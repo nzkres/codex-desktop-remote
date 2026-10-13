@@ -1,3 +1,9 @@
+## 2026-10-13 — Android 模拟器 14 项实测通过，剩余配额阻断
+
+最终 `e77079a` 的 [Android PR run 38345972326](https://github.com/nzkres/codex-desktop-remote/actions/runs/38345972326) completed/failure：单测/lint/debug APK、包内版本核验、API35 AOSP 实际仪器回归三步骤 success；最后保存产物 failure。日志实际报告 Starting 14 tests / Finished 14 tests / BUILD SUCCESSFUL in 2m 58s。根代理独立查看步骤结论，GPT-6 Sol medium 提取日志证据；记录在忽略 JSON，未更改 App 功能或上传门禁。
+
+仅同提交重复 Android push 与重复 Core 被取消，保留唯一 Android PR 验证；Core 产品输入仍为已通过两平台测试/演练/打包的 2a783a0。GitHub artifact 配额、用户原任务新鲜预检、具体真实维护/发布批准仍是后续门槛。尚未清远端产物、合并 PR #6、签发 Android alpha.6、安装 alpha.9 或切换 relay/feed。源码、候选、CI、安装和手机证据分别记录。
+
 ## 2026-10-13 — 最终签名候选与本机维护隔离验收
 
 Windows/relay 固定 2a783a0 Git blob 的 43/29 文件逐字节核对，最终已签包在 artifacts/alpha9/release-git，分别 132648/84517 字节、sequence5/2，现用公钥和账本只读验签通过；无发布或安装。错误换行草稿完整保留并标 DO-NOT-PUBLISH。精确哈希和来源写入 docs/RECONNECT-AND-OTA-20261013.md。
