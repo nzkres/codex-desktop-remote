@@ -1,3 +1,7 @@
+## 2026-10-13 — Android 模拟器空间故障复核
+
+13cdab6 的 Android push 38344533538 / PR 38344536681 均通过单元测试、lint、debug APK 与包内版本核验，随后在模拟器启动前失败，四组 UI 仪器测试仍未执行。日志显示 KVM 可用、AVD 已找到，临时磁盘剩余约 6.4 GB；模拟器默认 userdata 仍要求 7372.80 MB（PR 运行报告可用 6539.36 MB）。`-partition-size 2048` 未覆盖 AVD 自身设置，现改为在临时 AVD 的 config.ini 明确写入 `disk.dataPartition.size=2048M`。两条运行的 debug artifact 上传仍因 GitHub Actions 配额失败；签名与产物门禁未放宽。待新 CI 验证模拟器及 UI 测试。
+
 ## 2026-10-13 — Android AVD 路径修复通过，继续解决测试盘空间
 
 08b784e 的 Android push 38343850851 / PR 38343854235 已能找到 cdr-regression 并通过 KVM 检查，但模拟器创建默认 userdata 分区要求 7372.80 MB，运行机仅余 6539.56 MB，启动前报 Not enough space。新增临时模拟器 -partition-size 2048 和 df 诊断；不修改 App 数据结构、不跳过 UI 测试、上传失败仍保留失败状态。待下一运行核验。Windows/relay 签名候选输入仍2a783a0，CI-only修复不改变候选内容。
