@@ -21,7 +21,7 @@
 - `artifacts/alpha11/release/windows-0.1.0-alpha.11.zip`：139045字节，SHA256 `44af80bf8fcb8ed87856625558a2ea6edd7ddb60b509764bc7e08a5a8d423978`。
 - `windows-latest.json` SHA256 `f4410cedf861042ed1efb626e40035f3bdd4ed1aacd095c9b03d3944810a262e`。
 - 45个源码文件逐字节匹配Git原始blob；包包含新的任务路由与全任务诊断；使用现用信任与账本6验签通过。私钥仅在本机DPAPI解密后内存使用。
-- 本地构建记录 `build-verification.json`；没有发布公网feed或安装到现用目录。
+- 本地构建记录 `build-verification.json`；未发布公网feed；随后已按用户批准安装到现用目录，详见当前停点。
 
 Core CI [38376943673](https://github.com/nzkres/codex-desktop-remote/actions/runs/38376943673) Windows/Linux测试、真实隔离演练和打包均通过；两端上传都因Artifact storage quota失败，整体失败，没有本次CI可下载包。
 
@@ -37,6 +37,10 @@ Core CI [38376943673](https://github.com/nzkres/codex-desktop-remote/actions/run
 
 失败恢复边界：新候选未激活时确认整棵自有进程树退出，再恢复旧版本指针并停needs_review；原配置/旧槽精确保留。不会启动忽略新增任务的alpha.10并声称双任务健康回退。维护者须核验候选树退出、当前配置仍等于获批提案及归档原配置后，才能另行恢复原任务范围；不得用旧数据库覆盖新数据，不得直接清保护。激活结果不明则保留现场，不终止潜在任务或重复发送。
 
-## 当前停点
+## 当前停点：已安装，待手机验收
 
-功能、测试、签名候选和只读维护审查已完成。现用仍alpha.10，新增对话尚未在手机验收；用户已批准短暂断开并维护升级，apply已启动并固定原GUI句柄，正在等待用户正常退出及两任务空闲；尚无安装成功证据，不重复执行apply。不更新Android/relay或公网feed。安装后先在手机查看本对话，再在空闲状态用唯一标记验证同一线程发送/电脑接续。
+本段取代此前等待窗口退出/任务空闲的停点。用户正常断开并关闭 alpha.10 后，原助手观察同一原始句柄退出成功，等两条任务空闲后完成事务，返回 committed/success/version=0.1.0-alpha.11。独立审计确认 sequence7、签名和包有效、旧槽可验证、双事务记录一致、归档精确；原身份、任务数据、原测试任务配置与保全文件均保持，只新增明确批准的“开发 Windows 连接器客户端”。新版本激活前认证通道与两任务空闲检查通过，安装后两任务权限和回执再次核对通过。当前开发对话处于本轮执行中，不将此时忙碌误报为空闲。
+
+已核对实际 GUI 标题为“Desktop 手机联调 · 0.1.0-alpha.11”，应用锁由新实例持有。脱敏本机证据 artifacts/alpha11/installed-alpha11-audit.json，真实配置/维护脚本仍仅在忽略目录。此次为本地签名维护安装，不是在线 OTA；Android、relay、公网 feed 未更新。CI 上传配额问题仍未解决，不宣称有本次 CI 下载包。
+
+下一步用户点击连接，在手机刷新原电脑任务列表并打开“开发 Windows 连接器客户端”，先确认最近消息可见，再等本轮结束测试同一对话发送。手机验收尚未完成，不重复运行 apply、不重新配对、不重发结果未知的消息。
