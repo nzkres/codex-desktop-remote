@@ -5,8 +5,8 @@ import { readFileSync, realpathSync } from 'node:fs';
 import { resolve, join } from 'node:path';
 import { createServer } from 'node:net';
 import { createHash } from 'node:crypto';
-import { Follower } from './follower.js';
-import { Service, httpServer, permissionDigests } from './service.js';
+import { TaskService, taskConfigs } from './tasks.js';
+import { httpServer, permissionDigests } from './service.js';
 import { Receipts } from './receipts.js';
 import { verifyCompatibility } from './compatibility.js';
 import { VERSION } from './version.js';
@@ -29,7 +29,7 @@ async function bootstrap() {
     || value.controlToken === value.token) throw new Error('invalid_bootstrap');
   return value;
 }
-let follower, server, lease;
+let service, server, lease;
 try {
   // argv[2] 指向配置文件；任务编号、权限摘要、端口和标题先做形状检查。
   // realpathSync 固定项目与数据目录的真实路径，兼容性检查失败时不启动服务。
@@ -38,6 +38,7 @@ try {
     || !Number.isInteger(config.port) || config.port < 1024 || config.port > 65535
     || typeof config.title !== 'string' || config.title.length > 100) throw new Error('invalid_configuration');
   permissionDigests(config);
+  taskConfigs(config);
   config.projectPath = realpathSync(config.projectPath);
   config.dataDir = realpathSync(config.dataDir);
   await verifyCompatibility(config);
@@ -46,15 +47,15 @@ try {
   // 管道名由数据目录派生，已有实例占用同一管道时 listen 会失败。
   lease = createServer(socket => socket.destroy());
   await new Promise((yes,no) => { lease.once('error',no); lease.listen('\\\\.\\pipe\\desktop-remote-lite-'+scope,yes); });
-  follower = new Follower(config);
-  server = httpServer(new Service(config,follower,new Receipts(join(config.dataDir,'receipts')), {quarantine:auth.quarantine === true}),auth.token,auth.instance,auth.controlToken);
+  service = new TaskService(config, new Receipts(join(config.dataDir,'receipts')), {quarantine:auth.quarantine === true});
+  server = httpServer(service,auth.token,auth.instance,auth.controlToken);
   // HTTP 端口只绑定本机回环地址；listening 状态表示本地服务已监听，不代表 Desktop 执行能力已核实。
   await new Promise((yes,no) => { server.once('error',no); server.listen(config.port,'127.0.0.1',yes); });
-  console.log(JSON.stringify({schema:1,state:'listening',port:config.port,version:VERSION,scope:'one-desktop-task'}));
-  const close = () => { server.close(); lease.close(); follower.close(); };
+  console.log(JSON.stringify({schema:1,state:'listening',port:config.port,version:VERSION,scope:'explicit-desktop-tasks'}));
+  const close = () => { server.close(); lease.close(); service.close(); };
   process.on('SIGINT',close); process.on('SIGTERM',close);
 } catch (e) {
   // 启动异常只输出有限错误码，关闭已经创建的资源并设置失败退出码。
   console.error(JSON.stringify({schema:1,state:'stopped',code:e.code && /^[a-z_]{1,60}$/.test(e.code)?e.code:'startup_failed'}));
-  server?.close(); lease?.close(); follower?.close(); process.exitCode=1;
+  server?.close(); lease?.close(); service?.close(); process.exitCode=1;
 }
