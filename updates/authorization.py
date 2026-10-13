@@ -1,3 +1,6 @@
+# 私有下载的鉴权对象：限制凭据只能发往允许的同源更新路径。
+# 下载鉴权负责谁能取包，发布签名负责包是否可信，不能互相替代。
+
 """Narrow, redacted authorization for the private static OTA directory."""
 
 import re
@@ -8,16 +11,19 @@ from updates.security import UpdateError
 
 HEX_TOKEN = re.compile(r"[0-9a-f]{64}\Z")
 HEX_DEVICE = re.compile(r"[0-9a-f]{32}\Z")
+# 只允许已知频道、组件的 latest.json 作为更新入口，避免把凭据送给任意地址。
 SOURCE_PATH = re.compile(
     r"/desktop-remote-updates/(test|stable)/(android|windows|relay)/latest\.json\Z")
 VERSION = r"[0-9]+\.[0-9]+\.[0-9]+(?:-alpha\.[0-9]+)?"
 
 
 def _fail(code):
+    # 对外只交付固定错误码，不泄露令牌、URL 的解析细节。
     raise UpdateError(code)
 
 
 def _parsed(value, relay=False):
+    # value 是待授权的 URL；relay=True 时只接受站点根路径。返回已解析的 URL。
     try:
         if (not isinstance(value, str) or len(value) > 2048 or "\\" in value or "%" in value
                 or "?" in value or "#" in value
@@ -38,6 +44,7 @@ def _parsed(value, relay=False):
 
 
 def _origin(parsed):
+    # 授权范围以主机名和端口为准；未显式指定端口的 HTTPS 按 443 处理。
     return parsed.hostname.lower(), 443 if parsed.port is None else parsed.port
 
 
@@ -47,6 +54,8 @@ class UpdateAuthorization:
     __slots__ = ("_relay", "_source", "_token", "_principal", "_device_id", "_component", "_directory")
 
     def __init__(self, relay, source, token, principal="account", device_id=None):
+        # relay 是登录来源，source 是组件订阅地址，token 是配对/登录凭据。
+        # 初始化时就绑定两者的来源、组件和身份类型，后续请求不能扩大权限。
         server, feed = _parsed(relay, relay=True), _parsed(source)
         match = SOURCE_PATH.fullmatch(feed.path)
         if _origin(server) != _origin(feed) or not match:
@@ -70,11 +79,14 @@ class UpdateAuthorization:
         self._directory = feed.path.rsplit("/", 1)[0] + "/"
 
     def __repr__(self):
+        # 调试输出也必须隐藏 bearer token。
         return "<UpdateAuthorization redacted>"
 
     __str__ = __repr__
 
     def headers_for(self, url):
+        # 只对同一订阅地址或其目录内格式正确的安装包附加认证头；返回请求头字典。
+        # 重定向、跨目录或其他组件文件不能借用当前身份。
         target = _parsed(url)
         if _origin(target) != _origin(_parsed(self._source)):
             _fail("untrusted_update_url")

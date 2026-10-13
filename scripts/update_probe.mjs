@@ -1,3 +1,6 @@
+// OTA 只读任务预检：读取已有回执与新鲜 Desktop 快照，检查权限、空闲及未知操作。
+// 不创建缺失的回执目录、不发送模型输入；失败由更新器延期处理。
+
 // No model input, no changes to permissions/configuration, no identity adoption.
 import { lstatSync, readFileSync, readdirSync } from 'node:fs';
 import { resolve, join } from 'node:path';

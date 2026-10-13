@@ -1,3 +1,6 @@
+# 把已经核对过的服务器配置转换为 FRP TOML 文本和单独的环境变量。
+# 纯组装函数，不写文件、不启动进程；设备令牌不直接写进 TOML 文本。
+
 """Strict FRP 0.71 launch material. Does not write files or start processes."""
 import hashlib
 import json
@@ -6,6 +9,8 @@ from pathlib import Path
 import re
 
 
+# 返回 (TOML文本, 子进程环境变量)。所有端口/标识/证书先检查再生成配置。
+# TOML 中只保留环境变量占位符；令牌进入本次子进程环境，不写入命令行。
 def launch_material(*, server, server_port, server_name, ca_file, ca_sha256,
                     terminal_id, local_port, remote_port, device_token, transport_token):
     # JSON quoted strings are also TOML basic strings. Reject template syntax

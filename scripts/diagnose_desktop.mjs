@@ -1,3 +1,6 @@
+// 维护诊断入口：分别报告兼容、原任务、权限、空闲和回执，以免第一个错误遮住其他问题。
+// taskReady 只证明这次检查通过；reconnectAuthorized 始终为 false，不授权清除异常退出保护。
+
 // Read-only operator diagnostic. A successful task probe never authorizes cold recovery.
 import { readFileSync, lstatSync, readdirSync } from 'node:fs';
 import { resolve, join } from 'node:path';

@@ -1,3 +1,7 @@
+# 界面层只接收操作和显示结果，真正的连接逻辑由传入的 controller 负责。
+# commands 是界面发给工作线程的命令队列，events 是工作线程返回界面的结果队列。
+# Tk 控件只在界面线程更新；阻塞的网络循环在 _work 中运行。
+
 """Small, foreground-only pairing window for a supplied Desktop controller."""
 
 from __future__ import annotations
@@ -10,6 +14,7 @@ from tkinter import ttk, messagebox
 from tkinter.scrolledtext import ScrolledText
 from release_notes import VERSION, format_notes
 
+# 让 Windows 高缩放屏幕上的窗口文字更清晰；不影响连接协议。
 def enable_dpi():
     import os
     if os.name == "nt":
@@ -47,6 +52,8 @@ _ERRORS = {
 }
 
 
+# 将内部状态转换成固定中文提示，返回字符串；不修改身份或触发网络操作。
+# 错误只显示可控文案，不把服务器原始内容或凭据直接展示给用户。
 def status_message(report, *, paired=False, connecting=False):
     """Render fixed, credential-free status text without changing enrollment."""
     if not isinstance(report, dict):
@@ -78,7 +85,10 @@ def status_message(report, *, paired=False, connecting=False):
     return message
 
 
+# 窗口和工作线程之间的协调者。busy 表示当前命令未结束，connecting 表示连接循环运行。
 class _Window:
+    # 创建控件、按钮回调、命令/结果队列及一个工作线程。
+    # root.after 定时处理事件；不要在按钮回调里直接运行长期网络循环。
     def __init__(self, root: tk.Tk, controller: object):
         self.root = root
         self.controller = controller
@@ -154,6 +164,8 @@ class _Window:
         root.after(100, self._drain)
         self._poll_update()
 
+    # 读取持久更新事务的阶段：未完成或无法读取时禁止建立新连接。
+    # 这里展示的是“上次更新结果”，不是当前任务通道是否在线。
     def _poll_update(self):
         home = getattr(self.controller, 'update_home', None)
         if home and not self.closing:
@@ -176,6 +188,7 @@ class _Window:
                 self._buttons()
             self.root.after(500, self._poll_update)
 
+    # 打开只读版本说明窗口；重复点击复用已有窗口，不中断连接。
     def show_release_notes(self):
         if self.notes_window is not None and self.notes_window.winfo_exists():
             self.notes_window.lift()
@@ -198,6 +211,8 @@ class _Window:
         ttk.Button(body, text="返回", command=dialog.destroy).grid(row=1, column=0, sticky="e", pady=(10, 0))
         dialog.bind("<Escape>", lambda _event: dialog.destroy())
 
+    # 统一计算按钮能否点击，避免多处回调各自定义不同的可操作条件。
+    # 当前连接时 busy=True，因此检查/安装更新也会被禁用；不是后台自动更新。
     def _buttons(self):
         self.pair_button.configure(state="disabled" if self.busy or self.closing or self.update_blocked else "normal")
         self.connect_button.configure(state="disabled" if self.busy or self.closing or self.update_blocked else "normal")
@@ -208,6 +223,7 @@ class _Window:
             self.check_update_button.configure(state='normal' if enabled else 'disabled')
             self.install_update_button.configure(state='normal' if enabled and self.update_release else 'disabled')
 
+    # 只把更新命令排队并显示进度提示；真正的网络下载在 _work 中运行。
     def update(self, kind):
         if self.busy or self.closing or not getattr(self.controller, 'update_home', None):
             return
@@ -216,6 +232,7 @@ class _Window:
         self.update_text.set('正在检查签名版本…' if kind == 'updatecheck' else '正在下载、校验并准备独立更新助手…')
         self.commands.put((kind,))
 
+    # 读取并清空配对码输入框，再交给工作线程；清空界面不代表删除已保存的申请。
     def pair(self):
         if self.busy or self.closing or self.update_blocked:
             return
@@ -231,6 +248,7 @@ class _Window:
         self.status_text.set("正在配对…")
         self.commands.put(("pair", relay, code, name))
 
+    # 标记进入连接状态，清除上次停止信号并排队；这里不直接打开网络连接。
     def connect(self):
         if self.busy or self.closing or self.update_blocked:
             return
@@ -241,12 +259,15 @@ class _Window:
         self.status_text.set("正在连接…")
         self.commands.put(("connect",))
 
+    # 设置 stop_event，通知工作线程自行退出；不直接强杀进程或关闭 Desktop。
     def disconnect(self):
         if self.connecting:
             self.stop_event.set()
             self.disconnect_button.configure(state="disabled")
             self.status_text.set("正在断开连接…")
 
+    # 窗口关闭也是协作退出：先请求停止连接，再让工作线程处理 close 命令。
+    # 界面继续泵事件直到线程退出，才能知道清理是否需要提示用户。
     def close(self):
         if self.closing:
             return
@@ -257,6 +278,8 @@ class _Window:
         self._buttons()
         self.status_text.set("正在等待连接线程退出…")
 
+    # 后台线程的命令循环：配对/连接/更新串行处理，结果放入 events 队列。
+    # 连接命令会长期占用该线程，停止请求通过独立的 stop_event 传递。
     def _work(self):
         while True:
             command = self.commands.get()
@@ -295,6 +318,8 @@ class _Window:
                 code = str(error) if str(error) in _ERRORS else "operation_failed"
                 self.events.put(("failed", code))
 
+    # Tk 主线程从队列取结果并更新控件；网络线程不直接触碰 Tk。
+    # 更新交接后调用 close；committed 才由独立助手的持久记录证明。
     def _drain(self):
         while True:
             try:
@@ -356,6 +381,7 @@ class _Window:
         self.root.after(100, self._drain)
 
 
+# 普通窗口入口，使用调用者提供的 controller；演示控制器也可复用同一界面。
 def run_gui(controller: object) -> None:
     """Run the UI with a caller-owned controller; never creates an identity."""
     enable_dpi()

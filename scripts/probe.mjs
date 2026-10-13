@@ -1,3 +1,6 @@
+// 首次专用任务验收工具，默认读取 Desktop，但可能写入缺失的配置权限摘要并创建回执目录。
+// 显式 --send-literal 会真实发送一条模型消息；它不是无副作用的演示入口，不要随意重复运行。
+
 // Explicit one-thread acceptance harness. Credentials exist only in this process.
 import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'node:fs';
 import { resolve, join } from 'node:path';

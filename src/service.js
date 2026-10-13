@@ -1,3 +1,6 @@
+// 手机任务接口的业务层：限制原任务、检查权限、读取历史、记录发送回执。
+// 它调用 Follower 向 Desktop 发操作；模型是否完成要看后续任务状态，而非一次 HTTP 成功。
+
 import { createHash, timingSafeEqual } from 'node:crypto';
 import { createServer } from 'node:http';
 import { realpathSync } from 'node:fs';
@@ -7,6 +10,8 @@ import { nativeTurns, activeTurn, assertIdle } from './vendor/desktop-state.js';
 import { MobileSync, mobileSignals } from './vendor/mobile-sync.js';
 import { VERSION } from './version.js';
 
+// 把 Desktop 当前权限规范化后计算摘要；输入必须包含非空 currentPermissions。
+// 根目录取真实路径、去重排序，并移除已被授权父目录覆盖的子目录。
 export const permissionDigest = state => {
   if (!object(state.currentPermissions) || !Object.keys(state.currentPermissions).length)
     throw new ControlError('permissions_unverified', '未能核对线程权限，消息未发送。');
@@ -27,6 +32,7 @@ export const permissionDigest = state => {
   return createHash('sha256').update(JSON.stringify(canonical(state.currentPermissions))).digest('hex');
 };
 export const permissionsMatch = (state, expectedDigest) => {
+  // 先比当前摘要；仅允许 auto_review 与旧名 guardian_subagent 这一处序列化别名互换。
   if (permissionDigest(state) === expectedDigest) return true;
   // Codex names this reviewer auto_review; guardian_subagent is its legacy
   // serialization alias. Keep persisted hashes valid without rebasing any
@@ -39,6 +45,7 @@ export const permissionsMatch = (state, expectedDigest) => {
   }) === expectedDigest;
 };
 export class Service {
+  // 汇集任务范围、权限、回执和更新/断开栅栏；mutating 仅串行化本进程操作。
   constructor(config, follower, receipts, { drainTimeoutMs = 5000, quarantine = false } = {}) {
     if (!Number.isSafeInteger(drainTimeoutMs) || drainTimeoutMs < 1 || drainTimeoutMs > 30000)
       throw new Error('invalid_drain_timeout');
@@ -49,10 +56,13 @@ export class Service {
   }
   target(id) { if (id !== this.config.threadId) throw new ControlError('outside_scope', '未开放这个任务。', 403); }
   permissions(state) {
+    // 每次依赖快照的操作都要与启动配置里的权限摘要核对。
     if (!permissionsMatch(state, this.config.permissionsHash))
       throw new ControlError('permissions_changed', 'Desktop 任务权限已变化，请在电脑端重新核对。');
   }
   async read(id) {
+    // 输入目标任务 ID；输出供手机接口使用的 session、turns、运行观察值。
+    // 未知运行状态、没有回合、待 Desktop 处理的请求都会拒绝读作正常结果。
     this.target(id);
     const state = await this.follower.completeSnapshot();
     this.permissions(state);
@@ -75,6 +85,8 @@ export class Service {
     };
   }
   async mutate(action, readonly = false) {
+    // 更新隔离期拒绝写操作；断开准备期拒绝进入本方法的操作；同时只允许一项受控操作。
+    // finally 唤醒等待断开的调用，即使 action 抛错也会释放本地占用。
     if (this.quarantine && !readonly) throw new ControlError('update_quarantine', '更新验证中，未发送操作。', 503);
     if (this.draining) throw new ControlError('disconnect_preparing', '连接器正在断开，未发送操作。', 503);
     if (this.mutating) throw new ControlError('operation_busy', '另一项操作正在核对，请稍后刷新。');
@@ -86,6 +98,8 @@ export class Service {
     }
   }
   async prepareDisconnect() {
+    // 控制端请求断开时先立栅栏，再等正在执行的操作结束。
+    // 超时、未知停止结果或任何未确认发送回执都不能宣称已安全断开。
     // Fence first, before awaiting any in-flight Desktop control.
     this.draining = true;
     if (this.mutating) {
@@ -103,6 +117,8 @@ export class Service {
     return { drained: true };
   }
   async updateStatus() {
+    // 更新器读取的只是“当前可更新”证据：完整新快照、权限不变、空闲且无未知回执。
+    // 此方法不执行下载安装，也不主动打断 Desktop 回合。
     // Reserve local mutation admission while reading a fresh native snapshot.
     // This is observation, not permission to interrupt a Desktop task.
     return this.mutate(async () => {
@@ -116,6 +132,8 @@ export class Service {
     }, true);
   }
   async send(id, body) {
+    // 输入任务 ID 与 {text,clientMessageId}；成功返回 turnId，重复已确认请求返回 replayed。
+    // 先验消息形状/任务范围，再在串行区内核对回执、权限和空闲状态。
     this.target(id);
     if (!object(body) || Object.keys(body).some(k => !['text','clientMessageId'].includes(k))
       || typeof body.text !== 'string' || !body.text.trim() || body.text.length > 16000
@@ -129,6 +147,7 @@ export class Service {
       const state = await this.follower.snapshot();
       this.permissions(state); assertIdle(state);
       this.receipts.begin(key, digest);
+      // pending 必须在 IPC 请求前落盘；回复缺失时保留未知状态，要求 Desktop 人工核对。
       try {
         const reply = await this.follower.forward('thread-follower-start-turn', { turnStart: {
           request: { threadId: id, input: [{type:'text',text:body.text,text_elements:[]}], clientUserMessageId: body.clientMessageId },
@@ -142,6 +161,8 @@ export class Service {
     });
   }
   async stop(id, body) {
+    // 输入 expectedTurnId；只在它等于当前活动回合时发送停止。
+    // 请求出错后把 stopUncertain 留在内存，阻止断开和更新状态通过。
     this.target(id);
     return this.mutate(async () => {
       const state = await this.follower.snapshot();
@@ -158,6 +179,7 @@ export class Service {
   }
 }
 async function bodyOf(req) {
+  // 最多接收 64 KiB JSON 请求体；过大或解析失败以 ControlError 返回。
   let bytes = 0, chunks = [];
   for await (const chunk of req) {
     bytes += chunk.length;
@@ -168,12 +190,15 @@ async function bodyOf(req) {
   catch { throw new ControlError('invalid_json', '请求格式无效。', 400); }
 }
 export function httpServer(service, token, instance, controlToken = null) {
+  // token 保护普通接口，独立 controlToken 保护 prepare-disconnect。
+  // 输入 Service 与启动凭据；输出尚未 listen 的 Node HTTP server。
   if (!/^[a-f0-9]{64}$/.test(token) || !/^[a-f0-9]{32}$/.test(instance)) throw new Error('invalid_bootstrap');
   if (controlToken !== null && (!/^[a-f0-9]{64}$/.test(controlToken) || controlToken === token))
     throw new Error('invalid_control_token');
   const expected = Buffer.from('Bearer '+token);
   const controlExpected = controlToken === null ? null : Buffer.from('Bearer '+controlToken);
   const server = createServer(async (req, res) => {
+    // 所有响应都禁止缓存；鉴权在具体路由处理之前，以等长安全比较核对 Bearer 值。
     const reply = (code, value) => {
       const data = JSON.stringify(value);
       res.writeHead(code, { 'Content-Type': 'application/json; charset=utf-8', 'Content-Length': Buffer.byteLength(data), 'Cache-Control': 'no-store' });
@@ -189,6 +214,7 @@ export function httpServer(service, token, instance, controlToken = null) {
       if (drain)
         return reply(200, { instance, ...await service.prepareDisconnect() });
       if (req.method === 'GET' && url.pathname === '/api/connector/health')
+        // 健康响应只证明本机 HTTP 存活，执行器和 Desktop 任务仍标注为未核实。
         return reply(200, {instance,healthy:true,executor:'unknown',desktopTask:'unverified',version:VERSION});
       if (req.method === 'GET' && url.pathname === '/api/connector/update-status')
         return reply(200, await service.updateStatus());
@@ -206,6 +232,7 @@ export function httpServer(service, token, instance, controlToken = null) {
       if (req.method !== 'GET' || !['mobile-sync','mobile-items','mobile-tasks','signals'].includes(route))
         throw new ControlError('unsupported_route', '不支持这项操作。', 405);
       const source = await service.read(id);
+      // 手机端投影、分页、详情和信号都基于同一次经过范围与权限检查的状态读取。
       if (route === 'mobile-sync') return reply(200, service.sync.sync(id, source, url.searchParams.get('cursor') ?? undefined, url.searchParams.get('older') === '1'));
       if (route === 'mobile-tasks') return reply(200, service.sync.tasks(source, url.searchParams.get('before') ?? undefined));
       if (route === 'signals') return reply(200, mobileSignals(source));

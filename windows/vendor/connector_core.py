@@ -1,3 +1,7 @@
+# 身份与登记核心：首次配对、手机确认、心跳，以及携带运行锁的连接循环。
+# 身份使用当前 Windows 用户的 DPAPI 加密，不应复制给另一台电脑。
+# connected 在这里主要表示服务器登记/心跳正常，不等于 Desktop 已完成任何任务。
+
 """Windows connector: enrollment, with an explicit opt-in managed task runtime."""
 
 import csv
@@ -21,14 +25,18 @@ import urllib.request
 CONNECTOR_VERSION = json.loads((Path(__file__).resolve().parents[1] / 'releases.json').read_text(encoding='utf-8'))['releases'][0]['version']
 
 
+# 对外使用固定错误码的异常类型；界面据此选择安全文案。
 class ConnectorError(Exception):
     pass
 
 
+# 与 Windows DATA_BLOB 对齐的数据结构，供 DPAPI 原生函数读写字节。
 class Blob(ctypes.Structure):
     _fields_ = [("size", wintypes.DWORD), ("data", ctypes.POINTER(ctypes.c_ubyte))]
 
 
+# data 为字节；默认加密，decrypt=True 时解密，返回 Windows 分配结果的字节副本。
+# CurrentUser 作用域要求当前用户身份；finally 释放系统分配的内存。
 def dpapi(data, decrypt=False):
     if os.name != "nt":
         raise ConnectorError("windows_required")
@@ -57,12 +65,15 @@ def dpapi(data, decrypt=False):
         kernel.LocalFree(output.data)
 
 
+# 逐级拒绝符号链接/目录联接，避免身份路径被转向其他位置。
 def no_links(path):
     for part in (path, *path.parents):
         if part.is_symlink() or (hasattr(part, "is_junction") and part.is_junction()):
             raise ConnectorError("state_path_link_rejected")
 
 
+# 仅为新建的专用身份目录设置访问权限：当前用户与 SYSTEM。
+# 不会递归修改父目录或其他已有安装的权限。
 def private_directory(path):
     if os.name != "nt":
         raise ConnectorError("windows_required")
@@ -95,8 +106,10 @@ def private_directory(path):
         kernel.LocalFree(descriptor)
 
 
+# 负责加密身份的原子读写和锁；持有目录不等于已经完成配对。
 class CredentialStore:
     """One new dedicated directory; refuse existing unrelated directories."""
+    # 新目录创建 unpaired 标记；已有目录必须带本程序的身份文件，否则拒绝接管。
     def __init__(self, directory):
         self.root = Path(directory).absolute()
         no_links(self.root)
@@ -110,6 +123,7 @@ class CredentialStore:
             raise ConnectorError("state_directory_not_owned")
         no_links(self.file)
 
+    # 解密并验证有限大小的状态；未配对返回 None，损坏状态抛错而非自动重建。
     def read(self):
         no_links(self.file)
         if not self.file.exists():
@@ -126,6 +140,8 @@ class CredentialStore:
         except (ValueError, TypeError, AttributeError):
             raise ConnectorError("invalid_credential_file") from None
 
+    # 上下文锁：operation.lock 保护短时状态操作，runtime.lock 保护整个运行周期。
+    # 使用 Windows 不共享文件句柄，finally 关闭句柄释放锁。
     @contextmanager
     def lock(self, name="operation.lock"):
         if name not in ("operation.lock", "runtime.lock"):
@@ -143,6 +159,7 @@ class CredentialStore:
         finally:
             kernel.CloseHandle(handle)
 
+    # 先加密到同目录临时文件，刷盘后原子替换身份文件；不会留下半份 JSON。
     def write(self, state):
         no_links(self.root)
         no_links(self.file)
@@ -159,6 +176,7 @@ class CredentialStore:
                 os.unlink(temporary)  # Only this function's exact owned temp file.
 
 
+# 只接受无账号、路径、查询参数的 HTTPS 服务器根地址；HTTP 仅显式回环测试允许。
 def endpoint(value, loopback_test=False):
     try:
         parsed = urllib.parse.urlsplit(value)
@@ -174,12 +192,16 @@ def endpoint(value, loopback_test=False):
     return urllib.parse.urlunsplit((parsed.scheme, parsed.netloc, "", "", ""))
 
 
+# 不跟随服务端重定向，避免携带设备令牌跳到另一个地址。
 class NoRedirect(urllib.request.HTTPRedirectHandler):
+    # 返回 None 表示拒绝创建重定向请求。
     def redirect_request(self, *args, **kwargs):
         return None
 
 
+# 有超时和响应大小限制的中继客户端；所有调用走已核对的 base 地址。
 class RelayClient:
+    # 构造 HTTPS 客户端；仅回环测试禁用代理，生产仍保留正常 TLS 校验。
     def __init__(self, base, loopback_test=False):
         self.base = endpoint(base, loopback_test)
         handlers = [NoRedirect()]
@@ -187,6 +209,7 @@ class RelayClient:
             handlers.append(urllib.request.ProxyHandler({}))
         self.opener = urllib.request.build_opener(*handlers)
 
+    # 发送 JSON，返回 (HTTP状态码, JSON对象)。网络不可达返回状态码 0；畸形响应抛错。
     def post(self, path, token, body):
         request = urllib.request.Request(self.base + path, data=json.dumps(body).encode(), headers={"Authorization": "Bearer " + token, "Content-Type": "application/json"}, method="POST")
         try:
@@ -208,7 +231,9 @@ class RelayClient:
             return response.status, body
 
 
+# 登记状态机与运行循环，界面通过 Controller 间接调用。
 class Connector:
+    # 可注入已构造 runtime 或延迟构造 factory，二者不能同时指定。
     def __init__(self, store, *, loopback_test=False, runtime=None, runtime_factory=None):
         self.store, self.loopback_test = store, loopback_test
         if runtime is not None and runtime_factory is not None:
@@ -216,6 +241,8 @@ class Connector:
         self.runtime = runtime
         self.runtime_factory = runtime_factory
 
+    # 第一次配对：核对输入并先持久化设备令牌，再发送认领请求。
+    # 先保存可避免响应丢失后换身份重复认领；已有身份或申请时拒绝重新配对。
     def begin(self, relay, code, name):
         relay = endpoint(relay, self.loopback_test)
         if not isinstance(code, str) or not re.fullmatch(r"[0-9A-F]{12}", code):
@@ -230,12 +257,14 @@ class Connector:
             self.store.write(state)
         return self.tick()
 
+    # 输出不含令牌的状态投影；磁盘快照不证明实时通道健康。
     def status(self):
         state = self.store.read()
         if state is None:
             return {"state": "not_paired", "executor": "unknown"}
         return {"state": state["state"], "relay": state["relay"], "name": state["name"], "terminalId": state.get("terminalId"), "executor": "unknown", "lastError": state.get("lastError"), "dataChannel": "unverified" if state.get("gatewayBinding") else "not_configured"}
 
+    # 执行一轮状态更新；受管 runtime 只能由持有运行锁的 run 线程驱动。
     def tick(self):
         if (self.runtime is not None or self.runtime_factory is not None) and getattr(self, "_run_owner", None) != threading.get_ident():
             raise ConnectorError("managed_runtime_requires_run")
@@ -251,6 +280,7 @@ class Connector:
                 self.runtime.disconnect()
             raise
 
+    # 取得独占 runtime.lock 后才组装通道并进入循环，阻止重复实例同时启动。
     def run(self, stop=None, on_status=None):
         with self.store.lock("runtime.lock"):
             self._run_owner = threading.get_ident()
@@ -263,6 +293,8 @@ class Connector:
             finally:
                 self._run_owner = None
 
+    # 运行前写入保护标志，退出时先验证完整预期身份，再核对本机清理结果。
+    # 只有 quiescent=True 且最终状态未变化才清标志；崩溃后的旧现场不会被自动接受。
     def _owned_run(self, stop=None, on_status=None):
         # Persist before any child can be started. Never silently adopt leftover
         # processes or erase this guard after a crash.
@@ -302,6 +334,8 @@ class Connector:
                         state.pop("runtimeNeedsReview", None)
                         self.store.write(state)
 
+    # 长期循环：连接成功每 15 秒检查，其他等待一般 3 秒，网络错误采用 1→30 秒退避。
+    # stop.wait 既可等待也能被用户断开唤醒；撤销等终态直接结束。
     def _run(self, stop=None, on_status=None):
         """Foreground loop; never creates a startup task or a background process."""
         stop = stop or threading.Event()
@@ -321,6 +355,8 @@ class Connector:
             stop.wait(wait)
         return self.status()
 
+    # 推进一次配对/确认/心跳：没有 pairingId 时认领，否则查询确认并发送心跳。
+    # 服务器暂停与撤销不是普通断网；终端 ID 变化也不能默默接受。
     def _tick(self):
         state = self.store.read()
         if state is None:

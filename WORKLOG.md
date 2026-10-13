@@ -1,5 +1,22 @@
 # 工作记录
 
+## 2026-10-12 — service.js 逐步教学实验
+
+本机忽略目录 artifacts/learning 新增 service-walkthrough.mjs 与 Open-Service-Lesson.cmd。真实本机 HTTP/Service/Receipts，模拟 Desktop，9/9 场景自动验证通过；交互模式逐步回车。产品源码、现用任务与身份未变。
+
+## 2026-10-12 — Follower 零基础术语注释
+
+为 src/follower.js 增加100行自包含中文教学说明，解释 Desktop、owner/clientId、任务ID、IPC、快照、事件、Promise 与请求流程；强调协议客户端标识不等于进程PID，范围检查不等于完整权限检查。仅插入注释/空行，原行保留；Node语法检查与3项Follower回归测试通过。现用安装不变。
+
+## 2026-10-12 — 中文核心注释
+
+- 在新目录 C:/code/my-code/codex-desktop-remote 完成 38 个文件的中文教学注释；分工复核后确认 diff 只有注释/空行新增，Python AST 与非注释 token 一致。保留已有未提交教学文档。
+- Node 72/72 通过；Python 共152项，146通过/6跳过，版本目录一致性校验通过。报告位于忽略目录 artifacts/learning，不改真实连接、身份或已签名安装。
+
+## 2026-10-12 — 教学目录与隔离测试菜单
+
+新增完整 Git 文件树快照和逐步阅读指南，复用现有 demo 与 81 项合成测试。本机菜单在忽略目录 artifacts/learning；正常用户环境三组通过。首次 PowerShell stderr 处理已修正，沙箱任务测试失败记录保留。产品代码和现用安装未变。
+
 ## 2026-10-12 — 获准修复、安装及安卓验收完成
 
 - 用户明确同意以当前原任务设置继续修复。保留原审查记录、启动证明和完整状态检查，新增本机忽略目录 approved-repair.local.py，先审查后 amend/resume；没有将一次性维护代码加入产品。

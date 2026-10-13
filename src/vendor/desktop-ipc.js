@@ -1,7 +1,11 @@
+// Desktop 本机通信底层：命名管道、长度前缀帧、请求 ID、响应超时和事件分发。
+// 这是复用的协议实现；本项目主流程只用 follower 能力，不注册原任务执行器。
+
 import { connect } from "node:net";
 import { EventEmitter } from "node:events";
 import { randomUUID } from "node:crypto";
 // Private Desktop protocol, deliberately version-pinned and local-only.
+// 这张表限定可发送或识别的方法及基础版本；新增 Desktop 协议不能由这里自动推断。
 export const DESKTOP_VERSIONS = {
     initialize: 0, "thread-owner-discovery": 1,
     "thread-follower-start-turn": 2, "thread-follower-interrupt-turn": 4,
@@ -14,6 +18,7 @@ export const DESKTOP_VERSIONS = {
 };
 export const object = (value) => !!value && typeof value === "object" && !Array.isArray(value);
 export class ControlError extends Error {
+    // 本地控制错误带稳定 code 和 HTTP 状态码，供服务层转成可读响应。
     code;
     statusCode;
     constructor(code, message, statusCode = 409) {
@@ -23,6 +28,7 @@ export class ControlError extends Error {
     }
 }
 export class IpcError extends Error {
+    // remote 区分 Desktop 明确拒绝与本地连接/协议问题；未知结果仍需调用方处理。
     remote;
     constructor(message, remote = false) {
         super(message);
@@ -32,6 +38,8 @@ export class IpcError extends Error {
 const MAX_FRAME = 32 * 1024 * 1024;
 /** The envelope's host is authoritative; never route another host to this PC. */
 export function desktopRequestVersion(request, options = {}) {
+    // 输入收到的请求及兼容选项；非 local 主机或未列出方法返回 undefined。
+    // host-scoped follower 请求只在显式开启选项时使用基础版本加一。
     if (typeof request.method !== "string" || !Object.hasOwn(DESKTOP_VERSIONS, request.method))
         return undefined;
     if (request.hostId != null && request.hostId !== "local")
@@ -48,6 +56,7 @@ export function desktopRequestVersion(request, options = {}) {
 }
 /** Structural diagnostics only: never log prompt text, attachments or field values. */
 export function describeRejectedDiscovery(request, options = {}) {
+    // 只输出字段形状、计数和有限标识，供所属任务的发现失败诊断；不输出消息正文。
     const shape = (value) => Array.isArray(value) ? { type: "array", count: value.length }
         : value == null ? { type: "null" } : typeof value === "string" ? { type: "string", length: value.length }
             : object(value) ? { type: "object", count: Object.keys(value).length } : { type: typeof value };
@@ -67,6 +76,7 @@ export function describeRejectedDiscovery(request, options = {}) {
         } : shape(m)) : undefined };
 }
 export class DesktopIpc extends EventEmitter {
+    // 管理本机命名管道、请求回执、广播和重连；单次连接以 socket 身份隔离。
     endpoint;
     timeoutMs;
     options;
@@ -79,12 +89,14 @@ export class DesktopIpc extends EventEmitter {
     epoch = 0;
     closed = false;
     constructor(endpoint = "\\\\.\\pipe\\codex-ipc", timeoutMs = 15_000, options = {}) {
+        // 默认连接 Desktop 本机 IPC；timeoutMs 同时用于连接握手和单次响应等待。
         super();
         this.endpoint = endpoint;
         this.timeoutMs = timeoutMs;
         this.options = options;
     }
     async ready() {
+        // 输出已可用连接；并发调用共享 connecting，关闭后的实例不会自动恢复。
         if (this.closed)
             throw new IpcError("Desktop bridge is closed");
         if (this.connecting)
@@ -100,6 +112,8 @@ export class DesktopIpc extends EventEmitter {
         }
     }
     async open() {
+        // 新建 socket 后完成 initialize 握手，收到有效 clientId 才广播 connected。
+        // 数据流按 4 字节小端长度拆帧；非法大小、JSON 或消息结构会断开连接。
         this.clientId = "initializing-client";
         this.buffer = Buffer.alloc(0);
         const socket = connect(this.endpoint);
@@ -150,6 +164,7 @@ export class DesktopIpc extends EventEmitter {
         }
     }
     disconnect(socket) {
+        // 只清理当前 socket；所有未完成请求被拒绝为结果可能未知，不在此重放。
         if (this.socket !== socket)
             return;
         this.socket = undefined;
@@ -164,6 +179,8 @@ export class DesktopIpc extends EventEmitter {
         this.emit("disconnected");
     }
     request(method, params, target) {
+        // 输入方法、参数及可选目标 clientId；输出匹配响应的 Promise。
+        // 超时仅删除本地 pending，请求在 Desktop 是否已执行仍未知。
         if (!Object.hasOwn(DESKTOP_VERSIONS, method))
             return Promise.reject(new IpcError("Unsupported Desktop method"));
         const requestId = randomUUID();
@@ -181,11 +198,13 @@ export class DesktopIpc extends EventEmitter {
         });
     }
     broadcast(method, params, targets) {
+        // 向指定目标广播白名单方法；没有请求回执。
         if (!Object.hasOwn(DESKTOP_VERSIONS, method))
             throw new IpcError("Unsupported Desktop broadcast");
         this.write({ type: "broadcast", method, version: DESKTOP_VERSIONS[method], params, sourceClientId: this.clientId, targetClientIds: targets });
     }
     write(message) {
+        // JSON 消息前加 4 字节小端长度；超过 32 MiB 或 socket 不可写时拒绝。
         if (!this.socket?.writable || this.socket.destroyed)
             throw new IpcError("Desktop is unavailable");
         const body = Buffer.from(JSON.stringify(message));
@@ -196,6 +215,8 @@ export class DesktopIpc extends EventEmitter {
         this.socket.write(Buffer.concat([header, body]));
     }
     async receive(message, socket) {
+        // 响应按 requestId、方法和目标 owner 配对；错误响应不会被误认作成功。
+        // 广播只接受 local 主机及包含本 clientId 的定向消息。
         if (this.socket !== socket || socket.destroyed)
             return;
         if (message.type === "response") {
@@ -222,6 +243,7 @@ export class DesktopIpc extends EventEmitter {
             this.emit("broadcast", message);
         }
         else if (message.type === "client-discovery-request") {
+            // 仅拥有目标任务且协议版本吻合的 handler 才声明可处理。
             const r = message.request;
             const h = object(r) ? this.handlers.get(r.method) : undefined;
             const expected = object(r) ? desktopRequestVersion(r, this.options) : undefined;
@@ -234,6 +256,7 @@ export class DesktopIpc extends EventEmitter {
             this.write({ type: "client-discovery-response", requestId: message.requestId, response: { canHandle } });
         }
         else if (message.type === "request") {
+            // 入站控制再次核对 handler、主机、版本、参数和所有权；回复仍绑定原 socket。
             try {
                 const h = this.handlers.get(message.method);
                 const expected = desktopRequestVersion(message, this.options);

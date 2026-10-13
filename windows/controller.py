@@ -1,3 +1,7 @@
+# 连接器的总调度层：GUI → Controller → 配对/心跳核心 → Node 本机接口 + FRP 隧道。
+# 这里不执行模型、不创建 Desktop 任务；Desktop 始终拥有原任务。
+# 阅读顺序：connect → _runtime → LiteRuntime.reconcile → LiteRuntime.disconnect。
+
 """Isolated pairing/transport assembly. Never adopts an existing Gateway/FRP."""
 import hashlib
 import http.client
@@ -17,6 +21,9 @@ from frp_config import launch_material
 from windows_job import transport_process, spawn_guarded, helper_pins
 
 
+# 向本机接口发出“停止接收新操作并检查已有操作”的请求。
+# port 为本机端口，control_token 为仅本机使用的控制凭据，instance 标识本次实例。
+# 只有响应明确来自本实例且 drained=True 才返回 True；超时、畸形响应都返回 False。
 def prepare_disconnect(port, control_token, instance):
     """Local-only lifecycle capability, never sent to the relay or stored."""
     connection = http.client.HTTPConnection('127.0.0.1', port, timeout=7)
@@ -35,8 +42,12 @@ def prepare_disconnect(port, control_token, instance):
         connection.close()
 
 
+# 同时持有两个自有进程对象。adapter 是 Node 任务接口，transport 是 FRP。
+# drain 回调负责检查未完成操作；clean 是退出证据，不能仅凭进程状态猜测。
 class LiteRuntime:
     """These are disposable adapter/tunnel children; Desktop owns every turn."""
+    # 只保存对象和初始标志，此时还没有启动任何进程。
+    # faulted 一旦置位，会阻止把发生过适配器故障的本轮运行当作普通断开。
     def __init__(self, adapter, transport, drain=lambda: False):
         self.adapter, self.transport = adapter, transport
         self.allowed = False
@@ -45,6 +56,9 @@ class LiteRuntime:
         self.clean = False
         self.faulted = False
 
+    # 每个连接循环调用一次，根据服务器授权和本机接口健康状态推进传输。
+    # allowed=False 时停止隧道；不会因此直接停止 Desktop 的模型任务。
+    # 返回给 GUI 的报告；probe_verified 只证明探针链路，不证明一次手机任务完成。
     def reconcile(self, allowed):
         self.allowed = allowed
         if allowed and self.adapter.tick() == 'healthy':
@@ -57,6 +71,9 @@ class LiteRuntime:
                 'executor': 'unknown', 'dataChannel': 'probe_verified'
                 if allowed and self.adapter.state == self.transport.state == 'healthy' else 'unavailable'}
 
+    # 只执行一次的清理过程。先尝试 drain，再分别停止隧道和本机接口。
+    # 即使第一个子进程清理失败，也必须尝试第二个；两个进程树均退出才可能 clean。
+    # 当前 normal/allowed/faulted 门槛较保守：断网后退出仍可能要求复核，这是现有行为。
     def disconnect(self, normal=False):
         if self.disconnected:
             return  # An abnormal disconnect cannot be upgraded to a clean one.
@@ -83,14 +100,20 @@ class LiteRuntime:
         if normal and not self.clean:
             raise ConnectorError('runtime_cleanup_requires_review')
 
+    # 当前实现故意不接管崩溃前遗留的运行现场，固定返回 False。
+    # 这里没有自动冷恢复；不能把删除 runtimeNeedsReview 当作实现了恢复。
     def resume_existing(self, state):
         return False  # A crash stays reviewable. No flag deletion/adoption shortcut.
 
+    # 返回清理是否有完整证据，供身份核心决定能否清除运行保护标志。
     def quiescent(self):
         return self.clean
 
 
+# 界面使用的控制器：不直接画窗口，负责调用身份核心并组装运行环境。
 class Controller:
+    # 读取本地任务配置，定位身份目录。quarantine 由 OTA 指定，用于验证阶段禁止写操作。
+    # 配置路径不允许经过符号链接或目录联接，避免意外指向别的安装。
     def __init__(self, config_file, data_root=None, quarantine=False):
         self.config_file = Path(config_file).resolve()
         no_links(self.config_file)
@@ -100,6 +123,8 @@ class Controller:
         self.quarantine = quarantine
         self.store = CredentialStore(self.data_root / 'identity')
 
+    # 读取保存的登记快照，并补充运行保护状态。
+    # 磁盘上的 adapterBinding 不是实时探针，因此通道只能先报告 unverified。
     def status(self):
         report = Connector(self.store).status()
         # This adapter deliberately has no legacy gatewayBinding. A saved
@@ -111,9 +136,13 @@ class Controller:
         report['runtimeNeedsReview'] = bool(state and state.get('runtimeNeedsReview'))
         return report
 
+    # 把用户输入的 HTTPS 地址、配对码和设备名交给核心；不在界面层另造配对协议。
     def pair(self, relay, code, name):
         return Connector(self.store).begin(relay, code, name)
 
+    # 由 GUI 工作线程调用。stop 是退出信号，on_status 是把状态送回界面的回调。
+    # 第一段只等待登记确认；确认后第二段创建受管运行环境并维持心跳。
+    # 被撤销、过期、拒绝等终态直接返回；不是通过重复配对恢复。
     def connect(self, stop, on_status):
         enrollment = Connector(self.store)
         while not stop.is_set():
@@ -131,6 +160,9 @@ class Controller:
             report['runtimeNeedsReview'] = self.store.read().get('runtimeNeedsReview') is True
         return report
 
+    # 在独占运行锁已持有的前提下组装本次 Node/FRP 环境。
+    # 先拒绝待复核/旧框架状态，再请求服务端分配的连接参数；只使用当前设备身份。
+    # 返回 LiteRuntime 对象；真正的进程启动由后续 tick 驱动。
     def _runtime(self, store):
         with store.lock():
             state = store.read()

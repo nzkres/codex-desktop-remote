@@ -1,3 +1,6 @@
+# 受管安装的真实窗口入口：启动前验证版本目录，防止从错误槽运行。
+# quarantine 是更新验证阶段：候选先自检，不接受手机写操作；收到激活消息后才开放窗口。
+
 """GUI entry for a verified immutable version and a separate stable data directory."""
 import argparse
 import json
@@ -17,6 +20,7 @@ from update_driver import controller_for, snapshot, probe
 from gui import _Window, enable_dpi
 
 
+# 比较当前指针与实际运行源码目录，防止从另一个旧槽误启动。
 def same_running_slot(slot):
     path = no_links(slot)
     canonical = path.resolve(strict=True)
@@ -24,6 +28,8 @@ def same_running_slot(slot):
     return canonical == ROOT
 
 
+# 更新候选的真实健康检查：先检查任务，再短暂连接验证传输，最后比较保全摘要。
+# 已配对安装会接触其配置的服务器；这不是纯 UI 演示或合成测试入口。
 def health(controller):
     baseline = snapshot(controller)
     probe(ROOT, controller)
@@ -33,9 +39,11 @@ def health(controller):
         stop = threading.Event()
         outcome = queue.Queue()
         verified = threading.Event()
+        # 仅收到登记 connected 且通道 probe_verified 后置位验证信号，并请求正常断开。
         def report(value):
             if value.get('state') == 'connected' and value.get('dataChannel') == 'probe_verified':
                 verified.set(); stop.set()
+        # 在线程里执行检查用连接，把结果交回主流程；异常只返回失败标记。
         def connect():
             try:
                 outcome.put(controller.connect(stop, report))
@@ -53,6 +61,8 @@ def health(controller):
         raise UpdateError('preservation_changed')
 
 
+# 普通启动需通过事务可启动检查；隔离启动先健康验证并等待助手激活。
+# 窗口最初隐藏，取得应用锁后再开放；退出时释放锁并销毁本窗口。
 def run(home, quarantine=False):
     import tkinter as tk
     config, pointer, root = installed(home)
