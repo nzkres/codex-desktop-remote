@@ -1,3 +1,7 @@
+## 2026-10-13 — alpha.12双平台CI全部通过，产物可下载；安装仍待关窗
+
+[Core CI38420879205](https://github.com/nzkres/codex-desktop-remote/actions/runs/38420879205) Windows/Linux两任务全部成功，包括单元测试、版本目录、relay/deploy检查、平台对应真实隔离升级演练、不可变源码包构建和上传。此次CI临时源码产物可下载；本机签名包仍单独验签，不能互相替代。现用alpha.11窗口仍在，本次尚未执行prepare、未建立重启围栏、未切换版本；待用户正常关闭窗口后继续。不要提前重启或清除runtimeNeedsReview。
+
 ## 2026-10-13 — alpha.12签名包及恢复助手已就绪，等待正常关窗
 
 源码a3b85a9；本机签名候选147470字节、48文件逐一匹配Git、sequence8，现用trust验签通过。独立GPT-6 Sol medium复核源码及一次性恢复助手，无剩余实质阻断。恢复助手18项合成测试通过，真实隔离GUI提交/失败清理后needs_review通过。完整路径、固定哈希、恢复中断边界及手机步骤见[alpha.12维护与验收](docs/WINDOWS-ALPHA12-AUTOMATIC-CONVERSATIONS.md)。
