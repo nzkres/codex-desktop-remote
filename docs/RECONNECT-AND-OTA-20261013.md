@@ -1,5 +1,17 @@
 # 简化重连与三端 OTA：2026-10-13 实施记录
 
+## 2026-10-13 — alpha.9 已实际安装，原配置保持，等待手机读取验收
+
+本段取代下方“等待重启/待安装”停点。用户完成完整重启并在原任务收到 ALPHA9_AFTER_RESTART_READY；Desktop 只读核对同一 UUID 的该回合 completed、任务 idle。新的 Windows boot、原完整文件清单/身份和签名均通过。重启后权限恰好恢复为原安装设置，与旧审查逐字段无差异、网络关闭；重启前获批的新 proposal 已不匹配，因此未执行原 repair-approved 的 resume，也未改权限摘要。
+
+保留原冻结脚本、review 和围栏，另建仅用于本机的 repair-preserved.local.py：固定原审查和操作器、续接脚本及原配置摘要；只读探针必须匹配现有配置。21/21 合成测试通过（107.106 秒），真实隔离 GUI 成功提交 alpha.9 / 坏候选回退 alpha.8 均通过，GPT-6 Sol medium 独立复审通过。探针期间审查材料变化、完整身份/任务变化、结果未知或回退证据不足均停止；未增加产品自动授权或通用冷恢复逻辑。
+
+真实 resume 已执行一次并 committed/success。独立复核：已安装 alpha.9、sequence5、候选 RSA/包/版本槽有效、alpha.8 旧槽保留；原身份及任务数据保全、配置文件精确字节和 permissionsHash 不变；归档、双事务日志和完整保全摘要一致。实际唯一连接器窗口标题为“Desktop 手机联调 · 0.1.0-alpha.9”，应用锁持有；候选启动时真实认证通道健康检查通过，之后新鲜原任务 idle/permissionsVerified/receiptsCertain 通过。
+
+已请用户点击新窗口“连接”，在安卓原任务读取已有 ALPHA9_AFTER_RESTART_READY，无需重发。手机读取和新的双向接续尚未验收。本次为本地签名维护安装，不是 alpha.9 在线 feed OTA；Android、relay 和公网 feed 本轮未切换。不要再运行 prepare/resume、清标志、改权限或重新配对。
+
+本机忽略证据：artifacts/alpha9/post-restart-preserved-preflight.json、preserved-continuation.local.json、installed-alpha9-audit.json。续接脚本 SHA256：90285ecda56de3ecba6a57a3ab88731aa4c89205eb4b72c6f6b65d53f481c753；续接记录 SHA256：0f27cfd62b8c3893c31ef2211ebedcea5614aa21edcba8c888eb02dee87a04d6。原准备 review 仍 DD79F610…、原脚本仍469C7FFE…；完整旧摘要见下方准备记录。
+
 ## 本批目标与顺序
 
 只维护“手机 → 私有中继 → 本机连接器 → 原 Codex Desktop 任务”这条链路。Desktop 始终执行任务；不复制任务、不新增执行器、不修改 Desktop 权限、不重新配对。
@@ -31,7 +43,7 @@ connected 只说明服务器登记在线。probe_verified 只证明中继与本�
 
 ## 三端候选与切换次序
 
-开发目录：`C:\code\my-code\codex-desktop-remote`。独立组件版本为 Windows alpha.9、Android alpha.6、relay alpha.6；本机已安装 Windows alpha.8。手机与服务器最近已验收记录是 alpha.5，实际切换前须重新读取现场。
+开发目录：`C:\code\my-code\codex-desktop-remote`。独立组件版本为 Windows alpha.9、Android alpha.6、relay alpha.6；本机已实际维护安装 Windows alpha.9（本页最新证据为准）。手机与服务器最近已验收记录是 alpha.5，实际切换前须重新读取现场。
 
 1. Windows：核对签名、sequence 大于本机 ledger 4、固定 Desktop 兼容。当前 alpha.8 的旧退出保护阻断普通 GUI OTA，先审查并确认本次维护方案，再经完整重启边界和独立事务切换；不能覆盖已签版本槽。失败在清理与保全证据完整时回退，激活不明则保持现场。本次维护不能冒称从 GUI 在线完成 alpha.9 OTA；此前 alpha.6→alpha.7 的实际在线更新是独立历史证据。
 2. Android：先让 PR 的模拟器回归通过，再合并审核过的输入并从 main 显式构建受控签名 APK；核对包名、versionCode、原证书、嵌入的 test trust。发布独立 Android feed，用户确认覆盖安装；不卸载、不清数据。已安装故障用更高版本修复，不承诺 Android 自动降级。
@@ -112,3 +124,15 @@ GPT-6 Sol medium 实现及另一代理独立审查；根代理检查代码并独
 已通知用户保存工作、完整重启Windows，连接器继续关闭。重启后先确认新的boot和全部摘要，再核验原任务；如仅历史页无owner，需用户在同一任务发送一次新的ALPHA9_AFTER_RESTART_READY。任何差异停止，不重跑prepare、不改已固定审查文件。只有预检通过后才执行获批脚本resume，以当前任务设置更新连接器摘要并切换候选，再验证真实身份/数据/权限/健康和安卓原任务。尚不声称安装或手机验收成功。
 
 26项获批debug临时产物清理已完成，备份和其他产物保留；配额是否重算及新CI上传仍未验证。Android/relay和公网feed本轮未切换。
+
+### 本次保留原权限的维护命令记录
+
+以下均从本机开发仓库运行；artifacts 下脚本是固定现场的一次性工具，不随产品分发，不适用于其他电脑，已完成后禁止重复执行。
+
+- python -B artifacts/alpha9/test-repair-preserved.local.py：21/21 通过。
+- python -B artifacts/alpha9/repair-preserved-gui-smoke.local.py：真实合成窗口 committed alpha.9 / rolled_back alpha.8；测试完整进程树清理通过。
+- 在独占锁下只读核对新 boot、完整旧清单/身份、签名及两版原权限探针，固定续接记录：见 post-restart-preserved-preflight.json。
+- 固定脚本与续接记录 SHA 后，python -B artifacts/alpha9/repair-preserved.local.py resume：真实 committed/success；仅执行一次。
+- 独立安装审计：验签、槽、账本、双日志、身份/任务/配置、旧归档、应用锁和新鲜探针均通过，见 installed-alpha9-audit.json。
+
+后续先收集手机原任务读取结果，再各发送一次新的手机/电脑接续标记。不得重发 ALPHA9_AFTER_RESTART_READY。Android 受控签名、手机覆盖安装和 relay 维护升级分别记录，不能沿用 Windows 的成功结论。

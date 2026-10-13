@@ -1,5 +1,17 @@
 # OTA 交接
 
+## 2026-10-13 — alpha.9 已实际安装，原配置保持，等待手机读取验收
+
+本段取代下方“等待重启/待安装”停点。用户完成完整重启并在原任务收到 ALPHA9_AFTER_RESTART_READY；Desktop 只读核对同一 UUID 的该回合 completed、任务 idle。新的 Windows boot、原完整文件清单/身份和签名均通过。重启后权限恰好恢复为原安装设置，与旧审查逐字段无差异、网络关闭；重启前获批的新 proposal 已不匹配，因此未执行原 repair-approved 的 resume，也未改权限摘要。
+
+保留原冻结脚本、review 和围栏，另建仅用于本机的 repair-preserved.local.py：固定原审查和操作器、续接脚本及原配置摘要；只读探针必须匹配现有配置。21/21 合成测试通过（107.106 秒），真实隔离 GUI 成功提交 alpha.9 / 坏候选回退 alpha.8 均通过，GPT-6 Sol medium 独立复审通过。探针期间审查材料变化、完整身份/任务变化、结果未知或回退证据不足均停止；未增加产品自动授权或通用冷恢复逻辑。
+
+真实 resume 已执行一次并 committed/success。独立复核：已安装 alpha.9、sequence5、候选 RSA/包/版本槽有效、alpha.8 旧槽保留；原身份及任务数据保全、配置文件精确字节和 permissionsHash 不变；归档、双事务日志和完整保全摘要一致。实际唯一连接器窗口标题为“Desktop 手机联调 · 0.1.0-alpha.9”，应用锁持有；候选启动时真实认证通道健康检查通过，之后新鲜原任务 idle/permissionsVerified/receiptsCertain 通过。
+
+已请用户点击新窗口“连接”，在安卓原任务读取已有 ALPHA9_AFTER_RESTART_READY，无需重发。手机读取和新的双向接续尚未验收。本次为本地签名维护安装，不是 alpha.9 在线 feed OTA；Android、relay 和公网 feed 本轮未切换。不要再运行 prepare/resume、清标志、改权限或重新配对。
+
+本机忽略证据：artifacts/alpha9/post-restart-preserved-preflight.json、preserved-continuation.local.json、installed-alpha9-audit.json。续接脚本 SHA256：90285ecda56de3ecba6a57a3ab88731aa4c89205eb4b72c6f6b65d53f481c753；续接记录 SHA256：0f27cfd62b8c3893c31ef2211ebedcea5614aa21edcba8c888eb02dee87a04d6。原准备 review 仍 DD79F610…、原脚本仍469C7FFE…；完整旧摘要见下方准备记录。
+
 ## 2026-10-13 — 当前权限已获批准，alpha.9 维护准备完成，等待完整重启
 
 用户明确选择“采用 Desktop 当前设置，继续修复”。固定本次权限审查后，按该设置只读核验原任务完整历史、空闲和回执全部通过；网络关闭、原任务与目录不变。审批者别名之外，明确纳入本任务可视化目录和两项临时目录标志变化。批准输入只保存在本机忽略目录，不自动跟随未来权限变化。
