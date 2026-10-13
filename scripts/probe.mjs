@@ -6,7 +6,7 @@ import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'node:fs';
 import { resolve, join } from 'node:path';
 import { randomBytes } from 'node:crypto';
 import { Follower } from '../src/follower.js';
-import { Service, httpServer, permissionDigest, permissionsMatch } from '../src/service.js';
+import { Service, httpServer, permissionDigest, configuredPermissionsMatch, permissionDigests } from '../src/service.js';
 import { Receipts } from '../src/receipts.js';
 import { verifyCompatibility } from '../src/compatibility.js';
 import { nativeTurns } from '../src/vendor/desktop-state.js';
@@ -17,12 +17,16 @@ let follower,server;
 try {
  await verifyCompatibility(config);
  follower=new Follower(config);
- const before=await follower.completeSnapshot();
+ if(config.permissionsHash) permissionDigests(config);
+ else if(Object.hasOwn(config,'approvedAlternatePermissionsHash')) throw new Error('permissions_unverified');
+ const before=await follower.completeSnapshot(snapshot=>{
+   if(config.permissionsHash && !configuredPermissionsMatch(snapshot,config)) throw new Error('permissions_changed');
+ });
  const turns=nativeTurns(before);
  if(!turns.some(t=>t.items.some(i=>i.type==='agentMessage'&&i.text==='DESKTOP_REMOTE_READY')))
    throw new Error('fixture_marker_missing');
  const hash=permissionDigest(before);
- if(config.permissionsHash && !permissionsMatch(before,config.permissionsHash)) throw new Error('permissions_changed');
+ if(config.permissionsHash && !configuredPermissionsMatch(before,config)) throw new Error('permissions_changed');
  if(!config.permissionsHash){config.permissionsHash=hash;writeFileSync(filename,JSON.stringify(config,null,2));}
  mkdirSync(config.dataDir,{recursive:true});
  const token=randomBytes(32).toString('hex');
@@ -42,7 +46,7 @@ try {
    do{
      await new Promise(r=>setTimeout(r,1000));
      const after=await follower.completeSnapshot();
-     report.permissionsPreserved=permissionsMatch(after,config.permissionsHash);
+     report.permissionsPreserved=configuredPermissionsMatch(after,config);
      const turn=nativeTurns(after).find(t=>t.id===receipt.result.turnId);
      report.literalReplyVerified=turn?.status==='completed'&&turn.items.some(i=>i.type==='agentMessage'&&i.text==='LOCAL_REMOTE_OK');
      if(report.literalReplyVerified)break;

@@ -6,7 +6,7 @@ import { resolve, join } from 'node:path';
 import { createServer } from 'node:net';
 import { createHash } from 'node:crypto';
 import { Follower } from './follower.js';
-import { Service, httpServer } from './service.js';
+import { Service, httpServer, permissionDigests } from './service.js';
 import { Receipts } from './receipts.js';
 import { verifyCompatibility } from './compatibility.js';
 import { VERSION } from './version.js';
@@ -37,6 +37,7 @@ try {
   if (config.schema !== 1 || !/^[a-f0-9-]{36}$/.test(config.threadId) || !/^[a-f0-9]{64}$/.test(config.permissionsHash)
     || !Number.isInteger(config.port) || config.port < 1024 || config.port > 65535
     || typeof config.title !== 'string' || config.title.length > 100) throw new Error('invalid_configuration');
+  permissionDigests(config);
   config.projectPath = realpathSync(config.projectPath);
   config.dataDir = realpathSync(config.dataDir);
   await verifyCompatibility(config);

@@ -6,13 +6,17 @@ import { lstatSync, readFileSync, readdirSync } from 'node:fs';
 import { resolve, join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { Follower } from '../src/follower.js';
-import { Service, permissionDigest, permissionsMatch } from '../src/service.js';
+import { Service, permissionDigest, permissionsMatch, permissionDigests } from '../src/service.js';
 import { Receipts } from '../src/receipts.js';
 import { verifyCompatibility } from '../src/compatibility.js';
 
 export async function checkUpdate(config, follower, reviewerAliasOnly = false) {
   if (!/^[a-f0-9]{64}$/.test(config.permissionsHash) || typeof reviewerAliasOnly !== 'boolean')
     throw new Error('permissions_unverified');
+  permissionDigests(config);
+  // 历史 alias-only 维护证据不能被第二份权限授权冒充。普通 OTA 使用 Service 的完整双摘要检查。
+  if (reviewerAliasOnly && Object.hasOwn(config, 'approvedAlternatePermissionsHash'))
+    throw new Error('reviewer_alias_not_proven');
   const directory = join(config.dataDir, 'receipts');
   const info = lstatSync(directory); // Missing is a refusal, never a mkdir.
   if (!info.isDirectory() || info.isSymbolicLink()) throw new Error('unsafe_receipt_directory');

@@ -8,7 +8,7 @@ import { pathToFileURL } from 'node:url';
 import { verifyCompatibility } from '../src/compatibility.js';
 import { Follower } from '../src/follower.js';
 import { checkUpdate } from './update_probe.mjs';
-import { permissionsMatch } from '../src/service.js';
+import { configuredPermissionsMatch } from '../src/service.js';
 import { assertIdle } from '../src/vendor/desktop-state.js';
 import { Receipts } from '../src/receipts.js';
 
@@ -34,7 +34,7 @@ function observations(config, state) {
   };
   return {
     permissions: check(() => {
-      if (!permissionsMatch(state, config.permissionsHash)) throw new Error('permissions_changed');
+      if (!configuredPermissionsMatch(state, config)) throw new Error('permissions_changed');
     }),
     idle: check(() => {
       if (!Array.isArray(state.requests)

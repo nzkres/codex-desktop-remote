@@ -1,5 +1,15 @@
 # OTA 交接
 
+## 2026-10-13 — alpha.9 双向验收失败已定位，alpha.10 修复候选
+
+用户反馈“电脑回复后手机未同步”。只读核对同一原任务中 PHONE_ALPHA9_OK 与 DESKTOP_ALPHA9_CONTINUE_OK 均 completed、任务 idle。现用 alpha.9 的本机认证 health 返回200且实例一致；mobile-sync 返回409/permissions_changed。新鲜快照兼容、原任务、空闲和回执通过，但权限不匹配原安装摘要，恰好匹配用户此前明确批准并固定的第二份摘要（approved-permissions.local.json）。因此手机发送与 Desktop 执行已经完成，读取被连接器权限门禁拒绝；不能把 alpha.9 初次读取成功写成双向接续通过。
+
+alpha.10 候选新增唯一可选 approvedAlternatePermissionsHash，保留原 permissionsHash：两份完整摘要都必须明确批准且格式合法、不重复；不会捕获或学习新的权限。服务读写、正常OTA前检、诊断和验收工具共用同一判定；旧 alias-only 维护探针遇备用摘要提前拒绝。未列出的权限、网络/目录变化、未知回执和活跃任务保护仍在。用户已批准的两份范围不表示它们是同一个序列化别名，不做通用等价转换。
+
+验证：源 Node 套件98/98（含14项新回归）；Python157项中151通过、6平台跳过；版本目录/生成历史检查通过，独立审查通过。默认 node --test 还发现忽略目录下历史测试副本，共182通过；98是明确限定test目录的当前源测试计数。只读实机候选投影在内存采用已批准第二摘要，能同时输出两条已有回复，idle/permissionsVerified/receiptsCertain通过；未写现用配置、未发送任何消息。这证明候选读取修复，不证明手机已收到或新版本已安装。
+
+现用仍 alpha.9、原连接器保持运行；alpha.10 尚未安装，Android/relay/feed未切换。下一步完成签名候选和正常退出交接审查，保留原身份/数据及旧槽，用户操作前固定原GUI句柄；不再要求重新配对或重复发送已完成标记。
+
 ## 2026-10-13 — alpha.9 已实际安装，安卓原任务读取通过
 
 本段取代下方“等待重启/待安装”停点。用户完成完整重启并在原任务收到 ALPHA9_AFTER_RESTART_READY；Desktop 只读核对同一 UUID 的该回合 completed、任务 idle。新的 Windows boot、原完整文件清单/身份和签名均通过。重启后权限恰好恢复为原安装设置，与旧审查逐字段无差异、网络关闭；重启前获批的新 proposal 已不匹配，因此未执行原 repair-approved 的 resume，也未改权限摘要。

@@ -44,11 +44,28 @@ export const permissionsMatch = (state, expectedDigest) => {
     currentPermissions: { ...current, approvalsReviewer: alias },
   }) === expectedDigest;
 };
+// 两个明确批准的完整权限快照，而不是自动接受任意新权限。
+// permissionsHash 保留首次授权；备用摘要只能由用户明确审核后写入同一任务配置。
+// Desktop 重启/桌面发言可能在两种已批准设置间切换；未列出的第三种设置仍拒绝。
+export function permissionDigests(config) {
+  const valid = value => typeof value === 'string' && /^[a-f0-9]{64}$/.test(value);
+  if (!valid(config.permissionsHash))
+    throw new ControlError('permissions_unverified', '原任务权限记录无法核对。');
+  if (!Object.hasOwn(config, 'approvedAlternatePermissionsHash')) return [config.permissionsHash];
+  const alternate = config.approvedAlternatePermissionsHash;
+  if (!valid(alternate) || alternate === config.permissionsHash)
+    throw new ControlError('permissions_unverified', '已批准的备用权限记录无法核对。');
+  return [config.permissionsHash, alternate];
+}
+export const configuredPermissionsMatch = (state, config) =>
+  permissionDigests(config).some(expected => permissionsMatch(state, expected));
+
 export class Service {
   // 汇集任务范围、权限、回执和更新/断开栅栏；mutating 仅串行化本进程操作。
   constructor(config, follower, receipts, { drainTimeoutMs = 5000, quarantine = false } = {}) {
     if (!Number.isSafeInteger(drainTimeoutMs) || drainTimeoutMs < 1 || drainTimeoutMs > 30000)
       throw new Error('invalid_drain_timeout');
+    permissionDigests(config);
     this.config = config; this.follower = follower; this.receipts = receipts;
     this.sync = new MobileSync(); this.mutating = false;
     this.draining = false; this.stopUncertain = false; this.drainWaiters = new Set();
@@ -57,7 +74,7 @@ export class Service {
   target(id) { if (id !== this.config.threadId) throw new ControlError('outside_scope', '未开放这个任务。', 403); }
   permissions(state) {
     // 每次依赖快照的操作都要与启动配置里的权限摘要核对。
-    if (!permissionsMatch(state, this.config.permissionsHash))
+    if (!configuredPermissionsMatch(state, this.config))
       throw new ControlError('permissions_changed', 'Desktop 任务权限已变化，请在电脑端重新核对。');
   }
   async read(id) {
