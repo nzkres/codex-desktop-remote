@@ -1,6 +1,6 @@
 # OTA 交接
 
-## 2026-10-13 — alpha.10 已安装，安卓历史读取恢复通过
+## 2026-10-13 — alpha.10 已安装，原任务新消息双向接续通过
 
 用户批准 alpha.10 维护升级及唯一的既有获批备用权限摘要。原助手固定 alpha.9 原始窗口句柄后等待 600 秒超时，返回 old_process_exit_unconfirmed，尚未开始修改安装；用户随后明确确认“已安全断开并关闭连接器”。未按旧 PID 重开/终止进程，没有伪称观察到旧句柄退出码。复用既有 verify_clean_exit：旧签名控制器已正常清理并移除自身 runtimeNeedsReview、application/runtime 锁均可取得、旧 PID 缺席；完整身份/任务/配置、proof、旧账本及历次维护记录与原审查完全一致。
 
@@ -8,7 +8,7 @@
 
 实际事务 committed/success；独立审计确认 alpha.10、sequence6、签名/ZIP/版本槽有效，alpha.9 原槽保留；原身份和任务数据保持，主权限摘要不变，只追加已批准第二摘要，旧配置/旧 staged 精确归档；两份事务日志及完整保全摘要一致。真实候选认证通道健康检查、新鲜原任务 idle/permissionsVerified/receiptsCertain 均通过；新 GUI 标题“Desktop 手机联调 · 0.1.0-alpha.10”，应用锁持有。脱敏证据：artifacts/alpha10/installed-alpha10-audit.json；本机续接审计 normal-close-continuation.local.json 明确 originalHandleExitObserved=false。
 
-用户在 alpha.10 点击连接后，已明确确认手机原任务中 PHONE_ALPHA9_OK 与 DESKTOP_ALPHA9_CONTINUE_OK“两条回复都能看到”。升级后真实手机历史读取恢复通过；两条消息未重发。已请求在同一原任务依次验证 PHONE_ALPHA10_OK 和 DESKTOP_ALPHA10_CONTINUE_OK，每条仅一次，结果不明不重试；新消息双向接续仍待用户确认。本次是本地签名维护安装，不是 alpha.10 在线 OTA；Android、relay 与公网 feed 未更新。不要重复运行维护脚本或删除保护。
+用户在 alpha.10 点击连接后，已明确确认手机原任务中 PHONE_ALPHA9_OK 与 DESKTOP_ALPHA9_CONTINUE_OK“两条回复都能看到”。升级后真实手机历史读取恢复通过；两条消息未重发。用户随后明确确认手机能看到 PHONE_ALPHA10_OK 和 DESKTOP_ALPHA10_CONTINUE_OK 两条新回复。Desktop 只读复核确认两个回合均在同一原测试任务 completed、error=null，任务 idle；本轮未由维护工具发送或重放消息。alpha.10 的手机发送→Desktop执行→电脑接续→手机显示的新消息双向实机验收通过。此结果不替代长时间闲置、断网和再次重连的稳定性验收。本次是本地签名维护安装，不是 alpha.10 在线 OTA；Android、relay 与公网 feed 未更新。不要重复运行维护脚本或删除保护。
 
 Core PR CI [38368132481](https://github.com/nzkres/codex-desktop-remote/actions/runs/38368132481) 两平台测试、隔离演练及打包成功，但上传均明确报 Artifact storage quota has been hit，整体失败，无本次 CI 可下载产物。源码产品输入仍 11bbbb3a8e98ae041306af8f939a1858940ca696。详细故障、签名和恢复边界见 [alpha.10 维护记录](WINDOWS-ALPHA10-MAINTENANCE.md)。
 
