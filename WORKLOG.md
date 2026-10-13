@@ -1,3 +1,15 @@
+## 2026-10-13 — 最终签名候选与本机维护隔离验收
+
+Windows/relay 固定 2a783a0 Git blob 的 43/29 文件逐字节核对，最终已签包在 artifacts/alpha9/release-git，分别 132648/84517 字节、sequence5/2，现用公钥和账本只读验签通过；无发布或安装。错误换行草稿完整保留并标 DO-NOT-PUBLISH。精确哈希和来源写入 docs/RECONNECT-AND-OTA-20261013.md。
+
+只读现场发现实际 alpha.8 runtimeNeedsReview=true，普通 OTA 被拒绝；原任务打开历史后 owner_unavailable，Desktop read_thread 报 notLoaded，未发送模型消息。一次性维护候选经过双代理审查，根代理 13/13 合成测试、真实临时 GUI 成功提交 alpha9/坏候选回退 alpha8 均通过；已前置拒绝历史归档和次 journal 冲突。真实 prepare/resume 零次，未清保护、改权限、重配对或要求立即重启。
+
+服务器仍 relay alpha.5/healthy，匿名下载六项401，新 feed 未发布。GitHub 26 个旧 debug 临时产物已全量备份，大小/ZIP CRC/SHA复验，共296503472字节；清理仍等精确批准，尚未删除。STATUS与HANDOFF同步当前停点，不能把测试、签名或历史手机验收当作本轮真实切换。
+
+## 2026-10-13 — Android 仪器测试仍待启动
+
+80c03c7 的 Android PR 38345259612 再次通过单元测试、lint、debug APK 与包内版本核验，但即使 AVD config.ini 写入 2048M，模拟器仍要求 7372.80 MB、运行机可用 6539.45 MB，四组仪器测试未开始。该需求与 AOSP emulator 源码中 PlayStoreImage 特性的 6 GiB 下限和 1.2 倍空间检查一致，但旧日志未记录特性标志，不能确定唯一原因。现将隔离回归镜像改为同 API 35 的 default x86_64 镜像；失败时仅输出 AVD 的分区大小、PlayStore.enabled 与 tag.id 以核对配置，保留完整 UI 测试。debug artifact 上传仍因 GitHub Actions 存储配额失败，上传门禁未放宽；待下一 PR CI 实测。
+
 ## 2026-10-13 — Android 模拟器空间故障复核
 
 13cdab6 的 Android push 38344533538 / PR 38344536681 均通过单元测试、lint、debug APK 与包内版本核验，随后在模拟器启动前失败，四组 UI 仪器测试仍未执行。日志显示 KVM 可用、AVD 已找到，临时磁盘剩余约 6.4 GB；模拟器默认 userdata 仍要求 7372.80 MB（PR 运行报告可用 6539.36 MB）。`-partition-size 2048` 未覆盖 AVD 自身设置，现改为在临时 AVD 的 config.ini 明确写入 `disk.dataPartition.size=2048M`。两条运行的 debug artifact 上传仍因 GitHub Actions 配额失败；签名与产物门禁未放宽。待新 CI 验证模拟器及 UI 测试。

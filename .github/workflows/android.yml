@@ -110,11 +110,11 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          sdkmanager 'emulator' 'system-images;android-35;google_apis;x86_64'
+          sdkmanager 'emulator' 'system-images;android-35;default;x86_64'
           export ANDROID_USER_HOME="$RUNNER_TEMP/android-user"
           export ANDROID_AVD_HOME="$ANDROID_USER_HOME/avd"
           mkdir -p "$ANDROID_AVD_HOME"
-          echo no | avdmanager create avd --force --name cdr-regression --package 'system-images;android-35;google_apis;x86_64' --path "$ANDROID_AVD_HOME/cdr-regression.avd"
+          echo no | avdmanager create avd --force --name cdr-regression --package 'system-images;android-35;default;x86_64' --path "$ANDROID_AVD_HOME/cdr-regression.avd"
           avd_config="$ANDROID_AVD_HOME/cdr-regression.avd/config.ini"
           test -f "$avd_config"
           sed -i '/^disk\.dataPartition\.size[[:space:]]*=/d' "$avd_config"
@@ -129,7 +129,7 @@ jobs:
           df -h "$ANDROID_AVD_HOME"
           "$ANDROID_HOME/emulator/emulator" -avd cdr-regression -port 5554 -no-window -no-audio -no-boot-anim -no-snapshot -gpu swiftshader -accel on > "$RUNNER_TEMP/cdr-emulator.log" 2>&1 &
           emulator_pid=$!
-          trap 'result=$?; if [[ $result -ne 0 ]]; then echo "Emulator diagnostics:"; timeout 10 adb devices -l || true; tail -n 120 "$RUNNER_TEMP/cdr-emulator.log" || true; fi; timeout 10 adb -s emulator-5554 emu kill >/dev/null 2>&1 || true' EXIT
+          trap 'result=$?; if [[ $result -ne 0 ]]; then echo "AVD configuration:"; grep -E "^(disk\.dataPartition\.size|PlayStore\.enabled|tag\.id)[[:space:]]*=" "$avd_config" || true; echo "Emulator diagnostics:"; timeout 10 adb devices -l || true; tail -n 120 "$RUNNER_TEMP/cdr-emulator.log" || true; fi; timeout 10 adb -s emulator-5554 emu kill >/dev/null 2>&1 || true' EXIT
           booted=false
           for attempt in $(seq 1 90); do
             if ! kill -0 "$emulator_pid" 2>/dev/null; then

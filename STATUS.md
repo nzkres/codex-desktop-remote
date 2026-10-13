@@ -1,3 +1,15 @@
+## 2026-10-13 — alpha.9 候选就绪，真实安装尚未切换
+
+- 功能代码已在 `codex/simple-reconnect-alpha9`、草稿 PR #6；Windows alpha.9 / Android alpha.6 / relay alpha.6 的用户体验说明均已入库。程序候选输入固定 `2a783a06cac7ff0f4fe527280a92af031ca28cac`，后续仅修复 Android CI 环境。
+- Windows/relay 最终本地签名包分别 132648 / 84517 字节、sequence 5 / 2，43 / 29 个文件逐字节匹配 Git blob；使用现用信任和账本只读验签通过。完整哈希见 [本轮记录](docs/RECONNECT-AND-OTA-20261013.md)。未发布或安装。
+- Core CI 38343263687 两平台测试、真实隔离演练和打包成功，但上传因账号 artifact 配额失败，整体失败，没有本轮 CI 下载产物。Android 模拟器已发现 AVD 路径与 userdata 空间问题；80c03c7 显式分区设置仍遇到 7372.80 MB 最低空间要求，UI 测试未执行；下一轮改用无需 Google 服务的 API35 AOSP default 镜像，不将尚未运行的 UI 测试记为通过。
+- 真实 Windows 仍 alpha.8：原身份存在，主事务 committed，账本 4；但 `runtimeNeedsReview=true`，普通 OTA 前检拒绝。原任务打开历史后只读诊断仍 `owner_unavailable`，Desktop 任务工具另报 `notLoaded`，最近完成内容仍为旧的 REMOTE_AFTER_RESTART_READY。已请求用户在原任务仅发送一次 ALPHA9_PREFLIGHT_READY，尚未确认，不自动补发。
+- 已准备只在本机忽略目录中的一次性维护候选；新 Windows 启动、完整身份/配置/任务 CAS、旧/新探针和原签名必须全部满足。没有执行真实 prepare/resume，也没有清保护、改授权或重配对。真实维护前仍需具体切换确认。
+- 服务器只读核验仍 relay alpha.5、宿主 healthy/ready；Windows feed alpha.7，Android/relay feed alpha.5，正常 HTTPS 匿名六项请求均 401。未发布新 feed 或切换服务。
+- 26 个旧未签名 Android debug artifact 已完整备份并逐包校验，共 296503472 字节；等待用户批准精确清单后才删除远端，不清最新 debug、受控签名包、Release 或其他仓库。额度刷新不是即时生效。
+
+以下为历史阶段记录，以本段和本轮专项记录为当前状态。
+
 ## 2026-10-13 — P0–P3 实现，P4/P5 候选验收中
 
 当前开发目录为 C:\code\my-code\codex-desktop-remote，分支 codex/simple-reconnect-alpha9。已有学习注释已单独保存为 8f61adc，不覆盖旧工作树。Windows alpha.9 修复断网时主动退出的本机核验，明确失联后重新发现 Desktop 原任务，完善分层状态/再次连接提示；完整身份、权限、未知回执、原句柄树清理与异常现场保护保留。补充转发前快照变化竞态和未核权限加载历史的回归。Android alpha.6 候选整合原 PR #4；旧 CI 确认为 ADB 等待超时，新增模拟器启动诊断，仍需新 CI 证明。relay alpha.6 仅作为连续 OTA 演练候选，不改 API 或数据库结构。

@@ -1,5 +1,14 @@
 # OTA 交接
 
+## 当前停点：2026-10-13 简化重连已实现，三端 OTA 候选待实机切换
+
+源码在 `C:\code\my-code\codex-desktop-remote`，独立分支 `codex/simple-reconnect-alpha9`，草稿 [PR #6](https://github.com/nzkres/codex-desktop-remote/pull/6)。先读 [本轮实施与候选哈希](RECONNECT-AND-OTA-20261013.md) 和 [STATUS](../STATUS.md) 顶部；下方旧停点仅为历史，不重跑旧维护脚本。
+
+1. P0–P3 已实现并通过本地验收：断网主动退出仍安全 drain，明确 Desktop 失联后重新发现原任务，新状态与再次连接提示；没有新增执行器或放宽权限。候选产品输入 `2a783a0`，最终 Windows/relay 签名包只使用忽略目录 `artifacts/alpha9/release-git/`；其他草稿标记 DO-NOT-PUBLISH。
+2. 本机真实 alpha.8 仍有退出未确认保护；普通更新被拒绝。用户打开原任务后仍无 owner，已请仅发送一次 `ALPHA9_PREFLIGHT_READY`，不要自动补发。下一步先只读复核原任务空闲、原权限与回执，再完成具体维护审查并取得批准；没有授权清 guard、改权限或直接安装。本机一次性 alpha8→alpha9 工具未执行真实 prepare/resume，预计需要准备后完整重启 Windows，不能复用以前的 boot 或旧恢复脚本。
+3. Android 单测/lint/编译通过，模拟器路径及空间错误正在逐项按真实 CI 修复；`80c03c7` 仍未越过镜像最低空间检查，下一轮改用 API35 AOSP default 镜像。Core 两平台测试/演练/打包成功，但上传配额导致整体失败。26 个旧未签名 debug artifact 已有大小/CRC/SHA 验证的完整本机备份；只在用户批准 exact review-list.csv 后删除这些 ID，不能删除最新样本、签名 APK、Release 或其他仓库。
+4. Android main-only 受控签名 gate 保留；PR #6 尚未合并，尚无 alpha.6 受控 APK。具体审核通过后再确认合并和受控构建。服务器仍 relay alpha.5，所有新 feed/真实服务切换尚未执行；继续按 Windows→Android→relay 验收，每一步独立记录实际版本与手机原任务证据。
+
 ## 当前停点：2026-10-12 alpha.8 已安装，安卓原任务恢复
 
 用户已明确批准当前任务权限重新确认，随后本机维护事务 committed/success。独立签名/身份/任务/批准配置/旧槽/新鲜探针检查通过；用户在 alpha.8 点击连接后，确认安卓原任务能看到 REMOTE_AFTER_RESTART_READY。本次修复已完成，不再运行 prepare/amend/resume，不要求重启、重配对或重复标记。

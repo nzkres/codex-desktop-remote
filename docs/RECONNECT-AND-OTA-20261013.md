@@ -33,7 +33,7 @@ connected 只说明服务器登记在线。probe_verified 只证明中继与本�
 
 开发目录：`C:\code\my-code\codex-desktop-remote`。独立组件版本为 Windows alpha.9、Android alpha.6、relay alpha.6；本机已安装 Windows alpha.8。手机与服务器最近已验收记录是 alpha.5，实际切换前须重新读取现场。
 
-1. Windows：核对签名、sequence 大于本机 ledger 4、固定 Desktop 兼容；准备私有源后经原 GUI alpha.8→alpha.9。不能覆盖已签版本槽。失败按独立事务回退；回退或激活不明时保持现场。
+1. Windows：核对签名、sequence 大于本机 ledger 4、固定 Desktop 兼容。当前 alpha.8 的旧退出保护阻断普通 GUI OTA，先审查并确认本次维护方案，再经完整重启边界和独立事务切换；不能覆盖已签版本槽。失败在清理与保全证据完整时回退，激活不明则保持现场。本次维护不能冒称从 GUI 在线完成 alpha.9 OTA；此前 alpha.6→alpha.7 的实际在线更新是独立历史证据。
 2. Android：先让 PR 的模拟器回归通过，再合并审核过的输入并从 main 显式构建受控签名 APK；核对包名、versionCode、原证书、嵌入的 test trust。发布独立 Android feed，用户确认覆盖安装；不卸载、不清数据。已安装故障用更高版本修复，不承诺 Android 自动降级。
 3. relay：从私有 HTTPS 下载并暂存已签 alpha.6。真实维护前检查活动任务、审批、配对和未确认操作；通过现有宿主 apply，核对旧树退出、数据库关键内容、新服务及设备重注册。失败只在候选树退出、数据保持后回退；不恢复旧数据库覆盖新数据。
 
@@ -44,3 +44,41 @@ connected 只说明服务器登记在线。probe_verified 只证明中继与本�
 结果持续补充至 STATUS.md 和 WORKLOG.md。真实手机验收使用新的唯一标记，每条只发一次；先在手机发送，收到回复后在 Desktop 原任务接续，再确认手机同任务能看到两条。历史已完成标记不重复发送。
 
 Android 旧 CI 37796918966/37796903996 的已知失败是 adb 等待设备 180 秒超时，UI 测试没有启动。旧运行没有保留模拟器日志，不能断言具体 GPU 参数导致故障；本批加入 KVM 预检、启动退出诊断和设备/开机状态核对，新 CI 结果才是是否修复的证据。
+
+## 最终本地签名候选（未发布）
+
+程序输入固定为 `2a783a06cac7ff0f4fe527280a92af031ca28cac`。后续 CI-only 提交不改变候选源文件。签名标识为现有 `cdr-ota-test-20261008-v1`，私钥仅在本机 DPAPI 库中使用；分别通过真实 Windows/服务器公钥和账本只读验签。
+
+打包时发现工作区和 git archive 的换行转换会影响字节，最终改为直接读取固定 Git blob；所有包内文件逐字节核对。前期未发布的草稿保留并标为 DO-NOT-PUBLISH，没有放入真实候选记录、账本或公网 feed。**只使用 artifacts/alpha9/release-git/build-verification.json 指定的最终文件。**
+
+| 候选 | 字节 | SHA-256 | sequence | Git 文件核对 |
+| --- | --- | --- | --- | --- |
+| windows-0.1.0-alpha.9.zip | 132648 | `449c5a4b5cf88764dd4662629c1e835dc401d0f81663d1c0796f13da9e2f2c9f` | 5 | 43 |
+| relay-0.1.0-alpha.6.zip | 84517 | `0d2b828cc75a19d7e861e576c1da420856df7eb8178bc2726a04d61b4778be8d` | 2 | 29 |
+
+
+windows metadata SHA-256：`5e9afe18f2d42d3bf49b59fb2720490b5d384b8bfb1bfe0c32fa3a0dcbe3f9b2`。
+
+relay metadata SHA-256：`a49869d58599a5c2f1c43ddb0f67001a68d179e514ed1dfecfc407523bcda880`。
+
+Android 当前没有受控签名 alpha.6 APK，不能用普通 debug APK代替。Core CI 38343263687 两平台测试、演练与打包成功，整体因 artifact 存储配额失败；没有本轮可下载 CI 包。Android 模拟器路径、磁盘问题已按实际日志修复并重跑，不能把 CI 尚未成功写成已通过。
+
+## 当前真实现场与后续切换
+
+只读核对本机仍 Windows alpha.8/committed/ledger4，但 runtimeNeedsReview=true，普通 OTA 身份前检拒绝。当时应用/运行锁可取得，未发现指向本安装的进程或65250监听；这不能替代原句柄完整树退出证明。alpha.9 的正常断网退出修复不能自动清理旧现场。原任务仅打开历史后仍 owner_unavailable，已请用户用一次新标记恢复执行端。没有删除保护、修改权限或重配对。
+
+本次维护准备必须保留完整原身份/配置/权限/任务、旧签名槽和旧事务，锁定候选与原状态，在新的完整 Windows 启动后重新核对全部内容及原任务空闲/权限/回执。任何差异停止。这种一次性维护工具不进入产品包，也不代表通用自动恢复。实际安装成功仍需事务/版本/保全证据及手机同任务验证。
+
+服务器仍 relay alpha.5，宿主 healthy/ready、ledger1；Windows feed alpha.7/seq3，Android和relay feed alpha.5/seq1。三包大小/SHA匹配，六个匿名HTTPS请求均401；未部署。发布只替换对应组件 latest.json，保留版本化包及旧索引审计副本；不公开静态目录、不修改旧Android接口、不停止FRPS。relay真实apply安排在Windows和Android验收之后，经受管维护门禁执行，不用systemctl restart。
+
+GitHub 本仓库26个旧未签名debug临时产物已下载，大小、ZIP CRC、SHA独立复验，共296503472字节。清理需用户批准 exact review-list.csv，保留最新debug、受控签名APK和Release；额度可能需6–12小时重算。
+
+## 本机一次性维护工具验收（尚未运行真实维护）
+
+工具只在本机忽略目录 `artifacts/alpha9/repair-once.local.py`，SHA-256 `e0b49467fad3b44253ceb564e8e9f93397d64142af604f99ddf68025a5d8d2ea`。它固定本安装、旧 alpha.8、最终 alpha.9 包和 sequence5，不随产品分发，不可跨电脑运行。
+
+GPT-6 Sol medium 实现及另一代理独立审查；根代理检查代码并独立复验 13/13 合成测试。审查发现的旧 staged 归档/次 journal 路径预存问题已改为清 guard 和推进账本前拒绝。测试覆盖新启动边界、身份/任务 CAS、权限/回执拒绝、候选替换、并发实例、写入中断、旧 staged 原字节保存、候选回退和激活结果不明。
+
+另由根代理实际运行 `python -B artifacts/alpha9/repair-gui-smoke.local.py`：完全临时合成 home 中真实 `RepairDriver.start/verify/activate` 成功提交 alpha.9（一次启动）；故意让新候选健康检查失败后回退 alpha.8（两次启动）。两例激活窗口持有应用锁，外层原始 Windows Job 完整清理自有树。此演练的 boot 和 Desktop 探针是合成夹具，不是实际重启或原任务验收。
+
+真实 `prepare/resume` 均未执行。只有原任务新鲜探针通过、用户审查具体维护并批准后才准备；之后通知用户保存工作并完整重启。恢复时重新验证所有固定摘要及原任务，不要求重新配对、不修改 Desktop 或连接器权限配置。任一步出现差异停在可诊断状态，不反复尝试或删除围栏。
