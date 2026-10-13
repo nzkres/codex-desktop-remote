@@ -12,6 +12,7 @@ import { configuredPermissionsMatch } from '../src/service.js';
 import { assertIdle } from '../src/vendor/desktop-state.js';
 import { Receipts } from '../src/receipts.js';
 import { taskConfigs } from '../src/tasks.js';
+import {readCatalog, taskScope} from '../src/catalog.js';
 
 const PUBLIC_CODES = new Set([
   'invalid_task_scope', 'invalid_config', 'unsupported_platform', 'unsupported_version', 'hash_mismatch',
@@ -57,12 +58,19 @@ function observations(config, state) {
 }
 
 export async function diagnoseDesktop(config, {
-  verify = verifyCompatibility, createFollower = cfg => new Follower(cfg),
+  verify = verifyCompatibility, createFollower = cfg => new Follower(cfg), discover = readCatalog, catalogTask = false,
 } = {}) {
   const report = { schema: 1, readOnly: true, modelInputs: 0, phase: 'compatibility',
     taskReady: false, reconnectAuthorized: false };
   let follower;
   try {
+    if (taskScope(config) === 'all-local' && !catalogTask) {
+      await verify(config);
+      const rows = await discover(config);
+      // 目录发现只报告数量，不主动订阅全部历史，也不冒充任务空闲证据。
+      return {...report, compatible:true, phase:'catalog', catalogReady:true, taskCount:rows.length,
+        code:'select_task_for_live_diagnostic'};
+    }
     if (Object.hasOwn(config,'additionalTasks')) {
       const tasks = [];
       for (const task of taskConfigs(config)) tasks.push({threadId:task.threadId, ...await diagnoseDesktop(task,{verify,createFollower})});

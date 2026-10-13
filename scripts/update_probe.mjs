@@ -10,14 +10,15 @@ import { Service, permissionDigest, permissionsMatch, permissionDigests } from '
 import { Receipts } from '../src/receipts.js';
 import { verifyCompatibility } from '../src/compatibility.js';
 import { TaskService, taskConfigs } from '../src/tasks.js';
+import {taskScope} from '../src/catalog.js';
 
 export async function checkUpdate(config, follower, reviewerAliasOnly = false) {
   if (Object.hasOwn(config,'additionalTasks')) throw new Error('all_task_probe_required');
-  if (!/^[a-f0-9]{64}$/.test(config.permissionsHash) || typeof reviewerAliasOnly !== 'boolean')
+  if ((taskScope(config) === 'selected' && !/^[a-f0-9]{64}$/.test(config.permissionsHash)) || typeof reviewerAliasOnly !== 'boolean')
     throw new Error('permissions_unverified');
-  permissionDigests(config);
+  if (taskScope(config) === 'selected') permissionDigests(config);
   // 历史 alias-only 维护证据不能被第二份权限授权冒充。普通 OTA 使用 Service 的完整双摘要检查。
-  if (reviewerAliasOnly && Object.hasOwn(config, 'approvedAlternatePermissionsHash'))
+  if (reviewerAliasOnly && (taskScope(config) === 'all-local' || Object.hasOwn(config, 'approvedAlternatePermissionsHash')))
     throw new Error('reviewer_alias_not_proven');
   const directory = join(config.dataDir, 'receipts');
   const info = lstatSync(directory); // Missing is a refusal, never a mkdir.
@@ -70,7 +71,7 @@ async function main(argv = process.argv.slice(2)) {
         || (argv.length === 2 && argv[1] !== '--reviewer-alias-only'))
       throw new Error('invalid_probe_arguments');
     const config = JSON.parse(readFileSync(resolve(argv[0]), 'utf8'));
-    if (!/^[a-f0-9]{64}$/.test(config.permissionsHash)) throw new Error('permissions_unverified');
+    if (taskScope(config) === 'selected' && !/^[a-f0-9]{64}$/.test(config.permissionsHash)) throw new Error('permissions_unverified');
     await verifyCompatibility(config);
     if (argv.length === 2) {
       if (Object.hasOwn(config,'additionalTasks')) throw new Error('reviewer_alias_not_proven');

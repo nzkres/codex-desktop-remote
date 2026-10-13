@@ -44,7 +44,7 @@
 // import 表示从其他模块取工具。realpathSync 解析磁盘上的实际路径（包括链接目标）；
 // resolve 把路径整理为绝对路径；object 判断普通对象；nativeTurns 检查/转换原生回合。
 import { realpathSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { resolve, toNamespacedPath } from 'node:path';
 import { DesktopIpc, DESKTOP_VERSIONS, ControlError, object } from './vendor/desktop-ipc.js';
 import { nativeTurns } from './vendor/desktop-state.js';
 
@@ -84,8 +84,8 @@ export class Follower {
     if (state?.id !== this.config.threadId || typeof state.cwd !== 'string') return false;
     // 两种路径比较都要通过：实际落盘位置相同，整理后的路径也相同；统一小写用于 Windows 比较。
     // try/catch 表示路径读取失败时返回 false，不尝试猜测或修复目录。
-    try { return realpathSync(state.cwd).toLowerCase() === realpathSync(this.config.projectPath).toLowerCase()
-      && resolve(state.cwd).toLowerCase() === resolve(this.config.projectPath).toLowerCase(); }
+    try { return toNamespacedPath(realpathSync(state.cwd)).toLowerCase() === toNamespacedPath(realpathSync(this.config.projectPath)).toLowerCase()
+      && toNamespacedPath(resolve(state.cwd)).toLowerCase() === toNamespacedPath(resolve(this.config.projectPath)).toLowerCase(); }
     catch { return false; }
   }
   invalidate() {
@@ -155,7 +155,7 @@ export class Follower {
     // hostId=local 限定这台电脑；conversationId 取配置的 threadId，不用任务标题查找。
     // r 是完整响应；失败不一定是任务不存在，也可能是任务没有活动处理端或响应超时。
     try { r = await this.ipc.request('thread-owner-discovery', { hostId: 'local', conversationId: this.config.threadId }); }
-    catch { throw new ControlError('owner_unavailable', '请在 Desktop 打开测试任务；不会另开执行器。', 503); }
+    catch { throw new ControlError('owner_unavailable', '请在 Desktop 打开这条对话；若仍无法接续，请在电脑发送一条消息后重试。', 503); }
     if (generation !== this.generation)
       throw new ControlError('desktop_unavailable', 'Desktop 连接已断开。', 503);
     // supportsUntrustedAppInput 意为“支持接收外部应用输入”。untrusted 是协议里的信任分类，

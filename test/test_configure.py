@@ -37,11 +37,13 @@ class ConfigureTests(unittest.TestCase):
         self.frpc.write_bytes(b"synthetic frpc file")
         self.output = self.root / "fixture.local.json"
 
-    def invoke(self, runner, *, project=None, node=None):
+    def invoke(self, runner, *, project=None, node=None, selected=True):
         argv = [str(SCRIPT), "--thread-id", str(THREAD_ID),
                 "--project", str(project or self.project),
                 "--desktop-root", str(self.desktop),
                 "--node", str(node or self.node), "--frpc", str(self.frpc)]
+        if not selected:
+            argv = [argv[0]] + argv[5:]
         printed = io.StringIO()
         with patch.object(configure, "ROOT", self.root), patch.object(sys, "argv", argv), \
                 patch.object(configure.subprocess, "run", side_effect=runner) as probe, \
@@ -107,6 +109,16 @@ class ConfigureTests(unittest.TestCase):
         self.assertIsInstance(error, FileNotFoundError)
         self.assertFalse(self.output.exists())
         probe.assert_not_called()
+
+    def test_new_install_defaults_to_all_local_without_thread_id_or_permissions_hash(self):
+        with patch.object(configure, 'read_catalog', return_value={'schema':1,'tasks':[]}):
+            error, printed, probe = self.invoke(lambda *a, **k: SimpleNamespace(returncode=0), selected=False)
+        self.assertIsNone(error)
+        cfg=json.loads(self.output.read_text(encoding='utf-8'))
+        self.assertEqual(cfg['taskScope'], 'all-local')
+        self.assertNotIn('threadId', cfg)
+        self.assertNotIn('permissionsHash', cfg)
+        self.assertIn('--input-type=module', probe.call_args.args[0])
 
 
 if __name__ == "__main__":

@@ -9,6 +9,7 @@ import { ControlError, object } from './vendor/desktop-ipc.js';
 import { nativeTurns, activeTurn, assertIdle } from './vendor/desktop-state.js';
 import { MobileSync, mobileSignals } from './vendor/mobile-sync.js';
 import { VERSION } from './version.js';
+import { taskScope } from './catalog.js';
 
 // 把 Desktop 当前权限规范化后计算摘要；输入必须包含非空 currentPermissions。
 // 根目录取真实路径、去重排序，并移除已被授权父目录覆盖的子目录。
@@ -57,15 +58,28 @@ export function permissionDigests(config) {
     throw new ControlError('permissions_unverified', '已批准的备用权限记录无法核对。');
   return [config.permissionsHash, alternate];
 }
-export const configuredPermissionsMatch = (state, config) =>
-  permissionDigests(config).some(expected => permissionsMatch(state, expected));
+export const configuredPermissionsMatch = (state, config) => {
+  // 用户一次授权本机全部对话后，以每条任务的实时 Desktop 设置为准。
+  // 仍要求完整、可核对的权限；发送只使用 inheritThreadSettings，不构造新权限。
+  if (taskScope(config) === 'all-local') {
+    const p = state?.currentPermissions;
+    if (!object(p) || !object(p.sandboxPolicy) || typeof p.sandboxPolicy.type !== 'string'
+        || !(typeof p.approvalPolicy === 'string' || object(p.approvalPolicy)))
+      throw new ControlError('permissions_unverified', '未取得这条对话的 Desktop 当前权限，请在电脑端查看。');
+    permissionDigest(state); return true;
+  }
+  return permissionDigests(config).some(expected => permissionsMatch(state, expected));
+};
+
+export const READ_EVIDENCE = Symbol('native-read-evidence');
 
 export class Service {
   // 汇集任务范围、权限、回执和更新/断开栅栏；mutating 仅串行化本进程操作。
-  constructor(config, follower, receipts, { drainTimeoutMs = 5000, quarantine = false } = {}) {
+  constructor(config, follower, receipts, { drainTimeoutMs = 5000, quarantine = false, beforeStop = null, afterStop = null } = {}) {
     if (!Number.isSafeInteger(drainTimeoutMs) || drainTimeoutMs < 1 || drainTimeoutMs > 30000)
       throw new Error('invalid_drain_timeout');
-    permissionDigests(config);
+    if (taskScope(config) !== 'all-local') permissionDigests(config);
+    this.beforeStop = beforeStop; this.afterStop = afterStop;
     this.config = config; this.follower = follower; this.receipts = receipts;
     this.sync = new MobileSync(); this.mutating = false;
     this.draining = false; this.stopUncertain = false; this.drainWaiters = new Set();
@@ -79,20 +93,44 @@ export class Service {
     if (!configuredPermissionsMatch(state, this.config))
       throw new ControlError('permissions_changed', 'Desktop 任务权限已变化，请在电脑端重新核对。');
   }
-  async read(id) {
+  async read(id, observe = null) {
     // 输入目标任务 ID；输出供手机接口使用的 session、turns、运行观察值。
     // 未知运行状态、没有回合、待 Desktop 处理的请求都会拒绝读作正常结果。
     this.target(id);
-    const state = await this.follower.completeSnapshot(snapshot => this.permissions(snapshot));
+    const evidenceFor = state => {
+      let idleVerified = false;
+      try {
+        assertIdle(state);
+        idleVerified = Array.isArray(state.requests) && (!Object.hasOwn(state,'unconfirmedTurnSubmissions') ||
+          (Array.isArray(state.unconfirmedTurnSubmissions) && state.unconfirmedTurnSubmissions.length === 0));
+      } catch { /* 读取运行中消息仍允许，但不能解除任务的升级门禁。 */ }
+      return {state, idleVerified};
+    };
+    const state = await this.follower.completeSnapshot(snapshot => {
+      this.permissions(snapshot);
+      // 第一个可信快照即落交接证据：后续补全历史超时也不能遗忘已观察到的活动。
+      observe?.(evidenceFor(snapshot));
+    });
     this.permissions(state);
+    const {idleVerified} = evidenceFor(state);
+    observe?.({state, idleVerified});
     const turns = nativeTurns(state), latest = turns.at(-1), active = activeTurn(state);
     const pending = Array.isArray(state.requests) ? state.requests : [];
-    if (!['idle','active'].includes(state.threadRuntimeStatus?.type) || !latest)
+    if (!['idle','active'].includes(state.threadRuntimeStatus?.type))
       throw new ControlError('runtime_status_unknown','Desktop 尚未确认任务状态，请在电脑端查看。',503);
     if (pending.length) throw new ControlError('desktop_action_required','请在 Desktop 处理待审批或提问，然后刷新手机。',409);
+    if (!latest) {
+      // 必须已取得完整、明确空闲的原生快照，才能说“没有记录”；超时不能当空历史。
+      if (state.threadRuntimeStatus.type !== 'idle' || !Array.isArray(state.requests)
+          || (Object.hasOwn(state,'unconfirmedTurnSubmissions') &&
+              (!Array.isArray(state.unconfirmedTurnSubmissions) || state.unconfirmedTurnSubmissions.length)))
+        throw new ControlError('history_unavailable','对话记录尚未就绪，请稍后重试获取。',503);
+      throw new ControlError('history_empty','这条对话暂无历史记录。请在 Desktop 确认原对话；有记录后点击“重试”获取。',409);
+    }
     const status = active ? 'RUNNING'
       : latest?.status === 'failed' ? 'FAILED' : latest?.status === 'interrupted' ? 'INTERRUPTED' : 'COMPLETED';
     return {
+      [READ_EVIDENCE]: {state, idleVerified},
       session: { id, project_id: this.config.projectId ?? 'desktop-fixture', title: this.config.title, status, active_turn_id: active,
         mode: state.latestCollaborationMode?.mode ?? 'default', updated_at: latest?.turnStartedAtMs ?? latest?.startedAtMs ?? 0 },
       thread: { id, cwd: this.config.projectPath, turns },
@@ -188,7 +226,11 @@ export class Service {
       this.permissions(state);
       if (typeof body?.expectedTurnId !== 'string' || !body.expectedTurnId || body.expectedTurnId !== activeTurn(state))
         throw new ControlError('stale_turn', '回合已经变化，没有发送停止操作。');
-      try { await this.follower.forward('thread-follower-interrupt-turn', { mode: 'user-stop', expectedTurnId: body.expectedTurnId }, state); }
+      const pendingStop = this.beforeStop?.(this.config, body.expectedTurnId);
+      try {
+        await this.follower.forward('thread-follower-interrupt-turn', { mode: 'user-stop', expectedTurnId: body.expectedTurnId }, state);
+        this.afterStop?.(this.config, pendingStop);
+      }
       catch {
         this.stopUncertain = true;
         throw new ControlError('stop_unknown', '停止结果未确认，请在 Desktop 查看。');
@@ -238,14 +280,13 @@ export function httpServer(service, token, instance, controlToken = null) {
       if (req.method === 'GET' && url.pathname === '/api/connector/update-status')
         return reply(200, await service.updateStatus());
       if (req.method === 'GET' && url.pathname === '/api/projects')
-        return reply(200, {projects:service.projects()});
+        return reply(200, {projects:await service.projects()});
       if (req.method === 'GET' && url.pathname === '/api/sessions')
         return reply(200, {sessions:await service.sessions()});
       if (req.method === 'GET' && url.pathname === '/api/activity') return reply(200, {activity:[]});
       const match = /^\/api\/sessions\/([A-Za-z0-9-]+)\/(mobile-sync|mobile-items|mobile-tasks|signals|messages|stop)(?:\/([a-f0-9]{32}))?$/.exec(url.pathname);
       if (!match) throw new ControlError('unsupported_route', '本轮仅支持已授权 Desktop 任务的文字交互；其他操作请在 Desktop 完成。', 501);
       const [, id, route, itemKey] = match;
-      service.target(id);
       if (req.method === 'POST' && route === 'messages') return reply(200, {result:await service.send(id, await bodyOf(req))});
       if (req.method === 'POST' && route === 'stop') return reply(200, await service.stop(id, await bodyOf(req)));
       if (req.method !== 'GET' || !['mobile-sync','mobile-items','mobile-tasks','signals'].includes(route))

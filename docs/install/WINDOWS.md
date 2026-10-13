@@ -1,3 +1,13 @@
+## alpha.12 开发候选：全部对话标题目录
+
+默认新配置不再要求任务 UUID：`scripts/configure.py --home <全新安装目录> --desktop-root <受支持Desktop目录> --node <Node20.exe> --frpc <frpc.exe>`。脚本默认写 `taskScope=all-local`，验证本机目录与兼容性；不读取正文、不发模型输入、不配对。保留旧命令兼容：显式传 `--thread-id`/`--project` 时使用 selected；也可明确 `--scope selected`。旧已配对安装不要重跑配置脚本，必须经保全审查的维护事务升级并切换范围。
+
+同一Python环境提供只读SQLite；连接器自动把已核对的Python解释器路径传给Node，无需额外安装数据库库。按需打开任务，最多缓存16个可回收Follower；活跃写入/未知停止不回收。列表不拉全历史，手机点开才获取，原权限由 Desktop 实时继承。历史不可读不表示没有记录。
+
+原来显式配置的任务继续作为升级核对基线；手机实际接入的活动任务或发送/停止会记在数据目录 `active-tasks.json`，更新前须实时确认空闲且发送/停止结果确定。仅显示标题的历史不视为已接入执行端。这不停止 Desktop 自身的任务。不要删除交接文件或 runtimeNeedsReview 来解除保护。
+
+此段仅描述新候选；实际签名、安装与手机验收见 STATUS。下文保留首装和旧版本历史步骤，版本以 STATUS 最新记录为准。
+
 ## alpha.11 候选：增加另一条已授权对话
 
 alpha.11 保留原配置顶层任务，可在 `additionalTasks` 数组追加明确选择的现有 Desktop 对话（总计最多8条）。每项必须单独给出 `threadId`、`projectPath`、`title`、`permissionsHash`，可选该任务明确批准的 `approvedAlternatePermissionsHash`；不会继承主任务权限或自动扫描其他任务。手机继续使用同一已配对电脑，在任务列表选择对话，不重复配对，不新建副本。
