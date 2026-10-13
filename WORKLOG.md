@@ -1,3 +1,15 @@
+## 2026-10-14 — 首次alpha.12候选健康拒绝；传输诊断通过，受控续接已等待
+
+用户未看到新窗口。助手实际结果update_needs_review；primary与alpha12-repair-transaction均needs_review，cause=candidate_health_unverified、error=rollback_or_cleanup_unconfirmed。原引擎在cleanup_target和preserved成功后把current指针恢复alpha.11；回退启动因旧版不理解all-local被明确拒绝，故此汇总错误不等于已证明清理失败。候选从未激活。配置已为批准的all-local，不能手动启动旧版。原运行guard已按正常清理移除，三锁可得；身份/config/taskData与失败事务preserved完全一致，5条回执文件未变。原失败时间01:09:55（本地），诊断未留具体健康异常，不能把87秒时长当确定网络根因。
+
+一次受锁保护、真实已配对但quarantine的传输诊断通过：登记connected、本机gateway healthy、transport healthy、probe_verified；随后正常停止、自有两棵Job树退出、身份/任务保全及旧指针/主fence一致。未开放手机写入或GUI。脱敏证据artifacts/alpha12/transport-diagnostic.txt。首次异常的具体诱因仍未证实。
+
+新一次性续接continue-once.local.py保留原failed journal不改，复用同一个签名包与原事务引擎，另写alpha12-continuation1.json；不重复prepare/resume，不再改变配置/身份。候选诊断入口仅调用原签名ota_entry.run(home,True)，保留全部健康检查，新增安全错误码回报。7项合成事务测试通过（含审查记录变化、身份/数据变化、重复应用拒绝、失败闭锁）；真实隔离GUI健康提交/坏候选清理停needs_review通过。GPT-6 Sol medium独立复核通过。
+
+真实只读续接review已保存：%LOCALAPPDATA%/CodexDesktopRemoteMaintenance/alpha12/continuation1-review.json，SHA256 1a8e4075afa5c0061854b167438ec6819f1fd46c5114b492475f5fb0f74ac70c。助手SHA256 e79eba04c83991733f4532d8d51528cfae00d104f1db201c18fa80a74fe90428；诊断entry 53c2c86b9422dc15ded9b2177c83048723a64021598353648dbd7e8c16842033。入口核对review SHA，等待/快照/启动/激活前持续核对完整审查语义（纯JSON空白变化允许，不采用新字段）。
+
+独立续接已启动PID3164，实际输出waitingTasksIdle=true,retry=1,switched=false；仍等当前维护对话结束，不是已安装成功。日志artifacts/alpha12/continuation-output.txt、continuation-error.txt。下一轮先检查这些日志及新事务和current，再独立核对保全/签名/窗口，禁止启动第二份助手。用户无需再次重启或配对。
+
 ## 2026-10-14 — 独立恢复助手已启动，等待本轮对话空闲
 
 GPT-6 Sol medium只读复核等待器通过。固定SHA一致后已启动独立助手PID15156，实际输出waitingTasksIdle=true、switched=false；标准错误为空。它将在当前维护回合结束、两条任务明确空闲且完整CAS不变后执行原已审查resume；无需再次批准或重启。此时尚未确认安装提交，不得重复启动助手/运行resume或提前打开旧连接器。
