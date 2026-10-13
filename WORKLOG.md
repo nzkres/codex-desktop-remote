@@ -1,3 +1,7 @@
+## 2026-10-13 — Android AVD 路径修复通过，继续解决测试盘空间
+
+08b784e 的 Android push 38343850851 / PR 38343854235 已能找到 cdr-regression 并通过 KVM 检查，但模拟器创建默认 userdata 分区要求 7372.80 MB，运行机仅余 6539.56 MB，启动前报 Not enough space。新增临时模拟器 -partition-size 2048 和 df 诊断；不修改 App 数据结构、不跳过 UI 测试、上传失败仍保留失败状态。待下一运行核验。Windows/relay 签名候选输入仍2a783a0，CI-only修复不改变候选内容。
+
 ## 2026-10-13 — 新 CI 暴露 AVD 路径与产物配额问题
 
 Core push 38343263687 在 Windows/Linux 的测试、隔离演练和打包步骤均成功；两个 upload-artifact 步骤因账号 Artifact storage quota 拒绝，整体失败，没有本轮可下载 CI 包。Android push 38343263837 单测、lint、APK 构建及版本核验成功；新增日志确认 emulator 37.2.12 无法找到刚创建的 cdr-regression AVD（KVM 可用）。已显式统一 avdmanager 与 emulator 的 ANDROID_USER_HOME/ANDROID_AVD_HOME 和 --path，并在启动前检查可见性，等待新 CI。未跳过界面回归、降低签名检查或清理现用服务。
