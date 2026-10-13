@@ -1,3 +1,11 @@
+## 2026-10-13 — alpha.12重启前恢复记录已保存，等待用户完整重启
+
+用户已确认正常关闭alpha.11窗口。执行固定SHA-256为4316f8d8c116678d4a8139154d3fae2e1bf55fadc1b765bed7ab5b4d47aeffea的本机助手 `artifacts/alpha12/repair.local.py prepare` 成功，返回prepared=true、restartRequired=true、configurationUnchanged=true。没有执行resume，没有停止Desktop或其他服务。
+
+随后独立只读审计：application/update/runtime三锁均可取得；primary精确匹配准备围栏；完整身份摘要、保护文件清单、任务数据、配置及代码指纹未变；runtimeNeedsReview保留；签名再验通过；当前仍alpha.11、同一boot，未切换版本。脱敏证据 `artifacts/alpha12/prepared-audit.json`。仓库外恢复记录 `%LOCALAPPDATA%/CodexDesktopRemoteMaintenance/alpha12/review.json` 的SHA-256为189b383b0bb2683f24d6c83dde4732a0bdf67ecc1b194b079ab2977ea22d5614。
+
+现在可以通知用户保存其他工作并通过Windows菜单完整“重启”，不是休眠。重启后保持连接器关闭，先回到本对话回复；复核boot严格增加和全部CAS后，再检查原任务就绪。当前维护回合执行时不安装，需待原两任务空闲。不得重复prepare、清标记、重配对或直接启动旧版。下一步是审查记录对应的resume，具体步骤见docs/WINDOWS-ALPHA12-AUTOMATIC-CONVERSATIONS.md；若任何状态变化停止复核，不覆盖。
+
 ## 2026-10-13 — alpha.12双平台CI全部通过，产物可下载；安装仍待关窗
 
 [Core CI38420879205](https://github.com/nzkres/codex-desktop-remote/actions/runs/38420879205) Windows/Linux两任务全部成功，包括单元测试、版本目录、relay/deploy检查、平台对应真实隔离升级演练、不可变源码包构建和上传。此次CI临时源码产物可下载；本机签名包仍单独验签，不能互相替代。现用alpha.11窗口仍在，本次尚未执行prepare、未建立重启围栏、未切换版本；待用户正常关闭窗口后继续。不要提前重启或清除runtimeNeedsReview。

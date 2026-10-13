@@ -14,6 +14,7 @@
 
 - 已实现、已本地测试、已固定源码、已本机签名验签。
 - [CI38420879205](https://github.com/nzkres/codex-desktop-remote/actions/runs/38420879205) Windows/Linux测试、隔离演练、打包上传全部成功，临时源码产物可下载。
+- 已在用户正常关窗后执行prepare，恢复记录及围栏独立审计通过，等待完整Windows重启；真实身份/配置未变、旧guard保留。
 - 尚未执行现用安装切换，尚未通过手机新对话验收。
 - Android、relay和公网更新源本次未更新。
 - 源码输入：`a3b85a9e294db22b8bd40da524729d2437ffb4e9`；草稿PR [#8](https://github.com/nzkres/codex-desktop-remote/pull/8)，堆叠在PR #7上，未合并。
