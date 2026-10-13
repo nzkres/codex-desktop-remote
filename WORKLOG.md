@@ -1,3 +1,7 @@
+## 2026-10-13 — 新 CI 暴露 AVD 路径与产物配额问题
+
+Core push 38343263687 在 Windows/Linux 的测试、隔离演练和打包步骤均成功；两个 upload-artifact 步骤因账号 Artifact storage quota 拒绝，整体失败，没有本轮可下载 CI 包。Android push 38343263837 单测、lint、APK 构建及版本核验成功；新增日志确认 emulator 37.2.12 无法找到刚创建的 cdr-regression AVD（KVM 可用）。已显式统一 avdmanager 与 emulator 的 ANDROID_USER_HOME/ANDROID_AVD_HOME 和 --path，并在启动前检查可见性，等待新 CI。未跳过界面回归、降低签名检查或清理现用服务。
+
 ## 2026-10-13 — P0–P3 实现，P4/P5 候选验收中
 
 当前开发目录为 C:\code\my-code\codex-desktop-remote，分支 codex/simple-reconnect-alpha9。已有学习注释已单独保存为 8f61adc，不覆盖旧工作树。Windows alpha.9 修复断网时主动退出的本机核验，明确失联后重新发现 Desktop 原任务，完善分层状态/再次连接提示；完整身份、权限、未知回执、原句柄树清理与异常现场保护保留。补充转发前快照变化竞态和未核权限加载历史的回归。Android alpha.6 候选整合原 PR #4；旧 CI 确认为 ADB 等待超时，新增模拟器启动诊断，仍需新 CI 证明。relay alpha.6 仅作为连续 OTA 演练候选，不改 API 或数据库结构。

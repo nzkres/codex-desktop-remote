@@ -111,7 +111,15 @@ jobs:
         run: |
           set -euo pipefail
           sdkmanager 'emulator' 'system-images;android-35;google_apis;x86_64'
-          echo no | avdmanager create avd --force --name cdr-regression --package 'system-images;android-35;google_apis;x86_64'
+          export ANDROID_USER_HOME="$RUNNER_TEMP/android-user"
+          export ANDROID_AVD_HOME="$ANDROID_USER_HOME/avd"
+          mkdir -p "$ANDROID_AVD_HOME"
+          echo no | avdmanager create avd --force --name cdr-regression --package 'system-images;android-35;google_apis;x86_64' --path "$ANDROID_AVD_HOME/cdr-regression.avd"
+          if ! "$ANDROID_HOME/emulator/emulator" -list-avds | grep -Fxq cdr-regression; then
+            echo 'Created AVD is not visible to the emulator.' >&2
+            avdmanager list avd
+            exit 1
+          fi
           sudo chmod a+rw /dev/kvm
           "$ANDROID_HOME/emulator/emulator" -accel-check
           "$ANDROID_HOME/emulator/emulator" -avd cdr-regression -port 5554 -no-window -no-audio -no-boot-anim -no-snapshot -gpu swiftshader -accel on > "$RUNNER_TEMP/cdr-emulator.log" 2>&1 &
