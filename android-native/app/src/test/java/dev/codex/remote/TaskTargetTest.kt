@@ -4,8 +4,10 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class TaskTargetTest {
-    @Test fun onlyTaskApisAreRoutedAndLegacyPathsStayUnchanged() {
+    @Test fun onlySelectedTargetRoutesTaskApis() {
         val target = TaskTarget("a".repeat(32), "电脑 A")
+        assertTrue(target.isSelected)
+        assertFalse(TaskTarget().isSelected)
         for (path in listOf("/api/projects", "/api/projects/project-a/sessions", "/api/activity", "/api/sessions", "/api/sessions/thread/mobile-sync?cursor=a&older=1",
             "/api/sessions/thread/messages", "/api/sessions/thread/signals", "/api/sessions/thread/stop",
             "/api/connector/update-status")) {

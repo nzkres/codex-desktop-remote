@@ -66,10 +66,13 @@ export async function diagnoseDesktop(config, {
     report.compatible = true;
     report.phase = 'snapshot';
     follower = createFollower(config);
-    const state = await follower.completeSnapshot();
+    // Diagnostics must observe even a permission mismatch without issuing a
+    // Desktop history-load request before the independent checks below.
+    const state = await follower.snapshot();
     if (state?.id !== config.threadId) throw Object.assign(new Error(), { code: 'outside_scope' });
     report.sameTask = true;
     report.checks = observations(config, state);
+    if (state.turnHistory?.history?.isComplete === false) throw new Error('incomplete_history');
     report.phase = 'permissions_idle_receipts';
     // Reuse the captured fresh snapshot: no second read can change the assessment mid-check.
     report.probe = await checkUpdate(config, { completeSnapshot: async () => state });

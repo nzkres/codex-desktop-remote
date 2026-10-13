@@ -73,12 +73,13 @@ class LiteRuntime:
 
     # 只执行一次的清理过程。先尝试 drain，再分别停止隧道和本机接口。
     # 即使第一个子进程清理失败，也必须尝试第二个；两个进程树均退出才可能 clean。
-    # 当前 normal/allowed/faulted 门槛较保守：断网后退出仍可能要求复核，这是现有行为。
+    # 服务器是否在线不决定本机能否退出：断网时仍核对本实例操作和两棵进程树。
+    # normal 由身份核心确认是用户主动退出；故障/未知操作仍不能算安全退出。
     def disconnect(self, normal=False):
         if self.disconnected:
             return  # An abnormal disconnect cannot be upgraded to a clean one.
         self.disconnected = True
-        eligible = normal and self.allowed and not self.faulted
+        eligible = normal and not self.faulted
         self.allowed = False
         never_started = not self.adapter.ever_started and not self.transport.ever_started
         drained = False

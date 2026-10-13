@@ -16,7 +16,7 @@ function fixture(t) {
   const config = { threadId:state.id, dataDir, permissionsHash:permissionDigest(state) };
   let closed=0, reads=0;
   const deps = { verify:async()=>({ok:true}), createFollower:()=>({
-    completeSnapshot:async()=>{ reads++; return state; }, close:()=>{closed++;},
+    snapshot:async()=>{ reads++; return state; }, close:()=>{closed++;},
     forward:()=>{throw new Error('must_never_send');},
   }) };
   return {state,config,deps,receipts,counts:()=>({closed,reads})};
@@ -80,4 +80,13 @@ test('missing approvals state and unexpected receipt files stay unknown',async t
   assert.equal(r.checks.receipts.code,'receipt_invalid');
   assert.equal(r.taskReady,false);
   assert.equal(JSON.stringify(r).includes('private-payload'),false);
+});
+test('incomplete history is reported without a Desktop history-load request',async t=>{
+ const f=fixture(t);
+ f.state.turnHistory={kind:'canonical',history:{isComplete:false,islands:[],entitiesByKey:{}}};
+ const report=await diagnoseDesktop(f.config,f.deps);
+ assert.equal(report.code,'incomplete_history');
+ assert.equal(report.taskReady,false);
+ assert.deepEqual(f.counts(),{closed:1,reads:1});
+ assert.equal(report.checks.permissions.verified,true);
 });

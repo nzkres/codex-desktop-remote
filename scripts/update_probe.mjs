@@ -26,7 +26,11 @@ export async function checkUpdate(config, follower, reviewerAliasOnly = false) {
 
   // The maintenance check consumes exactly one fresh native snapshot. Service
   // observes that captured object again; it cannot fetch a different state.
-  const state = await follower.completeSnapshot();
+  // A history-load request is still a Desktop control. Verify the full saved
+  // permission scope before it, including the sole permitted reviewer alias.
+  const state = await follower.completeSnapshot(snapshot => {
+    if (!permissionsMatch(snapshot, config.permissionsHash)) throw new Error('permissions_unverified');
+  });
   // Pinned Desktop 26.930.7945.0 deletes an empty
   // unconfirmedTurnSubmissions list from its snapshot. An own field, when
   // present, must still be an explicit empty array; null/undefined is unknown.

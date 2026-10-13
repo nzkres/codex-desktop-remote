@@ -26,8 +26,8 @@ _STATES = {
     "not_paired": "未配对",
     "claim_pending": "配对申请待确认",
     "awaiting_confirmation": "等待手机确认配对",
-    "connected": "登记心跳在线",
-    "reconnecting": "正在重连",
+    "connected": "服务器登记在线",
+    "reconnecting": "网络暂断，正在重试",
     "paused": "手机端已暂停",
     "revoked": "设备已移除",
     "expired": "配对已过期",
@@ -69,19 +69,26 @@ def status_message(report, *, paired=False, connecting=False):
                     '请核对原服务器地址、端口、网络和证书。\n'
                     '原申请已保留；修改输入框不会更改它，勿重复配对。\n'
                     + next_step)
+        if connecting and state == 'reconnecting':
+            return ('网络暂断，正在自动重试；手机通道当前未验证。\n'
+                    '请检查网络、原服务器地址、端口和证书；无需重新配对。')
         return ('服务器连接失败，当前状态未确认。请核对原服务器地址、端口、网络和证书。\n'
                 '已有身份和申请保留；请先核对连接状态，勿重复配对。')
     if report.get('lastError'):
         return '连接或配对结果未确认。请保留原申请与身份，由维护者检查；勿重复配对。'
-    if paired and state == 'awaiting_confirmation':
-        return '请在手机上确认配对，然后点击连接。'
+    if state == 'awaiting_confirmation':
+        return ('等待手机确认配对；连接中会继续查询原申请。' if connecting else
+                '请在手机确认配对，然后点击连接；无需重新输入配对码。')
     message = _STATES.get(state, '状态待确认') if isinstance(state, str) else '状态待确认'
     if 'dataChannel' in report:
-        channels = {'probe_verified': '转发通道探针通过；手机任务待验证',
-                    'unavailable': '转发通道未就绪', 'not_configured': '转发通道尚未启动',
-                    'unverified': '转发通道尚未实时检查'}
+        channels = {'probe_verified': '手机传输通道已连通（探针通过）。\n请在手机打开原任务；手机任务待验证。',
+                    'unavailable': '手机通道暂不可用；连接中会继续检查。' if connecting else '手机通道暂不可用；点击连接重新检查。',
+                    'not_configured': '手机通道尚未启动；连接中会继续检查。' if connecting else '手机通道尚未启动；点击连接进行检查。',
+                    'unverified': '手机通道尚未实时检查；连接中会继续检查。' if connecting else '手机通道尚未实时检查；点击连接进行检查。'}
         channel = report['dataChannel']
         message += '\n' + (channels.get(channel, '转发通道待确认') if isinstance(channel, str) else '转发通道待确认')
+    elif state == 'connected':
+        message += '\n手机通道尚未实时检查；' + ('连接中会继续检查。' if connecting else '点击连接进行检查。')
     return message
 
 
@@ -97,6 +104,7 @@ class _Window:
         self.stop_event = threading.Event()
         self.busy = False
         self.connecting = False
+        self.has_connected = False
         self.closing = False
         self.close_started = 0.0
         self.close_notice = False
@@ -215,7 +223,9 @@ class _Window:
     # 当前连接时 busy=True，因此检查/安装更新也会被禁用；不是后台自动更新。
     def _buttons(self):
         self.pair_button.configure(state="disabled" if self.busy or self.closing or self.update_blocked else "normal")
-        self.connect_button.configure(state="disabled" if self.busy or self.closing or self.update_blocked else "normal")
+        self.connect_button.configure(
+            state="disabled" if self.busy or self.connecting or self.closing or self.update_blocked else "normal",
+            text="再次连接" if self.has_connected and not self.connecting else "连接")
         self.disconnect_button.configure(state="normal" if self.connecting and not self.closing else "disabled")
 
         if hasattr(self, 'check_update_button'):
@@ -250,10 +260,11 @@ class _Window:
 
     # 标记进入连接状态，清除上次停止信号并排队；这里不直接打开网络连接。
     def connect(self):
-        if self.busy or self.closing or self.update_blocked:
+        if self.busy or self.connecting or self.closing or self.update_blocked:
             return
         self.busy = True
         self.connecting = True
+        self.has_connected = True
         self.stop_event.clear()
         self._buttons()
         self.status_text.set("正在连接…")
@@ -261,7 +272,7 @@ class _Window:
 
     # 设置 stop_event，通知工作线程自行退出；不直接强杀进程或关闭 Desktop。
     def disconnect(self):
-        if self.connecting:
+        if self.connecting and not self.stop_event.is_set():
             self.stop_event.set()
             self.disconnect_button.configure(state="disabled")
             self.status_text.set("正在断开连接…")
@@ -359,8 +370,13 @@ class _Window:
             elif kind == "disconnected":
                 self.busy = False
                 self.connecting = False
-                self.status_text.set("连接已结束，现场需复核；Desktop 模型任务未停止。" if value.get('runtimeNeedsReview')
-                                     else "已安全断开，可再次连接；Desktop 模型任务未停止。")
+                if value.get('runtimeNeedsReview'):
+                    message = "连接已结束，现场需复核；Desktop 模型任务未停止。"
+                elif self.stop_event.is_set():
+                    message = "已安全断开，可再次连接；点击“再次连接”即可恢复，无需重新配对。Desktop 模型任务未停止。"
+                else:
+                    message = status_message(value) + "\n连接已结束；请核对状态后点击“再次连接”。"
+                self.status_text.set(message)
             elif kind == "failed":
                 self.busy = False
                 self.connecting = False

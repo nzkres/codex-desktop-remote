@@ -39,7 +39,7 @@
 // =======================================================================
 
 // 原任务跟随器：发现 Desktop owner，接收实时快照，只转发允许的几种原生操作。
-// 任务执行权仍归 Desktop；当前 owner 变化会拒绝，尚未实现自动确认新 owner。
+// 任务执行权仍归 Desktop；只有明确失联后重新发现并验证新快照，才允许切换 owner。
 
 // import 表示从其他模块取工具。realpathSync 解析磁盘上的实际路径（包括链接目标）；
 // resolve 把路径整理为绝对路径；object 判断普通对象；nativeTurns 检查/转换原生回合。
@@ -68,8 +68,10 @@ export class Follower {
     // 保存正在进行的读取 Promise，避免多个调用者同时触发相同发现流程。
     this.refresh = null;
     this.state = null;
-    // 只清空 state，不清空 owner/revision：当前实现不会在断线后自动接受换了身份的 owner。
-    this.ipc.on('disconnected', () => { this.state = null; });
+    // owner/revision 只在同一连接代际有效；失联后必须重新发现并读取完整快照。
+    this.generation = 0;
+    this.awaiting = null;
+    this.ipc.on('disconnected', () => this.invalidate());
     // m 是收到的消息对象；箭头函数 m => ... 表示收到消息后调用 receive(m)。
     this.ipc.on('broadcast', m => this.receive(m));
   }
@@ -86,6 +88,13 @@ export class Follower {
       && resolve(state.cwd).toLowerCase() === resolve(this.config.projectPath).toLowerCase(); }
     catch { return false; }
   }
+  invalidate() {
+    this.generation++;
+    this.state = null;
+    this.owner = null;
+    this.revision = -1;
+    this.awaiting = null;
+  }
   // 第 3 步（被事件调用）：此函数是收件员，m 包含 method、version、params 等字段。
   // method 是消息种类，version 是该消息的协议版本（不是软件版本），params 是具体内容。
   receive(m) {
@@ -95,14 +104,19 @@ export class Follower {
     if (!object(p)) return;
     // 如果通知说“负责本任务的客户端已断开”，就清掉旧快照并唤醒等待者报错。
     if (m.method === 'client-status-changed' && p.clientId === this.owner && p.status === 'disconnected') {
-      this.state = null;
+      this.invalidate();
       this.ipc.emit('owner-lost');
       return;
     }
+    // 失效状态只能由本次订阅重建；已验证连接中的后续完整快照仍会替换旧状态，
+    // 使读取与转发之间的状态变化能够让 forward 的快照身份检查失败。
+    const awaiting = this.awaiting;
+    if ((!awaiting && !this.state) || (awaiting && awaiting.generation !== this.generation)) return;
+    const owner = awaiting?.owner ?? this.owner;
     // 普通状态通知必须同时满足：任务状态消息、协议版本匹配、local（本机）、原任务、原 owner。
     // 任一不符就 return 忽略，避免把另一个任务的内容当作本任务。
     if (m.method !== 'thread-stream-state-changed' || m.version !== DESKTOP_VERSIONS[m.method]
-      || p.hostId !== 'local' || p.conversationId !== this.config.threadId || m.sourceClientId !== this.owner) return;
+      || p.hostId !== 'local' || p.conversationId !== this.config.threadId || m.sourceClientId !== owner) return;
     // change 包含变化类型、版本号和状态内容。这里只接受 snapshot 类型，不在此拼接局部补丁。
     const change = p.change;
     if (!object(change) || change.type !== 'snapshot' || !Number.isSafeInteger(change.revision)
@@ -131,25 +145,31 @@ export class Follower {
     // 发现结果必须声明支持非可信 App 输入；owner 身份变化时要求电脑端重新核对。
     // ready() 会建立/复用本机 IPC 连接并完成通信初始化。这里还没有证明原任务可用。
     // ControlError 是项目的错误对象：错误码用于程序判断，中文用于显示，503 表示暂不可用。
+    // 每次发现前撤销旧快照；发现失败也不能用上一次状态继续转发。
+    this.state = null;
     try { await this.ipc.ready(); }
     catch { throw new ControlError('desktop_unavailable', '请保持 Codex Desktop 打开，消息未发送。', 503); }
+    const generation = this.generation;
     let r;
     // thread-owner-discovery 字面意思是“寻找任务负责人”。未指定目标客户端，因为还不知道 owner。
     // hostId=local 限定这台电脑；conversationId 取配置的 threadId，不用任务标题查找。
     // r 是完整响应；失败不一定是任务不存在，也可能是任务没有活动处理端或响应超时。
     try { r = await this.ipc.request('thread-owner-discovery', { hostId: 'local', conversationId: this.config.threadId }); }
     catch { throw new ControlError('owner_unavailable', '请在 Desktop 打开测试任务；不会另开执行器。', 503); }
+    if (generation !== this.generation)
+      throw new ControlError('desktop_unavailable', 'Desktop 连接已断开。', 503);
     // supportsUntrustedAppInput 意为“支持接收外部应用输入”。untrusted 是协议里的信任分类，
     // 不是说手机恶意，也不是授予无限权限；还必须通过 service.js 的任务权限核对。
     if (typeof r.handledByClientId !== 'string' || r.result?.supportsUntrustedAppInput !== true)
       throw new ControlError('owner_unverified', '无法核对执行端，操作已阻止。', 503);
-    // 首次 owner 为 null，可接受已核对的响应；以后若标识变化，返回 409（当前状态冲突）。
-    // 例如同一 task-A 以前由 B 处理，现在响应来自 C，本实现会停止而不是悄悄改连 C。
+    // 同一连接中 owner 突然改变仍是冲突；明确断线后 owner 已清空，可以重新发现。
     if (this.owner && this.owner !== r.handledByClientId)
       throw new ControlError('owner_changed', '任务执行端已改变，请在电脑端重新核对连接。', 409);
     this.owner = r.handledByClientId;
     // 记住等待开始前的接收次数。后面只接受计数超过它的快照消息。
     const serial = this.serial;
+    const awaiting = { owner: this.owner, generation };
+    this.awaiting = awaiting;
     // accept/reject 是 Promise 提供的成功/失败回调。调用 accept(state) 让 await 得到状态；
     // 调用 reject(error) 则让 await 抛出错误。下面先登记监听，再发订阅通知，避免漏接快速响应。
     return new Promise((accept, reject) => {
@@ -161,6 +181,7 @@ export class Follower {
         this.ipc.off('fresh-snapshot', fresh);
         this.ipc.off('disconnected', lost);
         this.ipc.off('owner-lost', lost);
+        if (this.awaiting === awaiting) this.awaiting = null;
         err ? reject(err) : accept(this.state);
       };
       // 只有 serial 增加才完成，避免读取前已有的旧快照让本次检查立即通过。
@@ -180,10 +201,10 @@ export class Follower {
   }
   // 第 5 步：转发操作。method 选择动作，params 是动作参数，返回的是操作响应里的 result。
   // 调用者（service.js）负责先核对权限、忙闲和回执；本函数不会独立完成这些业务检查。
-  async forward(method, params) {
+  async forward(method, params, expectedState = this.state) {
     // 只允许启动、停止和加载完整历史三种 follower 请求，且始终定向已核实 owner。
     // 返回 Desktop 响应的 result；调用方负责处理回复丢失造成的未知结果。
-    if (!this.state || !this.authorized(this.state))
+    if (!this.state || this.state !== expectedState || this.awaiting || !this.authorized(this.state))
       throw new ControlError('owner_unavailable', '执行端状态已失效，请刷新。', 503);
     // 三种允许动作：原任务开始新回合、停止回合、加载完整历史。没有创建任务或修改权限的入口。
     if (!['thread-follower-start-turn', 'thread-follower-interrupt-turn', 'thread-follower-load-complete-history'].includes(method))
@@ -194,14 +215,16 @@ export class Follower {
     return (await this.ipc.request(method, { ...params, conversationId: this.config.threadId }, this.owner)).result;
   }
   // 第 6 步：供历史读取使用的完整状态入口。先读取，再检查 Desktop 是否明确标记历史未加载完。
-  async completeSnapshot() {
+  async completeSnapshot(verify = () => {}) {
     // 若 Desktop 标记历史未完整，先请求补全再取一次新快照；仍不完整则拒绝展示。
     let state = await this.snapshot();
+    verify(state);
     // 严格比较 false：只有明确说“不完整”才请求补全；字段缺失并不在此单独证明历史完整。
     if (state.turnHistory?.history?.isComplete === false) {
       // 请求 Desktop 加载已有历史，不创建新任务、不启动新一轮模型。随后重新读取检查结果。
-      await this.forward('thread-follower-load-complete-history', {});
+      await this.forward('thread-follower-load-complete-history', {}, state);
       state = await this.snapshot();
+      verify(state);
       if (state.turnHistory?.history?.isComplete === false)
         throw new ControlError('incomplete_history', 'Desktop 历史尚未加载完整，请稍后刷新。', 503);
     }

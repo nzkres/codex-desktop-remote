@@ -1,3 +1,11 @@
+## 2026-10-13 — P0–P3 实现，P4/P5 候选验收中
+
+当前开发目录为 C:\code\my-code\codex-desktop-remote，分支 codex/simple-reconnect-alpha9。已有学习注释已单独保存为 8f61adc，不覆盖旧工作树。Windows alpha.9 修复断网时主动退出的本机核验，明确失联后重新发现 Desktop 原任务，完善分层状态/再次连接提示；完整身份、权限、未知回执、原句柄树清理与异常现场保护保留。补充转发前快照变化竞态和未核权限加载历史的回归。Android alpha.6 候选整合原 PR #4；旧 CI 确认为 ADB 等待超时，新增模拟器启动诊断，仍需新 CI 证明。relay alpha.6 仅作为连续 OTA 演练候选，不改 API 或数据库结构。
+
+本机主代理复验：Node 84/84；Python 157 项中 151 通过、6 平台跳过；Windows relay 77 项中 73 通过、4 平台跳过；WSL relay 77/77。Windows 实际合成 GUI/helper 升级与回退、六种维护提交/闭锁、私有 HTTPS GUI 提交/回退通过；WSL 合成 cgroup 升级、坏候选回退、四棵自有树退出通过，临时单元已回收。Tk 合成窗口和版本说明截图已核对。版本历史校验通过。日志在忽略目录 artifacts/alpha9；不含真实身份。具体实现/验收见 docs/RECONNECT-AND-OTA-20261013.md。
+
+本轮只读核对现用 Windows 仍 alpha.8、transaction committed/success、ledger4，Desktop 26.1007.2314.0；未观察到连接器可见窗口，不能据此断言实时通道健康。未升级现用安装、未修改原身份/权限、未部署 feed 或中继；手机本轮未验收。候选签名、CI 和真实三端切换分别追加结果，不把代码或合成测试当实机成功。
+
 # 工作记录
 
 ## 2026-10-12 — service.js 逐步教学实验

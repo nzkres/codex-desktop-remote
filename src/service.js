@@ -64,7 +64,7 @@ export class Service {
     // 输入目标任务 ID；输出供手机接口使用的 session、turns、运行观察值。
     // 未知运行状态、没有回合、待 Desktop 处理的请求都会拒绝读作正常结果。
     this.target(id);
-    const state = await this.follower.completeSnapshot();
+    const state = await this.follower.completeSnapshot(snapshot => this.permissions(snapshot));
     this.permissions(state);
     const turns = nativeTurns(state), latest = turns.at(-1), active = activeTurn(state);
     const pending = Array.isArray(state.requests) ? state.requests : [];
@@ -124,7 +124,7 @@ export class Service {
     return this.mutate(async () => {
       if (this.stopUncertain) throw new ControlError('update_uncertain', '存在未确认操作，更新已延期。', 409);
       this.receipts.assertCertain();
-      const state = await this.follower.completeSnapshot();
+      const state = await this.follower.completeSnapshot(snapshot => this.permissions(snapshot));
       this.permissions(state);
       assertIdle(state);
       this.receipts.assertCertain();
@@ -152,7 +152,7 @@ export class Service {
         const reply = await this.follower.forward('thread-follower-start-turn', { turnStart: {
           request: { threadId: id, input: [{type:'text',text:body.text,text_elements:[]}], clientUserMessageId: body.clientMessageId },
           context: { inheritThreadSettings: true },
-        }});
+        }}, state);
         const turnId = reply?.result?.turn?.id;
         if (typeof turnId !== 'string' || !turnId) throw new Error('invalid_ack');
         this.receipts.accept(key, digest, turnId);
@@ -169,7 +169,7 @@ export class Service {
       this.permissions(state);
       if (typeof body?.expectedTurnId !== 'string' || !body.expectedTurnId || body.expectedTurnId !== activeTurn(state))
         throw new ControlError('stale_turn', '回合已经变化，没有发送停止操作。');
-      try { await this.follower.forward('thread-follower-interrupt-turn', { mode: 'user-stop', expectedTurnId: body.expectedTurnId }); }
+      try { await this.follower.forward('thread-follower-interrupt-turn', { mode: 'user-stop', expectedTurnId: body.expectedTurnId }, state); }
       catch {
         this.stopUncertain = true;
         throw new ControlError('stop_unknown', '停止结果未确认，请在 Desktop 查看。');

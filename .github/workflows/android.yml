@@ -104,6 +104,36 @@ jobs:
         run: bash ./gradlew --no-daemon --max-workers=2 -Pkotlin.compiler.execution.strategy=in-process :app:testDebugUnitTest :app:lintDebug :app:assembleDebug :app:assembleDebugAndroidTest
       - name: Verify version and release notes inside APK
         run: python -B scripts/check_android_apk.py
+      - name: Run isolated target-selection and notification UI regressions
+        if: github.event_name != 'workflow_dispatch' || !inputs.signed_ota
+        timeout-minutes: 12
+        shell: bash
+        run: |
+          set -euo pipefail
+          sdkmanager 'emulator' 'system-images;android-35;google_apis;x86_64'
+          echo no | avdmanager create avd --force --name cdr-regression --package 'system-images;android-35;google_apis;x86_64'
+          sudo chmod a+rw /dev/kvm
+          "$ANDROID_HOME/emulator/emulator" -accel-check
+          "$ANDROID_HOME/emulator/emulator" -avd cdr-regression -port 5554 -no-window -no-audio -no-boot-anim -no-snapshot -gpu swiftshader -accel on > "$RUNNER_TEMP/cdr-emulator.log" 2>&1 &
+          emulator_pid=$!
+          trap 'result=$?; if [[ $result -ne 0 ]]; then echo "Emulator diagnostics:"; timeout 10 adb devices -l || true; tail -n 120 "$RUNNER_TEMP/cdr-emulator.log" || true; fi; timeout 10 adb -s emulator-5554 emu kill >/dev/null 2>&1 || true' EXIT
+          booted=false
+          for attempt in $(seq 1 90); do
+            if ! kill -0 "$emulator_pid" 2>/dev/null; then
+              echo 'Emulator exited before registering or completing boot.' >&2
+              exit 1
+            fi
+            if [[ "$(timeout 10 adb -s emulator-5554 get-state 2>/dev/null || true)" == 'device' ]] && \
+               [[ "$(timeout 10 adb -s emulator-5554 shell getprop sys.boot_completed 2>/dev/null | tr -d '\r' || true)" == '1' ]]; then
+              booted=true
+              break
+            fi
+            sleep 2
+          done
+          if [[ "$booted" != true ]]; then echo 'Emulator did not finish booting within the 90-attempt limit.' >&2; exit 1; fi
+          adb -s emulator-5554 shell input keyevent 82
+          cd android-native
+          bash ./gradlew --no-daemon --max-workers=2 -Pkotlin.compiler.execution.strategy=in-process :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=dev.codex.remote.MainActivityTargetSelectionTest,dev.codex.remote.TaskTargetSwitchUiTest,dev.codex.remote.TerminalControlUiTest,dev.codex.remote.NotificationServiceTest
       - name: Verify controlled APK signing certificate
         if: github.event_name == 'workflow_dispatch' && inputs.signed_ota
         env:

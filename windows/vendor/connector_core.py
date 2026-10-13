@@ -309,10 +309,13 @@ class Connector:
                 state["transportCrashContained"] = getattr(self.runtime.transport, "crash_contained", False) is True
                 self.store.write(state)
                 protected_state = {k: v for k, v in state.items() if k not in ('state', 'lastError')}
-        normal_stop = False
+        normal_state = None
         try:
             result = self._run(stop, on_status)
-            normal_stop = stop is not None and stop.is_set() and result['state'] == 'connected'
+            # 网络中断不是进程失控。用户主动退出时仍可用原句柄和本机 drain
+            # 证明安全退出；暂停/撤销/异常返回不走这条路径。
+            if stop is not None and stop.is_set() and result['state'] in ('connected', 'reconnecting'):
+                normal_state = result['state']
             return result
         finally:
             if self.runtime is not None:
@@ -321,7 +324,8 @@ class Connector:
                 binding_matches = isinstance(expected, dict) and {
                     k: v for k, v in expected.items() if k not in ('state', 'lastError')
                 } == protected_state
-                self.runtime.disconnect(normal=normal_stop and binding_matches and expected['state'] == 'connected')
+                self.runtime.disconnect(normal=normal_state is not None and binding_matches
+                                        and expected.get('state') == normal_state)
                 if not binding_matches:
                     raise ConnectorError('identity_changed')
                 # Clearing requires the full expected state, runtime lock,

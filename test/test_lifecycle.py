@@ -119,6 +119,67 @@ class LifecycleTests(unittest.TestCase):
             self.assertEqual(store.read()['deviceToken'], 'synthetic-identity')
             self.assertEqual(store.receipts, {'accepted-message': 'synthetic-turn'})
 
+    def test_offline_close_drains_locally_then_reuses_original_identity(self):
+        store = Store()
+        store.state.update(relay='https://relay.example.test', pairingId='b' * 32, terminalId='a' * 32)
+        original = store.read()
+        stop = threading.Event()
+        r, calls = runtime()
+        with patch('connector_core.RelayClient') as client:
+            client.return_value.post.return_value = (0, {'error': 'connection_unavailable'})
+            result = Connector(store, runtime=r).run(stop, lambda report: stop.set())
+        self.assertEqual(result['state'], 'reconnecting')
+        self.assertFalse(r.allowed)
+        self.assertEqual(calls, ['drain'])
+        self.assertTrue(r.quiescent())
+        self.assertNotIn('runtimeNeedsReview', store.read())
+        self.assertEqual(store.read()['deviceToken'], original['deviceToken'])
+        self.assertEqual(store.receipts, {'accepted-message': 'synthetic-turn'})
+        # A new run obtains its own children; it reuses the same device, never claims again.
+        stop.clear()
+        next_runtime, next_calls = runtime()
+        with patch('connector_core.RelayClient') as client:
+            client.return_value.post.side_effect = [
+                (200, {'state': 'confirmed', 'terminalId': 'a' * 32, 'terminalState': 'active'}),
+                (204, {}),
+            ]
+            result = Connector(store, runtime=next_runtime).run(stop, lambda report: stop.set())
+            self.assertTrue(all('/claim' not in c.args[0] for c in client.return_value.post.call_args_list))
+        self.assertEqual(result['state'], 'connected')
+        self.assertEqual(next_calls, ['drain'])
+        self.assertEqual(store.read()['deviceToken'], original['deviceToken'])
+        self.assertNotIn('runtimeNeedsReview', store.read())
+
+    def test_offline_exit_still_refuses_uncertain_drain_failed_tree_and_changed_identity(self):
+        for failure in ('drain', 'tree', 'identity'):
+            with self.subTest(failure=failure):
+                store = Store()
+                r, calls = runtime(transport=Child(),
+                                   drain=(lambda: False) if failure == 'drain' else None)
+                stop = threading.Event(); stop.set()
+                def offline(*args):
+                    r.reconcile(False)
+                    r.transport.stop_error = failure == 'tree'
+                    store.state['state'] = 'reconnecting'
+                    if failure == 'identity':
+                        store.state['deviceToken'] = 'unexpected-synthetic-replacement'
+                    return {'state': 'reconnecting'}
+                with patch.object(Connector, '_run', side_effect=offline):
+                    with self.assertRaises(ConnectorError):
+                        Connector(store, runtime=r)._owned_run(stop)
+                self.assertTrue(store.read()['runtimeNeedsReview'])
+                self.assertFalse(r.quiescent())
+                self.assertGreaterEqual(r.adapter.stops, 1)
+                self.assertGreaterEqual(r.transport.stops, 1)
+
+    def test_network_status_change_at_exit_does_not_accept_a_different_snapshot(self):
+        store = Store(); r, calls = runtime()
+        stop = threading.Event(); stop.set()
+        store.state['state'] = 'paused'
+        run(Connector(store, runtime=r), stop, {'state': 'reconnecting'})
+        self.assertTrue(store.read()['runtimeNeedsReview'])
+        self.assertEqual(calls, [])
+
     def test_abnormal_exception_keeps_guard_even_when_both_trees_stop(self):
         store = Store(); r, calls = runtime()
         with self.assertRaisesRegex(RuntimeError, 'synthetic failure'):

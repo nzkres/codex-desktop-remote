@@ -21,6 +21,14 @@ class Value:
         self.value = value
 
 
+class Button:
+    def __init__(self):
+        self.options = {}
+
+    def configure(self, **options):
+        self.options.update(options)
+
+
 class Root:
     def after(self, *_args):
         pass
@@ -73,6 +81,70 @@ def worker_and_drain(controller, command):
 
 
 class GuiStatusTests(unittest.TestCase):
+    def test_live_reports_retry_channel_and_reconnect_button(self):
+        window = _Window.__new__(_Window)
+        window.root = Root()
+        window.controller = SyntheticController({"state": "connected"})
+        window.commands = queue.Queue()
+        window.events = queue.Queue()
+        window.stop_event = threading.Event()
+        window.busy = True
+        window.connecting = True
+        window.has_connected = True
+        window.closing = False
+        window.update_blocked = False
+        window.relay = Value()
+        window.status_text = Value()
+        window.pair_button = Button()
+        window.connect_button = Button()
+        window.disconnect_button = Button()
+
+        window.events.put(("status", {"state": "reconnecting", "lastError": "connection_unavailable"}))
+        window._drain()
+        self.assertIn("正在自动重试", window.status_text.get())
+        self.assertIn("无需重新配对", window.status_text.get())
+        self.assertEqual(window.connect_button.options["state"], "disabled")
+
+        window.events.put(("status", {"state": "connected", "dataChannel": "unverified"}))
+        window._drain()
+        self.assertIn("服务器登记在线", window.status_text.get())
+        self.assertIn("尚未实时检查", window.status_text.get())
+        self.assertNotIn("失败", window.status_text.get())
+
+        window.events.put(("status", {"state": "connected", "dataChannel": "probe_verified"}))
+        window._drain()
+        self.assertIn("手机传输通道已连通", window.status_text.get())
+        self.assertIn("手机任务待验证", window.status_text.get())
+
+        window.disconnect()
+        window.events.put(("disconnected", {"state": "connected", "runtimeNeedsReview": False}))
+        window._drain()
+        self.assertIn("已安全断开", window.status_text.get())
+        self.assertEqual(window.connect_button.options["text"], "再次连接")
+        window.connect()
+        window.connect()
+        self.assertEqual(window.commands.qsize(), 1)
+        self.assertEqual(window.commands.get(), ("connect",))
+        self.assertFalse(window.stop_event.is_set())
+        self.assertEqual(window.connect_button.options["state"], "disabled")
+
+    def test_terminal_report_does_not_claim_safe_user_disconnect(self):
+        window = _Window.__new__(_Window)
+        window.root = Root()
+        window.events = queue.Queue()
+        window.stop_event = threading.Event()
+        window.busy = True
+        window.connecting = True
+        window.has_connected = True
+        window.closing = False
+        window.relay = Value()
+        window.status_text = Value()
+        window._buttons = lambda: None
+        window.events.put(("disconnected", {"state": "revoked", "runtimeNeedsReview": False}))
+        window._drain()
+        self.assertIn("设备已移除", window.status_text.get())
+        self.assertNotIn("已安全断开", window.status_text.get())
+
     def test_pending_connection_error_is_actionable_and_survives_reopen(self):
         report = {"state": "claim_pending", "lastError": "connection_unavailable",
                   "relay": "https://relay.example.test"}

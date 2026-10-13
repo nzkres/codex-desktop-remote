@@ -132,7 +132,7 @@ private fun RemoteApp(night: Boolean, destination: NotificationDestination?, onD
         } catch (failure: Exception) { error = networkError(failure) }
     }
     suspend fun refresh(client: Gateway, id: String? = selectedId) {
-        if (client !== gateway) return
+        if (client !== gateway || !client.target.isSelected) return
         // Show the requested transcript first; list metadata can follow without a blank chat.
         if (id != null) {
             val fresh = client.conversation(id)
@@ -176,7 +176,7 @@ private fun RemoteApp(night: Boolean, destination: NotificationDestination?, onD
             // Do not change execution target while a user action is awaiting its receipt.
             if (busy) return@LaunchedEffect
             val target = TaskTarget(destination.terminalId, destination.terminalName)
-            if (destination.scope == TaskNotifications.scope(credentials, target)) {
+            if (target.isSelected && destination.scope == TaskNotifications.scope(credentials, target)) {
                 if (gateway!!.target.id != target.id) selectTarget(target)
                 if (gateway!!.target.id != target.id) return@LaunchedEffect
                 selectedId = destination.threadId
@@ -190,6 +190,7 @@ private fun RemoteApp(night: Boolean, destination: NotificationDestination?, onD
 
     LaunchedEffect(gateway, selectedId, lifecycleOwner) {
         val client = gateway ?: return@LaunchedEffect
+        if (!client.target.isSelected) return@LaunchedEffect
         lifecycleOwner.lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
         var failures = 0
         while (true) {
@@ -315,14 +316,24 @@ private fun RemoteApp(night: Boolean, destination: NotificationDestination?, onD
                     }
                 },
             )
-            selectedId == null -> Column(Modifier.fillMaxSize()) {
+            selectedId == null || !gateway!!.target.isSelected -> Column(Modifier.fillMaxSize()) {
                 Box(Modifier.weight(1f)) {
                     when (rootTab) {
                         RootTab.Terminals -> {
                             val terminalClient = remember(gateway) { gateway!!.terminalControl() }
-                            TerminalScreen(terminalClient, gateway!!.target, busy, ::selectTarget)
+                            val terminalGateway = gateway!!
+                            TerminalScreen(terminalClient, terminalGateway.target, busy, ::selectTarget, onUnauthorized = {
+                                if (gateway === terminalGateway) {
+                                    credentials.token = ""
+                                    TaskNotifications.stop(context, clear = true)
+                                    gateway = null
+                                    selectedId = null
+                                    conversation = null
+                                    error = "登录已过期，请重新登录"
+                                }
+                            })
                         }
-                        RootTab.Tasks -> SessionList(
+                        RootTab.Tasks -> if (gateway!!.target.isSelected) SessionList(
                             sessions = sessions,
                             activityEntries = activityEntries,
                             projects = projects,
@@ -331,10 +342,10 @@ private fun RemoteApp(night: Boolean, destination: NotificationDestination?, onD
                             draftStore = draftStore,
                             targetName = gateway!!.target.name,
                             onChooseTarget = { rootTab = RootTab.Terminals },
-                        )
-                        RootTab.Activity -> ActivityScreen(activityEntries, draftStore, gateway!!.target.name) {
+                        ) else TargetSelectionRequired { rootTab = RootTab.Terminals }
+                        RootTab.Activity -> if (gateway!!.target.isSelected) ActivityScreen(activityEntries, draftStore, gateway!!.target.name) {
                             selectedId = it; conversation = null; conversationError = ""
-                        }
+                        } else TargetSelectionRequired { rootTab = RootTab.Terminals }
                         RootTab.Me -> MeScreen(
                             gatewayUrl = credentials.url,
                             night = night,
@@ -604,6 +615,21 @@ private fun RemoteApp(night: Boolean, destination: NotificationDestination?, onD
             }, enabled = !switching && candidate.isNotBlank()) { Text(if (switching) "切换中…" else "更改并重新登录") } },
             dismissButton = { TextButton(onClick = { endpointOpen = false }, enabled = !switching) { Text("取消") } },
         )
+    }
+}
+
+@Composable
+private fun TargetSelectionRequired(onChooseTarget: () -> Unit) {
+    Column(
+        Modifier.fillMaxSize().background(HapiPalette.background).padding(24.dp),
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Text("请先选择电脑", color = HapiPalette.ink, fontSize = 22.sp, fontWeight = FontWeight.SemiBold)
+        Spacer(Modifier.height(12.dp))
+        Text("选择一台已接入的电脑后，即可查看它的任务和动态。", color = HapiPalette.muted)
+        Spacer(Modifier.height(20.dp))
+        GlassActionButton("选择电脑", onChooseTarget, Modifier.testTag("choose-task-target"))
     }
 }
 
