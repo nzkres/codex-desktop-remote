@@ -43,7 +43,7 @@ class ChatPolishUiTest {
 
     @After fun cleanup() {
         compose.mainClock.autoAdvance = true
-        prefs.edit().remove("zebra_style").apply()
+        prefs.edit().remove("zebra_style").remove("skin_effect").apply()
         clipboard.clearPrimaryClip()
     }
 
@@ -161,6 +161,7 @@ class ChatPolishUiTest {
     }
 
     @Test fun everyZebraPresetPersistsAndBothThemesRenderAlternatingFullWidthRows() {
+        prefs.edit().putString("skin_effect", GridEffect.Off.name).commit()
         val settings = mutableStateOf(true)
         val night = mutableStateOf(false)
         compose.setContent { HapiStyle(night.value) {

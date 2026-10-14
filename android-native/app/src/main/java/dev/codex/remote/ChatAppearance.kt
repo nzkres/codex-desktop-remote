@@ -118,6 +118,7 @@ internal fun ChatAppearanceSettings() {
             }
         }
         TerminalSkinSettings(prefs)
+        if (appearance.skin.effect != GridEffect.Off) Text("网格动效开启时，回复采用透明底色；关闭动效后可使用下方斑马纹。", color = palette.muted, fontSize = 12.sp)
         ZebraSettings(appearance.zebra) { prefs.edit().putString("zebra_style", it.name).apply() }
         Text("玻璃清透程度 · ${(clarity * 100).toInt()}%", color = palette.ink, fontSize = 14.sp, modifier = Modifier.padding(top = 8.dp))
         GlassAppearancePreview()

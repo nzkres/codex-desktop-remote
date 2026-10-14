@@ -129,7 +129,7 @@ class TaskRecallUiTest {
             assertTrue((shell.bottom - surface.bottom) / density >= 10f)
             captureTestScreen("59-composer-proportions-${if (night) "night-large" else "light"}")
             compose.onRoot().performTouchInput { click(Offset(bounds.center.x, bounds.top + 2f * density)) }
-            compose.onNodeWithText("执行模式").assertIsDisplayed().performClick()
+            compose.onNode(hasText("执行模式") and hasClickAction()).assertIsDisplayed().performClick()
         }
     }
 
