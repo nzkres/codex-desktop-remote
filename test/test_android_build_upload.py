@@ -112,7 +112,7 @@ class UploadAndroidBuildTests(unittest.TestCase):
     def test_matching_receipt_writes_success_summary_after_ssh(self):
         def matching_receipt(command, **kwargs):
             self.assertTrue(kwargs['capture_output'])
-            self.assertEqual(kwargs['timeout'], 210)
+            self.assertEqual(kwargs['timeout'], 630)
             header, body = kwargs['input'].split(b'\n', 1)
             header = json.loads(header)
             self.assertEqual([row['name'] for row in header['files']],

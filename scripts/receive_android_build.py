@@ -120,7 +120,9 @@ def main():
     try:
         require(os.environ.get('SSH_ORIGINAL_COMMAND') == 'receive-android-build')
         signal.signal(signal.SIGALRM, lambda *_: (_ for _ in ()).throw(TimeoutError()))
-        signal.alarm(180)
+        # The full 48 MiB allowance must fit slower cross-region CI links.
+        # Keep one bounded transfer under the existing lock and byte quota.
+        signal.alarm(600)
         safe(INCOMING)
         fd = os.open(INCOMING / '.upload.lock', os.O_WRONLY | os.O_CREAT | os.O_NOFOLLOW, 0o600)
         with os.fdopen(fd, 'w') as lock:
