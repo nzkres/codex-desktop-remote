@@ -122,6 +122,7 @@ export class MobileSync {
             latestUserMessage: latestUser ? preview(latestUser) : null,
             userMessageCount: all.filter(entry => entry.item.type === "userMessage").length,
             pendingQuestions: source.pendingQuestions, pendingApprovals: source.pendingApprovals,
+            controlNotice: source.controlNotice ?? null, capabilities: source.capabilities ?? null,
             latestTurn: latest ? { id: latest.id, status: latest.status, hasPlan: array(latest.items).some((i) => i.type === "plan") } : null };
         const next = digest([threadId, keys, revisions, meta, start > 0]);
         const checkpoint = { threadId, at: this.now(), keys, revisions };
@@ -175,5 +176,7 @@ export function mobileSignals(source) {
     const latest = array(source.thread.turns).at(-1);
     return { turnId: latest?.id ?? null, completed: latest?.status === "completed",
         plan: source.session.mode === "plan" && array(latest?.items).some((i) => i.type === "plan"),
-        questions: array(source.pendingQuestions).map((q) => q.id), approvals: array(source.pendingApprovals).map((a) => a.id) };
+        // Answered cards remain in the transcript, but must not notify as new pending work.
+        questions: array(source.pendingQuestions).filter((q) => !["accepted", "closed"].includes(q.status)).map((q) => q.id),
+        approvals: array(source.pendingApprovals).map((a) => a.id) };
 }

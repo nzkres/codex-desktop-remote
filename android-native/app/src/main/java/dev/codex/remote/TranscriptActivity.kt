@@ -3,6 +3,10 @@ package dev.codex.remote
 /** Display state only: no timers, network requests, or inferred command completion. */
 internal data class TranscriptActivity(val label: String, val animated: Boolean = false)
 
+/** Completed cards remain readable history but no longer request an action. Unknown states stay visible. */
+internal fun QuestionRequest.needsAttention(): Boolean = status !in setOf("accepted", "closed")
+internal fun Conversation.needsAttention(): Boolean = approvals.isNotEmpty() || questions.any { it.needsAttention() }
+
 internal fun sessionProcessing(session: Session, observation: Observation?): Boolean =
     session.status !in setOf("WAITING_USER", "WAITING_APPROVAL", "COMPLETED", "INTERRUPTED", "FAILED") &&
         observation?.state != "quiet" && (observation?.state == "running" || session.activeTurnId != null || session.status == "RUNNING")
@@ -11,7 +15,8 @@ internal fun transcriptActivity(session: Session?, conversation: Conversation?):
     if (conversation == null) return null
     if (conversation.approvals.isNotEmpty() || session?.status == "WAITING_APPROVAL")
         return TranscriptActivity("等待你的批准")
-    if (conversation.questions.isNotEmpty() || session?.status == "WAITING_USER")
+    if (conversation.questions.any { it.needsAttention() } ||
+        (conversation.questions.isEmpty() && session?.status == "WAITING_USER"))
         return TranscriptActivity("等待你的回答")
     val observation = conversation.observation
     if (observation?.state == "quiet") return TranscriptActivity("等待新的活动记录")

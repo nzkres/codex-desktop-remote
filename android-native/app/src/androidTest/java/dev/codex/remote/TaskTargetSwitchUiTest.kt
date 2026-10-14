@@ -48,9 +48,14 @@ class TaskTargetSwitchUiTest {
                     assertEquals(server.b, credentials.taskTarget().id)
                     assertFalse(server.paths.any { it == "/api/projects" || it == "/api/sessions" })
                     captureTestScreen("multi-computer-selected-b")
-                    compose.onNodeWithTag("new-conversation").performClick()
-                    compose.onNodeWithText("B 项目").assertIsDisplayed()
-                    captureTestScreen("multi-computer-new-task-project")
+                    // This connector has no create route. Verify project isolation on the
+                    // selected task row and the disabled entry instead of opening an unsupported form.
+                    compose.onNodeWithText("B 项目", substring = true).assertIsDisplayed()
+                    compose.onNodeWithText("A 项目", substring = true).assertDoesNotExist()
+                    compose.onNodeWithTag("new-conversation").assertIsNotEnabled().performClick()
+                    compose.onNodeWithTag("confirm-new-conversation").assertDoesNotExist()
+                    compose.onNodeWithText("新建对话请在电脑处理；已有任务可在手机继续。").assertIsDisplayed()
+                    captureTestScreen("multi-computer-selected-project-create-unavailable")
                 }
             } finally {
                 server.releaseA.countDown()

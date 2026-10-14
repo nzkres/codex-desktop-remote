@@ -1,3 +1,201 @@
+## 2026-10-14 — Windows alpha.15私有源已发布，现装alpha.13鉴权下载验收通过
+
+用户明确批准仅发布Windows。北京时间15:53:48在隔离服务器将Windows测试feed从alpha.13/sequence9原子切换为alpha.15/sequence11；先核对旧索引摘要，再在独立root私有目录验签、解包验证51文件并保留旧索引。固定173385字节签名包SHA256为98f707824659ad3c67a0384f8c5ba7b830040e93d82b140f7313e560ba08cb5e，元数据SHA256为beb98d652ec155db0a1ed6d643f14661b7312161f696f578b050d89ef62dcd25。
+
+15:54:58使用本机现装alpha.13自身更新模块、现有配对设备身份及正常TLS实际下载：metadata/ZIP匿名均401，设备鉴权成功，原发行签名、升级序号、下载大小/SHA、隔离解包51文件全部通过。install/current/trust/ledger/candidate/DPAPI身份前后摘要一致，账本仍9。服务器relay/FRPS/Caddy进程及启动记录、relay current和其他组件feed未变化，旧Windows包保留，目录0700/文件0600。
+
+已发布且私有源可下载；尚未安装alpha.15或实机验收新功能。现用alpha.13保持原状，不自动停止/安装，不合并PR，不更新手机或服务器程序。用户等任务空闲后正常断开，检查更新应看到alpha.15，再自行下载并安装；安装及手机体验另行验收。普通手机问答仍需Android alpha.8，异步选择仍在电脑回答。
+
+审查及恢复限制见docs/WINDOWS-ALPHA15-OTA-REVIEW.md。命令：Python -B artifacts/alpha15/publish-private-feed-local.py prepare / publish；Python -B artifacts/alpha15/verify-published-private-feed.py。审计脚本和结果仅在忽略目录artifacts/alpha15保存，不含凭据；结果private-feed-prepared.json、private-feed-publish.json、private-feed-https-verification.json。服务器审计目录/opt/codex-desktop-remote-test/operator/windows-alpha15-feed-20261014-seq11保留原索引和验证记录。
+
+## 2026-10-14 — Windows alpha.15原密钥签名及旧客户端验包完成，待发布
+
+用户要求进入下一步。固定Git提交0dbf345重新打包后签发sequence11；此前候选与Git差异仅换行，未签包保留，不作为正式发布输入。新包173385字节，SHA256 98f707824659ad3c67a0384f8c5ba7b830040e93d82b140f7313e560ba08cb5e；metadata SHA256 beb98d652ec155db0a1ed6d643f14661b7312161f696f578b050d89ef62dcd25，有效至北京时间2026-10-21 15:45。
+
+原DPAPI发行密钥与现用trust完全匹配，51文件与Git归档逐字节一致；使用现装alpha.13更新代码验签/序号及临时解包清单通过，原alpha.13版本树完整。固定源码问答专项18/18通过；此前176项Node和166通过6跳过Python及跨平台CI证据继续适用。更新引擎内容不变、数据格式仍1，无迁移/权限重绑定。未写现用安装状态、未停止服务、未发布源或安装。
+
+线上仍alpha.13/sequence9，本机ledger9；alpha.14签名序号10只在本地，故alpha.15使用11。发布审查与失败/撤回方案见docs/WINDOWS-ALPHA15-OTA-REVIEW.md。普通手机问答仍需Android alpha.8，异步题仍在电脑回答；Windows发布可独立于GitHub构件额度恢复推进。
+
+## 2026-10-14 — 问答完成状态与候选包复核：检查通过，构件上传受阻
+
+代码提交0dbf345：已回答/已关闭题卡保留说明，但不再触发待回答通知和输入框关注提示；未知状态仍提示核对。独立GPT-6 Sol审查确认原题revision变化会拒绝旧答案，Android持久化后才发送，超时/取消不重发。异步提问只读展示，不能写成手机选择已完成。
+
+本机仅运行当前test目录的全部Node测试176/176（命令：PowerShell收集test/*.test.mjs，node --test @testFiles）；先前257/259计数包含artifacts中历史源码副本，不作为本轮当前源码测试数量。普通node --test的受限沙箱运行还遇到临时目录/junction权限失败；允许合成临时文件与回环端口后，当前测试目录全部通过。Python unittest discover -s test -p "test_*.py"：172项，166通过、6平台跳过。scripts/check_versions.py通过；demo_mobile_special_actions.mjs合成普通问答accepted、异步desktop_required，真实Desktop调用0。windows_ota_smoke.py实际隔离GUI/独立助手升级及失败回退均通过。
+
+前一提交542c194的Core CI38522632230：Windows/Linux所有测试、适用平台演练和打包通过，仅构件上传因GitHub存储额度失败。Android CI38522632286：编译/JVM/lint/APK核对通过，37项模拟器中2项失败；一项旧测试仍点击已明确禁用的新建入口，现改为任务行B项目隔离、A项目不出现、入口禁用与无弹窗检查；另一项草稿恢复增加写入前后存储和实际编辑文本核对，尚待新CI判定。未因旧测试重新开放未支持动作。最终源码0dbf345的Core CI38524365265也已确认：Windows/Linux全部测试与适用演练、打包通过，仅artifact上传因相同存储额度失败。Android CI38524365342已完成：编译、JVM单元、lint、APK包内版本/备注核对以及37项模拟器测试全部通过；旧的两项失败不再复现。只有Save untrusted debug APK and reports因Artifact storage quota has been hit失败，整轮CI仍为failure。Actions API artifacts.total_count=0，没有可下载APK。未删除远端资产、修改额度或绕过签名流程。
+
+本地未签名Windows alpha.15候选2：173997字节，SHA256 6508aede5dd9c461467a2df0ca80584bb43f56c2822d871017e428d495251ae6；51文件逐项SHA、ZIP CRC、包清单、当前源码字节一致验证通过。路径artifacts/alpha15/windows-0.1.0-alpha.15-candidate2-unsigned.zip，审计package-candidate2-audit.json。不是可覆盖现用安装的受信OTA包，没有发布/安装，不含外部Python/Node/FRP。Android CI端debug APK为0.1.0-alpha.8/versionCode8、11806368字节、SHA256 4fe6cfdfd9c8154770396d716d3a62743166ce9b9bf4ffd5075fd5b679e0a7a3；这是CI构建核对，不是本机下载复验，更不是原证书OTA包。受控签名仍需main发布流程，现有PR #9批准不扩展为本批PR #8自动合并。下一步先解决构件保存、准备本批审查与受控签名，然后再做现用服务升级和手机验收。
+
+## 2026-10-14 — 普通手机问答闭环候选；异步仅显示并明确限制
+
+用户批准按特殊交互方案实现。Windows alpha.15 / Android alpha.8新增普通requestUserInput卡片、选项说明、自由输入/多题、原题revision提交、持久摘要回执与completed原生答题记录核对。待处理请求不再遮断历史；手机加密草稿按账号/电脑/任务/题目版本隔离，未知状态禁止重交。未支持操作禁用并指向电脑处理。
+
+协议只读核对固定26.1007 ASAR；同步保留requestId原类型，IPC成功不是完成证据。异步follower steer没有调用方expectedTurnId，存在跨回合误投竞态，故没有开放；只显示选项与状态。不是原方案所有交互均完成。GPT-6 Sol负责Android并独立审查原生协议/后端；已修正同题不同答案假确认及旧revision覆盖，普通聊天不能伪装已答。
+
+本地Node257项通过；Python完整回归、Android CI编译/测试/构件仍在核验。当前未修改现用安装/身份/权限/服务或更新源，未签名发布。本机无Java，Android以CI结果为准。下一步取得构建证据并准备受控升级，真实手机答题验收尚未进行。详见docs/MOBILE-SPECIAL-INTERACTIONS.md。
+
+## 2026-10-14 — 手机特殊交互缺口审计与合成演示
+
+核对普通问答、异步选择框及14类特殊操作。当前Service阻断待请求历史并返回空问题列表；MobileSync丢弃agentMessage.questions；问答、审批、模式、实施路由未接通。Android已有卡片不等于当前连接器支持。GPT-6 Sol完成Android入口只读复核。
+
+新增docs/MOBILE-SPECIAL-INTERACTIONS.md，逐项记录当前能力、手机操作方式和第一批问答闭环范围。运行node scripts/demo_mobile_special_actions.mjs，6项合成缺口全部复现，真实Desktop调用0。可点击交互演示通过选择/自由输入提交、电脑已回答、问题变化、提交结果待核对及需电脑授权五种状态检查；该演示不连接真实任务。
+
+本轮仅审计文档、独立复现脚本与界面提案，没有修改业务源码、版本、当前安装、签名或更新源。尚未修复真实APP问答。下一步分别打通普通及异步问题的原生回答链路，再补新鲜问题核对、草稿隔离与未知回执；敏感授权不以普通消息替代。Android alpha.7构件存储问题保持待解决，与本轮交互缺口分别记录。
+
+## 2026-10-14 — PR #9获批合并；Android alpha.7受控构建通过校验，产物上传受阻
+
+用户明确批准独立Android PR #9测试步骤通过后合入main并沿用原证书构建，不包含更新源发布或手机安装。最新头864b35dad9980889ed45d2d07a6a1e9537576542的Core CI38514242145与Android CI38514242210均已完成：所有测试/适用检查通过，唯一失败是存储额度导致artifact上传失败。精确匹配该头合并，main合并提交69e6ecfb69bc970be94706a2d3c7b12e24460d62；Android源码/工作流与审查版本无差异。
+
+main受控签名构建[38515183358](https://github.com/nzkres/codex-desktop-remote/actions/runs/38515183358)：原六项Secrets存在且未改动，单元测试/lint/受控APK构建、包名版本记录、原APK证书和内置trust逐字节核对全部通过，临时签名输入清理成功。受控流程不重复模拟器测试；合并前模拟器结果已通过，不能记成本轮签名run执行过模拟器。
+
+CI生成APK为0.1.0-alpha.7、versionCode7、11773392字节、SHA256 4975c5d8f78b5766947bec847cdadb229d6a5cfc24e33ae8604d3a62aaeb852b。以上是CI端构建/校验证据，不是本机下载复验。Save verified controlled-signature test APK and reports因Artifact storage quota has been hit失败，Actions API artifacts.total_count=0；整轮结论failure，没有可下载或已取回APK，不能声称交付完成。没有删除其他资产、修改账单、绕过签名或从日志搬运二进制。
+
+下一步先解决构件保存（恢复Actions存储额度后重新构建，或另审查私有构件归档方式），取回APK并独立校验后再准备Android更新源发布及真实覆盖安装。当前Windows仍alpha.13；本地已签Windows alpha.14保持未发布/安装。真实配对、权限、Gateway/FRP、中继源与手机未改变。PR #9已合并；PR #8仍为Windows功能开发审查。
+
+## 2026-10-14 — alpha.14本地签名与Android构建证据；独立发布PR #9待批准
+
+固定源码e75a20924c91a9f18090fe46f310ce169c73378c的Windows alpha.14包166779字节，SHA256 b51eaf5ebdb68825bad83a2df46d03b3b00e9b73f5c19db9529c033bd312525a。沿用原DPAPI发行密钥签名sequence10，现用trust验签、解包清单/文件树验证通过；metadata SHA256 d5e0ebf3b31cd1339100c9ecb5a874f187edcd45bfc7289da8d459d01ea95498。未发布或安装；原alpha.13运行保持。命令windows_ota_smoke.py的实际合成GUI/独立助手提交与回退通过。
+
+Core CI 38513358592：Windows/Linux测试、平台适用GUI/helper/维护/HTTPS/cgroup检查和打包均通过；唯一失败为artifact上传，明确Artifact storage quota has been hit。Android CI 38513358589：编译、JVM单元、lint、APK版本记录核对及19项模拟器测试通过；同样仅artifact上传失败。两条整轮CI结论均failure，不能称整体CI成功或产物可下载。未删除GitHub资产或改变付费设置。
+
+独立Android发布PR #9（基于main，仅Android/其CI/文档）已建，108份Android/工作流文件与e75a209逐一一致；本机Node33/33、Python118通过6跳过，独立CI运行中。原完整功能PR #8保持draft。现有受控APK签名main-only，已请求用户批准PR #9测试步骤通过后合并并沿用原证书构建，不包含更新源发布或手机安装；未擅自合并或绕过受控签名流程。
+
+GPT-6 Sol复核本轮代码无阻断。网络读取有25秒超时，Android15秒等待协程的取消可能等底层读取结束，不承诺严格墙钟；不会自动重放打开意图。主电脑实机HTTP成功不是新APK手机验收。下一步处理独立CI结果、合并授权与可下载受控产物，再准备双方升级。审计文件仅本机artifacts/alpha14/package-audit.json。
+
+## 2026-10-14 — Windows alpha.14 / Android alpha.7：点击标题加载原对话候选
+
+用户确认手机已有多条标题，只是找不到之前报错的一条。改用已有的纯口令测试对话验证，不要求用户再找或发送消息。原生入口核对发现安装清单 codex:// 对应 app/ChatGPT.exe；同目录 Codex.exe 虽签名有效，但本次未恢复目标 owner，不能仅凭启动成功判定可用。
+
+真实未加载测试：固定 ChatGPT.exe 及原兼容指纹后，同一 UUID 从 owner_unavailable 到历史可读、idle，模型输入0。另一个隔离鉴权HTTP测试先返回 desktop_open_pending，后续普通读取200、sameTask=true、2条条目、仅一次导航、模型输入0；未使用真实配对凭据，未修改运行服务或任务权限。
+
+候选实现：手机显式点标题/手动重试才带 open=1；连接器只在明确 no-client-found 后请求 Desktop 打开原 UUID。列表、轮询、通知、分页、发送和OTA诊断不自动导航。相同目标合并、不同目标忙碌；断开/更新/未知回执阻止导航。未取得原生快照的打开沿用 active-tasks 记录，阻止更新猜测空闲；后续仍由原 Service 核对目录、实时权限与回执。
+
+验证命令：`node --test` 242/242；`python -B -m unittest discover -s test -p "test_*.py"` 172项，166通过、6平台跳过；`python -B scripts/check_versions.py`通过。Android新增一次性意图与HTTP查询测试；本机 Gradle 下载缓慢且缺SDK，已停止下载，尚无本机编译/APK证据。改由仓库CI执行，并把GatewaySyncTest加入现有模拟器测试集合。CI、签名包、真实手机体验须另记。
+
+当前实际安装仍Windows alpha.13；alpha.14/Android alpha.7未发布、未安装。手机需要新版APP与连接器配合才有按需打开能力；可能切换电脑的Desktop页面。中继转发现有查询参数即可，不需升级中继。下一步核对CI与包，再准备原签名连续升级和手机点击旧对话验收。详见docs/DESKTOP-ON-DEMAND-OPEN.md。
+
+## 2026-10-14 — 手机按需打开原对话：验证工具完成，真实未加载路径待测
+
+用户批准继续解决“必须电脑打开才能手机读取”。已只读核对固定Desktop 26.1007源码：存在按UUID打开原对话的原生链接，但不能从导航成功推断owner就绪。新增操作员工具scripts/desktop_open_probe.mjs，默认仅观察；显式--open只在remote no-client-found、二次目录核对和固定启动文件指纹通过后打开一次同一原任务，再验证新快照。没有接入手机HTTP/OTA，没有发送模型输入或更改现用alpha.13。
+
+专用10项合成测试通过，最终node --test 231/231；python -B -m unittest discover -s test -p "test_*.py" 172项（166通过6跳过）。GPT-6 Sol只读审查并复核修正通过。原测试对话只读实测owner已存在、同任务历史可读、idle；不代表未打开任务的自动加载通过。实时本机alpha.13鉴权health/sessions均200、instance一致，返回62条且包含原测试与当前对话；手机展示仍待核实。
+
+用户表示手机没找到目标；已询问是看不到其他对话还是没找到提示加载的那条。尚未真实执行--open，未生成alpha.14或宣称功能已落地。下一步定位一个未加载的现有测试对话验证；通过后仅在手机进入目标时接入，并保留后台列表/轮询及OTA诊断不自动打开的边界。详见docs/DESKTOP-ON-DEMAND-OPEN.md。现有身份、权限、连接、服务器和已签包保持。
+
+## 2026-10-14 — alpha.13实际升级完成，手机新对话验收待测
+
+用户确认新窗口出现。独立审计：续接助手输出 committed/success=true/version=0.1.0-alpha.13，助手已退出；实际窗口标题为“Desktop 手机联调 · 0.1.0-alpha.13”。current、staged候选、主事务候选一致；原信任公钥验证发布签名通过，发布包SHA及releaseDigest一致，当前完整文件树与可回退alpha.12槽均验证通过。
+
+当前identity/configuration/taskData摘要逐项与升级前review及事务preserved一致，未重新配对或改变权限。此证据确认已签版本安装、原事务健康门禁及新窗口激活完成；不是手机任务/长时间重连验收，也不是无人维护的完整OTA体验通过。本次正常OTA在切换前任务预检退出后，经已审查的一次性助手复用原暂存包续接；错误窗口缺失仍是后续版本待修体验问题。
+
+只读审计复用installed、verify、slot、snapshot，脱敏结果为artifacts/alpha13/installation-audit.json，所有比较通过。无产品源码修改，不重复打包或修改已发布alpha.13。下一步：用户检查“错误清单与代码说明”，连接后在Desktop新建专用测试对话，手机刷新自动出现标题，点开读取ALPHA13_NEW_CHAT_OK；不逐条添加或重新配对。手机结果待用户回报。
+
+## 2026-10-14 — alpha.13续接助手已启动，等待本轮对话空闲
+
+用户已收到原测试任务 ALPHA13_UPDATE_READY；实时只读检查原任务 idle=true，当前维护对话 thread_busy。保留已暂存、验签的 alpha.13，现用仍 alpha.12。独立续接助手于11:40:31（北京时间）启动，首次输出 waitingTasksIdle=true / switched=false；此记录不是安装成功。
+
+助手仅对明确 thread_busy 有界等待15分钟，其他异常停止；冻结安装文件、原身份/config/taskData摘要与助手/审查哈希，检查原已签源码和候选完整性。空闲后调用未修改的原 Transaction.apply，再执行原生预检、保全、健康和回退流程；不改权限或配对、不跳过健康检查。独占且持久的一次性执行标记防止失败后自动重试交易。原 helper-result 和拒绝记录保留。
+
+命令：`python -B artifacts/alpha13/test-resume-staged.local.py`，7/7隔离测试通过（busy→idle、异常拒绝、超时、状态变化、失败不重试、错误版本、独占标记）；GPT-6 Sol只读复核通过。通过隐藏独立Python进程启动 `resume-staged.local.py <review-sha256>`；固定review SHA256 e931193dc042ca9f8ccad84ddd2d69dbabcad444c30b20a2964de4a00505c49e。一次性脚本与审查数据仅在本机ignored artifacts/alpha13，未加入发行包或Git。
+
+下一步：本轮结束后等待助手安装；再独立核对current、事务committed、签名、身份和权限保全及实际窗口，最后由用户测试错误清单与手机新对话标题/历史。Android、服务器和已签alpha.13字节未改。不得以等待器启动代替实机安装/手机验收。脱敏启动记录：artifacts/alpha13/resume-launch-evidence.json。
+
+## 2026-10-14 — alpha.13用户点击安装后停在切换前任务预检
+
+用户反馈下载并安装后未出现alpha.13窗口。只读核验：current仍alpha.12，staged候选alpha.13；helper-result为active_or_unverified_desktop_task。primary仍是此前alpha.12 committed，未进入本次prepared/切换/候选启动。应用、更新、runtime三锁可得，身份/任务保全快照可读取，没有重新配对或删除保护。
+
+调用现用alpha.12的只读原任务检查，分别得到原测试任务owner_unavailable、当前维护对话thread_busy；全量原升级检查因owner_unavailable拒绝。前者表示Desktop暂未提供原测试任务执行端，后者是本轮助手正在回复。下载与暂存成功不能当升级成功。GUI先关闭、助手预检失败后没有重新呈现错误窗口，是现有交接体验缺口，后续产品修复需独立版本，不能修改已签alpha.13。
+
+已请用户在原“回复 DESKTOP_REMOTE_READY”发送一次ALPHA13_UPDATE_READY并回报；保持连接器关闭，不重复下载。**尚未启动任何续接等待器或再次apply；收到用户确认后重新核验现场，待当前回合空闲后复用原已验签暂存包继续。** 脱敏证据artifacts/alpha13/installation-preflight-refusal.json；未变更身份、权限、服务器或安装指针。
+
+## 2026-10-14 — alpha.13签名包与私有源已发布，等待用户安装
+
+固定源码8191cad32af62a5902a72e0eea44bc94bebb49f1构建Windows alpha.13，sequence9，163147字节，ZIP SHA256 fecbcfbc092a19d30840a25dc8d31066e4fcadc92c2bb013b382fdab721e79a1；metadata SHA256 d7e682bc7d06b0e3af81cc5c8c3df749e58c0c42ef037820ec39e4d63cfafeda。原DPAPI发布密钥签名、本机真实trust验签、解包manifest及包内211条源码/仓库位置检查通过。初次审核脚本误将verify的二元返回值直接交unpack，在审核层被拒；按正确返回值复验通过，未重新打包/签名或更改安装。
+
+[Core CI 38505660082](https://github.com/nzkres/codex-desktop-remote/actions/runs/38505660082)的Windows/Linux测试、真实助手/维护/HTTPS/cgroup适用步骤和打包均通过；**整轮结论failure，唯一失败步骤为两平台actions/upload-artifact@v4，不能称CI成功或产物可下载。** 本机实际GUI/helper提交与回退通过。
+
+按既有Windows私有源授权，服务端对原alpha.7 latest SHA精确比较并备份，先落不可变alpha.13包，服务器用原信任公钥再验签后原子发布latest；未改Android/relay feed、未重启服务。公网正常TLS匿名metadata/ZIP均401。现用连接仍alpha.12；在连接活跃时下载预检被原identity_or_runtime_requires_review门禁拒绝，未绕过，未执行check/stage或写真实升级账本。因此现设备认证下载与实际安装待用户安全断开后由原GUI执行。
+
+已提示用户等本轮结束，在alpha.12点击断开，确认安全断开，再检查更新/下载并安装alpha.13；Desktop保留，不重配对。之后确认新窗口错误清单入口，并继续手机新标题/历史验收。不要声称现用已升级；不要另起维护助手或删除运行保护。脱敏审计均在artifacts/alpha13/，发布源码已推送原开发分支，PR#8仍draft未合并。
+
+## 2026-10-14 — 证书重载修复与Windows错误诊断
+
+用户要求自动重试要有具体错误码、可点击原因与代码位置。主代理完成GUI/网络分类/私有服务器诊断；GPT-6 Sol medium负责静态错误目录和定向测试，主代理复核源码定位和包内缺失工具的降级。
+
+只读查询verify_code10；磁盘新证与9443旧证指纹不同，定位专用Caddy reload缺--force。先跑Linux3项隔离hook测试，CAS备份替换专用hook，再正常TLS与原身份状态复核，alpha.12自行恢复，无任务消息写入。代码新增error_catalog、GUI清单及relay分类；UI截图纠正高DPI裁切，截图限定测试HWND。Python172项/Node221项通过（Python6平台跳过），最终定向32项通过。命令、证据、示例和发布边界见docs/WINDOWS-ALPHA13-DIAGNOSTICS.md。未替换现用客户端。
+
+## 2026-10-14 — alpha.12实际安装提交并独立核验通过，等待手机新对话验收
+
+用户确认新窗口已出现。续接实际输出committed/success=true/version=0.1.0-alpha.12；独立审计current=候选、primary与alpha12-continuation1日志一致，ZIP/发布签名/包清单与固定候选匹配，原身份/config/taskData及保护摘要与续接review和事务preserved完全一致。旧槽可验证、原失败journal精确保留，配置仅增加获批taskScope=all-local，旧权限摘要/任务记录保留；runtimeNeedsReview已正常移除，应用锁由新实例持有。
+
+实际窗口PID4728、标题Desktop 手机联调 · 0.1.0-alpha.12；脱敏完整审计artifacts/alpha12/installed-alpha12-audit.json。这证明本地签名维护安装与激活前真实健康验证完成，不等于长期稳定或手机新对话验收。首次健康拒绝的具体诱因仍未证实，保留原失败及成功续接，不将一次复验成功写成根因已修复。
+
+已请求用户在新窗口点击连接，在Desktop新建专用测试对话并发送一次ALPHA12_NEW_CHAT_OK验收指令，再在手机刷新原电脑任务列表、点进查看同一回复。无需添加任务或重新配对。等待用户分别确认新标题自动显示与历史读取；暂不重复运行任何维护助手。本次未升级Android/relay或发布公网feed。
+
+## 2026-10-14 — 首次alpha.12候选健康拒绝；传输诊断通过，受控续接已等待
+
+用户未看到新窗口。助手实际结果update_needs_review；primary与alpha12-repair-transaction均needs_review，cause=candidate_health_unverified、error=rollback_or_cleanup_unconfirmed。原引擎在cleanup_target和preserved成功后把current指针恢复alpha.11；回退启动因旧版不理解all-local被明确拒绝，故此汇总错误不等于已证明清理失败。候选从未激活。配置已为批准的all-local，不能手动启动旧版。原运行guard已按正常清理移除，三锁可得；身份/config/taskData与失败事务preserved完全一致，5条回执文件未变。原失败时间01:09:55（本地），诊断未留具体健康异常，不能把87秒时长当确定网络根因。
+
+一次受锁保护、真实已配对但quarantine的传输诊断通过：登记connected、本机gateway healthy、transport healthy、probe_verified；随后正常停止、自有两棵Job树退出、身份/任务保全及旧指针/主fence一致。未开放手机写入或GUI。脱敏证据artifacts/alpha12/transport-diagnostic.txt。首次异常的具体诱因仍未证实。
+
+新一次性续接continue-once.local.py保留原failed journal不改，复用同一个签名包与原事务引擎，另写alpha12-continuation1.json；不重复prepare/resume，不再改变配置/身份。候选诊断入口仅调用原签名ota_entry.run(home,True)，保留全部健康检查，新增安全错误码回报。7项合成事务测试通过（含审查记录变化、身份/数据变化、重复应用拒绝、失败闭锁）；真实隔离GUI健康提交/坏候选清理停needs_review通过。GPT-6 Sol medium独立复核通过。
+
+真实只读续接review已保存：%LOCALAPPDATA%/CodexDesktopRemoteMaintenance/alpha12/continuation1-review.json，SHA256 1a8e4075afa5c0061854b167438ec6819f1fd46c5114b492475f5fb0f74ac70c。助手SHA256 e79eba04c83991733f4532d8d51528cfae00d104f1db201c18fa80a74fe90428；诊断entry 53c2c86b9422dc15ded9b2177c83048723a64021598353648dbd7e8c16842033。入口核对review SHA，等待/快照/启动/激活前持续核对完整审查语义（纯JSON空白变化允许，不采用新字段）。
+
+独立续接已启动PID3164，实际输出waitingTasksIdle=true,retry=1,switched=false；仍等当前维护对话结束，不是已安装成功。日志artifacts/alpha12/continuation-output.txt、continuation-error.txt。下一轮先检查这些日志及新事务和current，再独立核对保全/签名/窗口，禁止启动第二份助手。用户无需再次重启或配对。
+
+## 2026-10-14 — 独立恢复助手已启动，等待本轮对话空闲
+
+GPT-6 Sol medium只读复核等待器通过。固定SHA一致后已启动独立助手PID15156，实际输出waitingTasksIdle=true、switched=false；标准错误为空。它将在当前维护回合结束、两条任务明确空闲且完整CAS不变后执行原已审查resume；无需再次批准或重启。此时尚未确认安装提交，不得重复启动助手/运行resume或提前打开旧连接器。
+
+助手输出位于artifacts/alpha12/resume-wait-output.txt，错误位于resume-wait-error.txt。下一轮先检查输出、primary与alpha12-repair-transaction双记录、current指针、签名、scope-only配置、原身份/任务数据和旧槽归档，再检查新窗口；不能仅凭出现窗口宣布升级或手机验收成功。用户看到alpha.12窗口后先回报，未出现或报错直接报告，不重配对。
+
+## 2026-10-14 — alpha.12重启后保全核对通过，原测试任务已恢复
+
+用户确认已完整重启；只读审计确认boot严格增加、原review SHA-256仍189b383b0bb2683f24d6c83dde4732a0bdf67ecc1b194b079ab2977ea22d5614，primary围栏、完整身份/配置/保护文件/任务数据及代码指纹一致，三锁可得，guard保留，候选签名有效。脱敏证据artifacts/alpha12/post-restart-audit.json。未重复prepare，未清保护。
+
+原测试任务最初owner_unavailable；用户随后在原任务收到ALPHA12_AFTER_RESTART_READY。只读独立诊断两任务兼容/同任务/权限/回执均通过，原测试任务idle、当前维护对话thread_busy；首次原生快照历史标为未完整，后续完整历史联合探针补取成功后返回thread_busy。不能把首份诊断incomplete_history隐藏为始终成功。
+
+为等待当前维护回合结束新增本机独立等待器artifacts/alpha12/resume-when-idle.local.py（SHA-256 84a965492764c27744d23019cd649e3b3f670c0841ef0160a610cf52ab73309f）；探针wait-idle.mjs（28fda2b74b5a63a608018d26f4a1e0e8bed823d8e737e957afe56483474d11d7）。不改原恢复助手或review；循环前后复核全部状态，只等待明确thread_busy，15分钟超时退出，其他错误立即拒绝；idle后仅调用原resume一次。6项合成等待门禁测试通过。此刻尚未启动等待器或执行真实安装，完成独立复核后启动，另记结果。
+
+## 2026-10-13 — alpha.12重启前恢复记录已保存，等待用户完整重启
+
+用户已确认正常关闭alpha.11窗口。执行固定SHA-256为4316f8d8c116678d4a8139154d3fae2e1bf55fadc1b765bed7ab5b4d47aeffea的本机助手 `artifacts/alpha12/repair.local.py prepare` 成功，返回prepared=true、restartRequired=true、configurationUnchanged=true。没有执行resume，没有停止Desktop或其他服务。
+
+随后独立只读审计：application/update/runtime三锁均可取得；primary精确匹配准备围栏；完整身份摘要、保护文件清单、任务数据、配置及代码指纹未变；runtimeNeedsReview保留；签名再验通过；当前仍alpha.11、同一boot，未切换版本。脱敏证据 `artifacts/alpha12/prepared-audit.json`。仓库外恢复记录 `%LOCALAPPDATA%/CodexDesktopRemoteMaintenance/alpha12/review.json` 的SHA-256为189b383b0bb2683f24d6c83dde4732a0bdf67ecc1b194b079ab2977ea22d5614。
+
+现在可以通知用户保存其他工作并通过Windows菜单完整“重启”，不是休眠。重启后保持连接器关闭，先回到本对话回复；复核boot严格增加和全部CAS后，再检查原任务就绪。当前维护回合执行时不安装，需待原两任务空闲。不得重复prepare、清标记、重配对或直接启动旧版。下一步是审查记录对应的resume，具体步骤见docs/WINDOWS-ALPHA12-AUTOMATIC-CONVERSATIONS.md；若任何状态变化停止复核，不覆盖。
+
+## 2026-10-13 — alpha.12双平台CI全部通过，产物可下载；安装仍待关窗
+
+[Core CI38420879205](https://github.com/nzkres/codex-desktop-remote/actions/runs/38420879205) Windows/Linux两任务全部成功，包括单元测试、版本目录、relay/deploy检查、平台对应真实隔离升级演练、不可变源码包构建和上传。此次CI临时源码产物可下载；本机签名包仍单独验签，不能互相替代。现用alpha.11窗口仍在，本次尚未执行prepare、未建立重启围栏、未切换版本；待用户正常关闭窗口后继续。不要提前重启或清除runtimeNeedsReview。
+
+## 2026-10-13 — alpha.12签名包及恢复助手已就绪，等待正常关窗
+
+源码a3b85a9；本机签名候选147470字节、48文件逐一匹配Git、sequence8，现用trust验签通过。独立GPT-6 Sol medium复核源码及一次性恢复助手，无剩余实质阻断。恢复助手18项合成测试通过，真实隔离GUI提交/失败清理后needs_review通过。完整路径、固定哈希、恢复中断边界及手机步骤见[alpha.12维护与验收](docs/WINDOWS-ALPHA12-AUTOMATIC-CONVERSATIONS.md)。
+
+真实安装尚未修改；已请用户正常关闭alpha.11，先不要重启。下一步锁齐后prepare保留guard并建立主事务围栏，再通知完整Windows重启。不能直接运行resume，不能把本机候选当已安装。CI38420879205目前Linux全套含上传通过、Windows单元套件通过且GUI演练进行中；尚不能写全CI成功。草稿PR#8已推送，未合并、未发布公网feed。
+
+## 2026-10-13 — alpha.12 全部对话候选，准备签名及受控恢复
+
+本段取代上一增量中的开发计数及等待更新方案表述。用户继续要求完成测试、打包并升级，手机将验收新对话自动标题显示和点进读取记录。实现采用目录元数据与实际手机操作分开：未打开的历史标题不创建 follower，不要求它具有执行端；迁移前两条任务仍保留为更新基线，手机读到非空闲或实际发送/停止的任务持久跟踪。忙碌、待审批、未知发送/停止以及正在读取时仍延期更新；不停止 Desktop 任务。
+
+已实现：只读正常 WAL 的本机目录、按需同任务历史、实时 Desktop 权限继承、有限 follower 缓存、明确空历史/不可读错误；未知停止在 IPC 之前落盘。补全历史失败、待审批显示失败、并发读与断开竞争均不能遗忘可信活动快照。已由 GPT-6 Sol medium 独立复核，未见剩余阻断。
+
+验证：当前源 Node 137/137；默认 node --test 221/221（含84条忽略目录历史测试，不能作为当前源计数）；Python全量161项、155通过、6平台跳过；真实隔离Windows GUI/独立助手提交与回退演练通过。版本目录检查通过。候选只读实机读取62条标题、当前对话83回合，无模型输入；不代替手机验收。
+
+现用 alpha.11 保留 runtimeNeedsReview。只读检查5条已接受发送回执、0未知，runtime锁可取得，但没有旧匿名Job原始句柄退出证明；transportCrashContained布尔值与进程列表不能替代证明。需要先准备完整身份/配置/任务数据CAS及签名包，再正常关闭窗口并建立重启恢复围栏；完整重启后才允许复核恢复。此刻未清标记、未改真实配置、未安装alpha.12。Android、relay、公网feed保持本次范围之外。签名、安装及手机验收继续分别记录。
+
+## 2026-10-13 — 全部对话自动标题目录与按需历史（开发中）
+
+验证增量：当前 Node 源测试123/123通过，包含列表不订阅历史、单任务按需读取、确实空历史与不可读/忙碌/未知提交区分、目录移除释放连接。Python全量160项首轮出现2项旧配置入口兼容失败（6跳过）；已修复并定向复验配置5/5、目录3/3，尚未重跑完整Python套件，不能称全量全绿。版本目录只读校验通过。新代码仍为本地开发中，不是已发布/已安装版本。
+
+用户已批准手机查看/接续全部本机 Desktop 对话、新对话自动同步，并要求列表先显示标题，点进后再获取旧记录。当前开发分支 codex/automatic-desktop-conversations 已实现只读 SQLite WAL 元数据目录、按需原生 follower、任务实时权限继承和有限连接缓存；旧配置缺省仍 selected，现用 alpha.11 没有切换。目录不读取正文、不调用模型；暂不可读不能当成空历史。完整且明确空闲的原生快照确无回合时返回 history_empty，保留手机既有重试入口；没有 owner/快照或状态未定时仍分别报告原错误。
+
+本机只读候选发现62条目录记录，两条既有获批任务均包含；当前开发对话投影成功（83回合，无模型输入、无现用配置修改）。发现并修复 Windows 扩展路径写法导致范围核对失败，保留真实路径及规范路径双重比较。自动目录包含可识别 Desktop 来源及旧版未标注 originator 的 vscode 候选；实际读取/发送还需本机 Desktop owner 和同一原任务目录验证。网络路径、远端目录、子代理/内部审查不作为本机交互任务。
+
+OTA 规则调整尚未获明确答复：此前已说明“只检查手机操作中的任务而非全部历史”的原因，用户目前只明确标题/按需获取交互，不能推定同意修改更新门禁。全模式更新不得把没有执行端的历史任务当空闲。签名打包、现用安装迁移和手机全目录验收尚未完成，不发布、不替换现用 alpha.11；继续完成并记录更新检查方案后再交付候选。
+
 ## 2026-10-13 — alpha.11 当前开发对话手机读取通过
 
 用户在 alpha.11 点击连接后，明确确认手机能看到“开发 Windows 连接器客户端”及最近消息。当前对话的手机实际读取验收通过；从手机发送并在同一 Desktop 对话接续尚待验收，不能用读取成功替代写入成功。下一步等本轮回复结束，由用户在手机本对话发送一次 PHONE_CURRENT_ALPHA11_OK 验收指令；结果不明不重复发送。没有重新配对或改变授权范围。

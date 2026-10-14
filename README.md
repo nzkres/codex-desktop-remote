@@ -32,6 +32,8 @@ alpha.5 已在现有服务器的独立隔离环境完成中继、FRPS、HTTPS �
 
 受控测试归档：[v0.1.0-alpha.5](https://github.com/nzkres/codex-desktop-remote/releases/tag/v0.1.0-alpha.5)。七项附件已发布且服务端大小/哈希核对一致；有权限的GitHub账号可下载三端程序、bootstrap公开信任/已签元数据、校验值和报告。旧alpha.4及更早版本保留。Android受控包已内置test信任，仍为debuggable测试构建；Windows/relay需要外部运行时，尚无一体化EXE或托盘。建议先看[原型关系图](docs/ARCHITECTURE.md)，再运行合成自测/窗口预览，最后依[测试指南](docs/TESTING.md)做专用任务联调。问题按[测试反馈](https://github.com/nzkres/codex-desktop-remote/issues/new?template=test-feedback.yml)记录实际版本与结果。
 
+手机选择框、审批、Plan及其他特殊操作的当前支持情况与手机操作设计，见[特殊交互清单](docs/MOBILE-SPECIAL-INTERACTIONS.md)。该清单区分现有能力和待实现功能。
+
 ## 先安全自测
 
 软件内也显示同一份说明：手机“我的 → 版本与更新说明”、Windows 窗口底部“版本与更新说明”、中继 `python relay/control_server.py --release-notes`。实际安装或部署版本需单独核对，不能从仓库版本推定。

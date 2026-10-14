@@ -180,7 +180,7 @@ class Controller:
         client = RelayClient(state['relay'])
         status, body = client.post(f"/connector-api/terminals/{state['terminalId']}/connection", state['deviceToken'], {})
         if status != 200:
-            raise ConnectorError('task_channel_unavailable')
+            raise ConnectorError(client.failure_code(status))
         settings = validate_connection(body, state)
         ca = public_asset(store.root, '.pem', settings['caPem'].encode())
         template, environment = launch_material(
@@ -200,8 +200,11 @@ class Controller:
             store.write(current)
         environment_node = {k:v for k,v in os.environ.items() if k.upper() not in ('NODE_OPTIONS','NODE_PATH')
                             and not k.upper().startswith('CONNECTOR_')}
+        environment_node['CDR_DESKTOP_PYTHON'] = sys.executable
         pins = {str(p): hashlib.sha256(p.read_bytes()).hexdigest() for p in (ROOT/'src').rglob('*.js')}
         pins[str(self.config_file)] = hashlib.sha256(self.config_file.read_bytes()).hexdigest()
+        catalog = ROOT / 'scripts' / 'desktop_catalog.py'
+        pins[str(catalog)] = hashlib.sha256(catalog.read_bytes()).hexdigest()
         pins.update(helper_pins())
         adapter = OwnedProcess(cfg['node']['path'], [str(ROOT/'src'/'main.js'), str(self.config_file)], str(ROOT),
             cfg['node']['sha256'], LoopbackHealthProbe(cfg['port'],identity['token'],identity['instance']),

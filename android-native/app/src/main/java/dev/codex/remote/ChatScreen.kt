@@ -100,12 +100,16 @@ fun ChatScreen(
     onImplement: () -> Unit,
     onApproval: (Approval, Boolean) -> Unit,
     onAnswer: (QuestionRequest, Map<String, String>) -> Unit,
+    onRefreshQuestions: () -> Unit = {},
+    questionDraftStore: QuestionDraftStore? = null,
+    questionStorageAvailable: Boolean = true,
     onLoadOlder: suspend () -> Conversation? = { null },
     onLoadFull: suspend (MessageItem) -> MessageItem = { it },
     draftStore: DraftStore? = null,
     onLoadTask: suspend (MessageItem) -> MessageItem = onLoadFull,
     onLoadTaskPage: suspend (String?) -> TaskHistoryPage? = { null },
     terminalName: String = "",
+    desktopOpening: Boolean = false,
 ) {
     val activity = LocalActivity.current as ComponentActivity
     val scope = remember(activity) { activity.lifecycleScope }
@@ -417,10 +421,14 @@ fun ChatScreen(
                     stripe = stripes[echo.key] ?: 0)
             }
             conversation?.approvals?.forEach { approval -> item(key = "approval-${approval.id}") {
-                ApprovalCard(approval, session?.activeTurnId, busy, onApproval)
+                ApprovalCard(approval, session?.activeTurnId, busy, conversation.capabilities.approvals, onApproval)
             } }
             conversation?.questions?.forEach { request -> item(key = "question-${request.id}") {
-                QuestionCard(request, busy, onAnswer)
+                QuestionCard(request, busy, questionDraftStore, threadId, conversation.capabilities.questions,
+                    questionStorageAvailable, onRefreshQuestions, onAnswer)
+            } }
+            conversation?.controlNotice?.let { notice -> item(key = "control-notice") {
+                Text(notice, Modifier.padding(horizontal = 16.dp, vertical = 8.dp), color = TextMuted, fontSize = 12.sp)
             } }
             if (showPlanChoice) item(key = "plan-choice") {
                 DecisionSurface(modifier = Modifier.focusRequester(planFocus).focusable()) {
@@ -431,8 +439,9 @@ fun ChatScreen(
                         Spacer(Modifier.height(10.dp))
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             OutlinedButton(onClick = { composerExpanded = true; scope.launch { delay(300); try { composerFocus.requestFocus() } catch (_: IllegalStateException) { } } }, enabled = !busy, modifier = Modifier.weight(1f)) { Text("继续规划", color = TextInk, fontSize = 12.sp) }
-                            Button(onClick = onImplement, enabled = !busy, colors = decisionButtonColors(), modifier = Modifier.weight(1f)) { Text("实施计划", fontSize = 12.sp) }
+                            Button(onClick = onImplement, enabled = !busy && conversation?.capabilities?.implementPlan == true, colors = decisionButtonColors(), modifier = Modifier.weight(1f)) { Text("实施计划", fontSize = 12.sp) }
                         }
+                        if (conversation?.capabilities?.implementPlan != true) Text("实施计划请在电脑处理", color = TextMuted, fontSize = 12.sp)
                     }
                 }
             }
@@ -457,7 +466,8 @@ fun ChatScreen(
             if (loadError.isBlank()) {
                 if (motion) CircularProgressIndicator(modifier = Modifier.size(22.dp).processingLight(true), strokeWidth = 2.dp, color = Green)
                 Spacer(Modifier.height(12.dp))
-                Text("正在加载对话…", Modifier.testTag("conversation-loading-label").processingLight(true), color = TextMuted, fontSize = 13.sp)
+                Text(if (desktopOpening) "正在读取原对话，电脑可能切换到这条对话…" else "正在加载对话…",
+                    Modifier.testTag("conversation-loading-label").processingLight(true), color = TextMuted, fontSize = 13.sp)
             } else {
                 Text("暂时无法读取对话", color = TextInk, fontWeight = FontWeight.SemiBold)
                 Spacer(Modifier.height(5.dp))
@@ -479,10 +489,11 @@ fun ChatScreen(
                 }
             })
         GlassComposer(draft = draft, onDraft = { editDraft(it) }, mode = session?.mode ?: "default", busy = busy || conversation == null || echo != null,
+            modeEnabled = conversation?.capabilities?.mode == true,
             running = session?.activeTurnId != null, sending = sending,
             expanded = composerExpanded, onExpanded = { composerExpanded = it },
             dockRight = dockRight, onDockRight = { dockRight = it; dockPrefs.edit().putBoolean("composer_dock_right", it).apply() },
-            hasAttention = showPlanChoice || conversation?.let { it.questions.isNotEmpty() || it.approvals.isNotEmpty() } == true,
+            hasAttention = showPlanChoice || conversation?.needsAttention() == true,
             error = sendError, focusRequester = composerFocus, backdrop = backdrop, backdropOrigin = backdropOrigin,
             onHeight = { composerHeight = it }, onMode = onMode, onStop = onStop,
             modifier = Modifier.align(Alignment.BottomCenter).padding(horizontal = 14.dp, vertical = 12.dp),
@@ -682,16 +693,18 @@ private fun TerminalCode(source: String, horizontal: androidx.compose.foundation
 }
 
 @Composable
-internal fun ApprovalCard(approval: Approval, activeTurnId: String?, busy: Boolean, onDecision: (Approval, Boolean) -> Unit) {
+internal fun ApprovalCard(approval: Approval, activeTurnId: String?, busy: Boolean, enabled: Boolean = false,
+    onDecision: (Approval, Boolean) -> Unit) {
     var showDetails by remember { mutableStateOf(false) }
     DecisionSurface(warning = true) {
         Column(Modifier.padding(14.dp)) {
             Text("等待批准 · ${approval.kind}", fontWeight = FontWeight.SemiBold, color = TextInk)
             TextButton(onClick = { showDetails = true }) { Text("查看请求详情", color = TextInk) }
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedButton(onClick = { onDecision(approval, false) }, enabled = !busy, modifier = Modifier.weight(1f)) { Text("拒绝", color = TextInk) }
-                Button(onClick = { onDecision(approval, true) }, colors = decisionButtonColors(), enabled = !busy && approval.approvable && activeTurnId == approval.turnId, modifier = Modifier.weight(1f)) { Text("仅批准这次") }
+                OutlinedButton(onClick = { onDecision(approval, false) }, enabled = enabled && !busy, modifier = Modifier.weight(1f)) { Text("拒绝", color = TextInk) }
+                Button(onClick = { onDecision(approval, true) }, colors = decisionButtonColors(), enabled = enabled && !busy && approval.approvable && activeTurnId == approval.turnId, modifier = Modifier.weight(1f)) { Text("仅批准这次") }
             }
+            if (!enabled) Text("此批准需要在电脑处理", color = TextMuted, fontSize = 12.sp)
         }
     }
     if (showDetails) AlertDialog(onDismissRequest = { showDetails = false }, title = { Text("请求详情") }, text = {
@@ -700,31 +713,81 @@ internal fun ApprovalCard(approval: Approval, activeTurnId: String?, busy: Boole
 }
 
 @Composable
-internal fun QuestionCard(request: QuestionRequest, busy: Boolean, onAnswer: (QuestionRequest, Map<String, String>) -> Unit) {
-    val answers = remember(request.id) { mutableStateMapOf<String, String>() }
+internal fun QuestionCard(request: QuestionRequest, busy: Boolean, store: QuestionDraftStore? = null,
+    threadId: String = "", capable: Boolean = true, storageAvailable: Boolean = true,
+    onRefresh: () -> Unit = {},
+    onAnswer: (QuestionRequest, Map<String, String>) -> Unit) {
+    var transient by remember(store, threadId, request.id, request.revision) { mutableStateOf(QuestionDraft()) }
+    var unsaved by remember(store, threadId, request.id, request.revision) { mutableStateOf<QuestionDraft?>(null) }
+    var saveError by remember(store, threadId, request.id, request.revision) { mutableStateOf(false) }
+    val draft = unsaved ?: store?.read(threadId, request) ?: transient
+    fun save(next: QuestionDraft) {
+        if (store == null) { transient = next; return }
+        try { store.save(threadId, request, next); unsaved = null; saveError = false }
+        catch (_: Exception) { unsaved = next; saveError = true }
+    }
     val palette = LocalAppPalette.current
+    val pending = request.status == "pending" && draft.state == "pending"
+    val needsDesktop = request.status == "desktop_required" || !capable || request.questions.any { it.secret }
+    val canEdit = pending && !needsDesktop && storageAvailable && !saveError && !busy
+    val heading = when {
+        request.status == "accepted" -> "Desktop已记录答案"
+        request.status == "closed" -> "已处理或失效"
+        request.status == "desktop_required" -> "需要在电脑回答"
+        request.status == "unknown" -> "提交结果待核对"
+        draft.state == "accepted" -> "Desktop已记录答案"
+        draft.state == "closed" -> "已处理或失效"
+        draft.state == "unknown" -> "提交结果待核对"
+        draft.state == "submitting" -> "正在提交"
+        needsDesktop -> "需要在电脑回答"
+        else -> "需要你回答"
+    }
     DecisionSurface {
         Column(Modifier.padding(14.dp)) {
-            Text("需要你的选择", fontWeight = FontWeight.SemiBold, color = palette.ink)
-            request.questions.forEach { question ->
+            Text(heading, fontWeight = FontWeight.SemiBold, color = palette.ink)
+            val notice = when {
+                saveError -> "答案未能加密保存，仅保留在当前页面；请检查手机存储，勿提交。"
+                request.status == "desktop_required" -> request.notice.ifBlank { "请在电脑处理此问题。" }
+                request.status == "accepted" || request.status == "closed" -> request.notice.ifBlank { "问题已处理或失效。" }
+                request.status == "unknown" || draft.state == "unknown" -> "提交结果待核对；请刷新确认，不要重复提交。"
+                draft.state == "submitting" -> "正在等待电脑确认回答。"
+                draft.notice.isNotBlank() -> draft.notice
+                request.questions.any { it.secret } -> "此问题含私密输入，请在电脑回答。"
+                !capable -> "当前电脑不支持手机回答，请在电脑处理。"
+                !storageAvailable -> "无法加密保存答案，请检查手机存储后重试。"
+                request.notice.isNotBlank() -> request.notice
+                else -> ""
+            }
+            if (notice.isNotBlank()) Text(notice, color = palette.muted, fontSize = 12.sp)
+            if (draft.state == "unknown" || request.status == "unknown") TextButton(onClick = onRefresh, enabled = !busy) {
+                Text("刷新核对", color = palette.ink)
+            }
+            request.questions.forEachIndexed { index, question ->
                 Spacer(Modifier.height(9.dp))
-                Text(question.title.ifBlank { question.text }, color = palette.ink, fontSize = 13.sp)
+                Text("第 ${index + 1} 题 / 共 ${request.questions.size} 题 · ${question.title.ifBlank { question.text }}", color = palette.ink, fontSize = 13.sp)
                 if (question.title.isNotBlank()) Text(question.text, color = palette.ink, fontSize = 12.sp)
                 question.options.forEach { option ->
-                    DecisionOption(option, answers[question.id] == option, !busy) { answers[question.id] = option }
+                    DecisionOption(option.label, question.id !in draft.other && draft.answers[question.id] == option.label, canEdit) {
+                        save(draft.copy(answers = draft.answers + (question.id to option.label), other = draft.other - question.id))
+                    }
+                    if (option.description.isNotBlank()) Text(option.description, Modifier.padding(start = 16.dp), color = palette.muted, fontSize = 12.sp)
                 }
-                val otherSelected = answers[question.id] == "__other__" || (answers[question.id] != null && answers[question.id] !in question.options)
-                if (question.allowOther && question.options.isNotEmpty()) DecisionOption("其他答案", otherSelected, !busy) { answers[question.id] = "__other__" }
-                if (question.options.isEmpty() || (question.allowOther && otherSelected)) OutlinedTextField(
-                    value = answers[question.id].orEmpty().takeUnless { it == "__other__" }.orEmpty(), onValueChange = { answers[question.id] = it },
-                    label = { Text("回答", color = palette.ink) }, modifier = Modifier.fillMaxWidth().testTag("question-answer-${question.id}"), enabled = !busy,
+                val otherSelected = question.id in draft.other
+                if (question.allowOther && question.options.isNotEmpty()) DecisionOption("其他答案", otherSelected, canEdit) {
+                    save(draft.copy(answers = draft.answers + (question.id to ""), other = draft.other + question.id))
+                }
+                if (!question.secret && (question.options.isEmpty() || (question.allowOther && otherSelected))) OutlinedTextField(
+                    value = draft.answers[question.id].orEmpty(), onValueChange = { save(draft.copy(answers = draft.answers + (question.id to it))) },
+                    label = { Text("回答", color = palette.ink) }, modifier = Modifier.fillMaxWidth().testTag("question-answer-${question.id}"), enabled = canEdit,
                     colors = OutlinedTextFieldDefaults.colors(focusedTextColor = palette.ink, unfocusedTextColor = palette.ink,
                         disabledTextColor = palette.ink, cursorColor = palette.ink,
                         focusedBorderColor = palette.ink, unfocusedBorderColor = palette.muted, disabledBorderColor = palette.muted),
-                    visualTransformation = if (question.secret) androidx.compose.ui.text.input.PasswordVisualTransformation() else androidx.compose.ui.text.input.VisualTransformation.None,
                 )
             }
-            Button(onClick = { onAnswer(request, answers.toMap()) }, colors = decisionButtonColors(), enabled = !busy && request.questions.all { !answers[it.id].isNullOrBlank() && answers[it.id] != "__other__" }) { Text(if (busy) "正在提交" else "提交") }
+            Button(onClick = { onAnswer(request, draft.answers) }, modifier = Modifier.testTag("question-submit"), colors = decisionButtonColors(),
+                enabled = canEdit && request.questions.isNotEmpty() && request.questions.all { !draft.answers[it.id].isNullOrBlank() }) {
+                Text(if (busy || draft.state == "submitting") "正在提交" else "提交")
+            }
         }
     }
 }

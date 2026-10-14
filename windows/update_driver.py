@@ -4,6 +4,7 @@
 """Windows update lifecycle. Only a normally exited GUI can hand off its installation."""
 import hashlib
 import json
+import os
 from pathlib import Path
 import subprocess
 import sys
@@ -32,7 +33,8 @@ def probe(root, controller):
     with binary.open('rb') as stream:
         if hashlib.file_digest(stream, 'sha256').hexdigest() != cfg['node']['sha256']:
             raise UpdateError('runtime_binary_changed')
-    child = OwnedChild([binary, Path(root) / 'scripts' / 'update_probe.mjs', controller.config_file], cwd=root)
+    child = OwnedChild([binary, Path(root) / 'scripts' / 'update_probe.mjs', controller.config_file], cwd=root,
+                       environment={**os.environ, 'CDR_DESKTOP_PYTHON': sys.executable})
     try:
         answer = child.read(timeout=50)
         if (set(answer) != {'idle', 'version', 'permissionsVerified', 'receiptsCertain'}

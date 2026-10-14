@@ -9,6 +9,8 @@ import { ControlError, object } from './vendor/desktop-ipc.js';
 import { nativeTurns, activeTurn, assertIdle } from './vendor/desktop-state.js';
 import { MobileSync, mobileSignals } from './vendor/mobile-sync.js';
 import { VERSION } from './version.js';
+import { taskScope } from './catalog.js';
+import {nativeQuestions,publicQuestion,validateAnswer,answerProof,answerEvidence,questionProof,QUESTION_NOTICE} from './questions.js';
 
 // 把 Desktop 当前权限规范化后计算摘要；输入必须包含非空 currentPermissions。
 // 根目录取真实路径、去重排序，并移除已被授权父目录覆盖的子目录。
@@ -57,16 +59,30 @@ export function permissionDigests(config) {
     throw new ControlError('permissions_unverified', '已批准的备用权限记录无法核对。');
   return [config.permissionsHash, alternate];
 }
-export const configuredPermissionsMatch = (state, config) =>
-  permissionDigests(config).some(expected => permissionsMatch(state, expected));
+export const configuredPermissionsMatch = (state, config) => {
+  // 用户一次授权本机全部对话后，以每条任务的实时 Desktop 设置为准。
+  // 仍要求完整、可核对的权限；发送只使用 inheritThreadSettings，不构造新权限。
+  if (taskScope(config) === 'all-local') {
+    const p = state?.currentPermissions;
+    if (!object(p) || !object(p.sandboxPolicy) || typeof p.sandboxPolicy.type !== 'string'
+        || !(typeof p.approvalPolicy === 'string' || object(p.approvalPolicy)))
+      throw new ControlError('permissions_unverified', '未取得这条对话的 Desktop 当前权限，请在电脑端查看。');
+    permissionDigest(state); return true;
+  }
+  return permissionDigests(config).some(expected => permissionsMatch(state, expected));
+};
+
+export const READ_EVIDENCE = Symbol('native-read-evidence');
 
 export class Service {
   // 汇集任务范围、权限、回执和更新/断开栅栏；mutating 仅串行化本进程操作。
-  constructor(config, follower, receipts, { drainTimeoutMs = 5000, quarantine = false } = {}) {
+  constructor(config, follower, receipts, { drainTimeoutMs = 5000, quarantine = false, beforeStop = null, afterStop = null, questionProtocol = false } = {}) {
     if (!Number.isSafeInteger(drainTimeoutMs) || drainTimeoutMs < 1 || drainTimeoutMs > 30000)
       throw new Error('invalid_drain_timeout');
-    permissionDigests(config);
+    if (taskScope(config) !== 'all-local') permissionDigests(config);
+    this.beforeStop = beforeStop; this.afterStop = afterStop;
     this.config = config; this.follower = follower; this.receipts = receipts;
+    this.questionProtocol = questionProtocol;
     this.sync = new MobileSync(); this.mutating = false;
     this.draining = false; this.stopUncertain = false; this.drainWaiters = new Set();
     this.drainTimeoutMs = drainTimeoutMs; this.quarantine = quarantine;
@@ -79,29 +95,127 @@ export class Service {
     if (!configuredPermissionsMatch(state, this.config))
       throw new ControlError('permissions_changed', 'Desktop 任务权限已变化，请在电脑端重新核对。');
   }
-  async read(id) {
+  async read(id, observe = null) {
     // 输入目标任务 ID；输出供手机接口使用的 session、turns、运行观察值。
-    // 未知运行状态、没有回合、待 Desktop 处理的请求都会拒绝读作正常结果。
+    // 未知运行状态、没有回合仍拒绝；待处理请求显示为独立卡片，不遮断历史。
     this.target(id);
-    const state = await this.follower.completeSnapshot(snapshot => this.permissions(snapshot));
+    const evidenceFor = state => {
+      let idleVerified = false;
+      try {
+        assertIdle(state);
+        idleVerified = Array.isArray(state.requests) && (!Object.hasOwn(state,'unconfirmedTurnSubmissions') ||
+          (Array.isArray(state.unconfirmedTurnSubmissions) && state.unconfirmedTurnSubmissions.length === 0));
+      } catch { /* 读取运行中消息仍允许，但不能解除任务的升级门禁。 */ }
+      return {state, idleVerified};
+    };
+    const state = await this.follower.completeSnapshot(snapshot => {
+      this.permissions(snapshot);
+      // 第一个可信快照即落交接证据：后续补全历史超时也不能遗忘已观察到的活动。
+      observe?.(evidenceFor(snapshot));
+    });
     this.permissions(state);
+    const {idleVerified} = evidenceFor(state);
+    observe?.({state, idleVerified});
     const turns = nativeTurns(state), latest = turns.at(-1), active = activeTurn(state);
-    const pending = Array.isArray(state.requests) ? state.requests : [];
-    if (!['idle','active'].includes(state.threadRuntimeStatus?.type) || !latest)
+    if (!['idle','active'].includes(state.threadRuntimeStatus?.type))
       throw new ControlError('runtime_status_unknown','Desktop 尚未确认任务状态，请在电脑端查看。',503);
-    if (pending.length) throw new ControlError('desktop_action_required','请在 Desktop 处理待审批或提问，然后刷新手机。',409);
+    const interaction = this.questions(state);
+    if (!latest) {
+      // 必须已取得完整、明确空闲的原生快照，才能说“没有记录”；超时不能当空历史。
+      if (state.threadRuntimeStatus.type !== 'idle' || !Array.isArray(state.requests)
+          || (Object.hasOwn(state,'unconfirmedTurnSubmissions') &&
+              (!Array.isArray(state.unconfirmedTurnSubmissions) || state.unconfirmedTurnSubmissions.length)))
+        throw new ControlError('history_unavailable','对话记录尚未就绪，请稍后重试获取。',503);
+      throw new ControlError('history_empty','这条对话暂无历史记录。请在 Desktop 确认原对话；有记录后点击“重试”获取。',409);
+    }
     const status = active ? 'RUNNING'
       : latest?.status === 'failed' ? 'FAILED' : latest?.status === 'interrupted' ? 'INTERRUPTED' : 'COMPLETED';
     return {
+      [READ_EVIDENCE]: {state, idleVerified},
       session: { id, project_id: this.config.projectId ?? 'desktop-fixture', title: this.config.title, status, active_turn_id: active,
         mode: state.latestCollaborationMode?.mode ?? 'default', updated_at: latest?.turnStartedAtMs ?? latest?.startedAtMs ?? 0 },
       thread: { id, cwd: this.config.projectPath, turns },
       observation: { state: active ? 'running' : 'idle', source: 'desktop-ipc',
         lastActivityAt: latest?.turnStartedAtMs ?? 0, lastItemType: latest?.items?.at(-1)?.type ?? '' },
-      // Initial text acceptance deliberately leaves approvals on the Desktop.
-      pendingQuestions: [], pendingApprovals: [],
-      controlNotice: null,
+      pendingQuestions: interaction.groups, pendingApprovals: [],
+      controlNotice: interaction.requiresDesktop ? QUESTION_NOTICE : null,
+      capabilities: {questions:this.questionProtocol,asyncQuestions:false,approvals:false,mode:false,implementPlan:false,create:false},
     };
+  }
+  questions(state) {
+    const projected=nativeQuestions(state,{enabled:this.questionProtocol});
+    const groups=projected.groups.map(publicQuestion);
+    const records=this.receipts.questionRecords(this.config.threadId);
+    for(const record of records) {
+      const q=record.question;
+      let outcome=record.state==='accepted'?record.outcome:null;
+      if(!outcome && !this.quarantine) {
+        outcome=answerEvidence(state,record);
+        if(outcome) this.receipts.accept(record.key,record.digest,q.turnId,q,outcome);
+      }
+      let card=groups.find(g=>g.id===q.id);
+      if(card && card.revision!==q.revision) {
+        if(card.status==='closed' && questionProof(card.questions)===q.questionProof) card.revision=q.revision;
+        else {
+          Object.assign(card,{status:'desktop_required',notice:'题目内容已变化，旧回答不能用于新题。请在电脑核对。'});
+          continue;
+        }
+      }
+      if(!card && (!outcome || q.turnId===nativeTurns(state).at(-1)?.id)) {
+        card={id:q.id,revision:q.revision,turnId:q.turnId,kind:'user-input',questions:[]};groups.push(card);
+      }
+      if(card) Object.assign(card,{status:outcome??'unknown',notice:outcome==='accepted'
+        ?'Desktop 已记录这份答案。':outcome==='closed'?'已在电脑或其他设备处理，未重复提交。'
+        :'提交结果待核对。答案不会重发，请刷新；仍无法确认时在电脑查看。'});
+    }
+    return {...projected,groups};
+  }
+  async answer(id,body) {
+    this.target(id);
+    if(!this.questionProtocol) throw new ControlError('question_unsupported','当前 Desktop 版本尚未验证远程答题，请在电脑处理。',501);
+    if(!object(body) || !/^[a-f0-9]{64}$/.test(body.questionId??'') || !/^[a-f0-9]{64}$/.test(body.revision??'')
+      || Object.keys(body).some(k=>!['questionId','revision','answers'].includes(k)) || !object(body.answers)
+      || !Object.keys(body.answers).length || Object.keys(body.answers).length>3
+      || Object.values(body.answers).some(v=>typeof v!=='string'||!v.trim()||v.length>8000))
+      throw new ControlError('invalid_answer','问题编号无效。',400);
+    return this.mutate(async()=>{
+      const state=await this.follower.snapshot();this.permissions(state);
+      if(!['active','idle'].includes(state.threadRuntimeStatus?.type) || !Array.isArray(state.requests)
+        || (state.unconfirmedTurnSubmissions!=null && (!Array.isArray(state.unconfirmedTurnSubmissions)||state.unconfirmedTurnSubmissions.length)))
+        throw new ControlError('runtime_status_unknown','执行状态尚未确认，未提交答案。',503);
+      // 读取及提交均先用原生已完成答题证据核对旧回执，绝不自动重放。
+      const view=this.questions(state);
+      const old=this.receipts.questionRecords(id).find(r=>r.question.id===body.questionId);
+      if(old) {
+        const current=view.groups.find(q=>q.id===body.questionId);
+        const proof=answerProof(Object.fromEntries(Object.entries(body.answers).map(([id,v])=>[id,[v]])));
+        if((current && current.revision!==old.question.revision)
+          || body.revision!==old.question.revision || proof!==old.question.answerProof)
+          throw new ControlError('question_changed','这份回答与原提交不同，请刷新核对；未重新发送。');
+        return {status:old.state==='accepted'?old.outcome:'unknown',notice:view.groups.find(q=>q.id===body.questionId)?.notice??'请刷新核对。'};
+      }
+      const q=nativeQuestions(state,{enabled:true}).groups.find(q=>q.id===body.questionId);
+      if(!q || q.status==='closed') return {status:'closed',notice:'问题已处理或失效，请刷新；未发送答案。'};
+      if(q.status!=='pending' || q.kind!=='user-input')
+        throw new ControlError('question_unsupported',q.notice || QUESTION_NOTICE,409);
+      const {questionId,...answerBody}=body;
+      const response=validateAnswer(q,answerBody);
+      this.receipts.assertCertain();
+      const key=this.receipts.key(id,'question:'+q.id), digest=this.receipts.digest(JSON.stringify([q.revision,response]));
+      const question={threadId:id,id:q.id,revision:q.revision,turnId:q.turnId,nativeId:q.nativeId,
+        questionProof:questionProof(q.questions),
+        answerProof:answerProof(Object.fromEntries(Object.entries(response.answers).map(([id,v])=>[id,v.answers])))};
+      this.receipts.begin(key,digest,question);
+      try {
+        await this.follower.forward('thread-follower-submit-user-input',{requestId:q.nativeId,response},state);
+        // IPC成功仅说明owner处理了请求。必须另读新快照并匹配completed答案记录。
+        const after=await this.follower.snapshot();this.permissions(after);
+        const card=this.questions(after).groups.find(item=>item.id===q.id);
+        return {status:['accepted','closed'].includes(card?.status)?card.status:'unknown',notice:card?.notice??'提交结果待核对，请刷新。'};
+      } catch {
+        return {status:'unknown',notice:'提交结果待核对。请刷新核对，不会重复发送。'};
+      }
+    });
   }
   async mutate(action, readonly = false) {
     // 更新隔离期拒绝写操作；断开准备期拒绝进入本方法的操作；同时只允许一项受控操作。
@@ -188,7 +302,11 @@ export class Service {
       this.permissions(state);
       if (typeof body?.expectedTurnId !== 'string' || !body.expectedTurnId || body.expectedTurnId !== activeTurn(state))
         throw new ControlError('stale_turn', '回合已经变化，没有发送停止操作。');
-      try { await this.follower.forward('thread-follower-interrupt-turn', { mode: 'user-stop', expectedTurnId: body.expectedTurnId }, state); }
+      const pendingStop = this.beforeStop?.(this.config, body.expectedTurnId);
+      try {
+        await this.follower.forward('thread-follower-interrupt-turn', { mode: 'user-stop', expectedTurnId: body.expectedTurnId }, state);
+        this.afterStop?.(this.config, pendingStop);
+      }
       catch {
         this.stopUncertain = true;
         throw new ControlError('stop_unknown', '停止结果未确认，请在 Desktop 查看。');
@@ -238,19 +356,30 @@ export function httpServer(service, token, instance, controlToken = null) {
       if (req.method === 'GET' && url.pathname === '/api/connector/update-status')
         return reply(200, await service.updateStatus());
       if (req.method === 'GET' && url.pathname === '/api/projects')
-        return reply(200, {projects:service.projects()});
+        return reply(200, {projects:await service.projects()});
       if (req.method === 'GET' && url.pathname === '/api/sessions')
         return reply(200, {sessions:await service.sessions()});
       if (req.method === 'GET' && url.pathname === '/api/activity') return reply(200, {activity:[]});
+      const questionRoute=/^\/api\/sessions\/([A-Za-z0-9-]+)\/questions\/([a-f0-9]{64})\/answer$/.exec(url.pathname);
+      if(questionRoute && req.method==='POST') {
+        const body=await bodyOf(req);
+        if(!object(body) || Object.hasOwn(body,'questionId')) throw new ControlError('invalid_answer','回答格式无效。',400);
+        return reply(200,await service.answer(questionRoute[1],{...body,questionId:questionRoute[2]}));
+      }
       const match = /^\/api\/sessions\/([A-Za-z0-9-]+)\/(mobile-sync|mobile-items|mobile-tasks|signals|messages|stop)(?:\/([a-f0-9]{32}))?$/.exec(url.pathname);
       if (!match) throw new ControlError('unsupported_route', '本轮仅支持已授权 Desktop 任务的文字交互；其他操作请在 Desktop 完成。', 501);
       const [, id, route, itemKey] = match;
-      service.target(id);
       if (req.method === 'POST' && route === 'messages') return reply(200, {result:await service.send(id, await bodyOf(req))});
       if (req.method === 'POST' && route === 'stop') return reply(200, await service.stop(id, await bodyOf(req)));
       if (req.method !== 'GET' || !['mobile-sync','mobile-items','mobile-tasks','signals'].includes(route))
         throw new ControlError('unsupported_route', '不支持这项操作。', 405);
-      const source = await service.read(id);
+      // Only the mobile screen's explicit open/retry carries this one-shot intent.
+      // Ordinary sync polling, history pages, OTA and details remain observation-only.
+      const openValues=url.searchParams.getAll('open');
+      if(openValues.length && (route!=='mobile-sync'||openValues.length!==1||openValues[0]!=='1'||url.searchParams.get('older')==='1'))
+        throw new ControlError('invalid_open_request','打开对话请求无效，请重新进入。',400);
+      const source = typeof service.readForMobile==='function'
+        ? await service.readForMobile(id, {allowDesktopOpen:openValues.length===1}) : await service.read(id);
       // 手机端投影、分页、详情和信号都基于同一次经过范围与权限检查的状态读取。
       if (route === 'mobile-sync') return reply(200, service.sync.sync(id, source, url.searchParams.get('cursor') ?? undefined, url.searchParams.get('older') === '1'));
       if (route === 'mobile-tasks') return reply(200, service.sync.tasks(source, url.searchParams.get('before') ?? undefined));

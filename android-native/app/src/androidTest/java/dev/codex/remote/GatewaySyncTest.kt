@@ -8,6 +8,7 @@ import org.junit.runner.RunWith
 import java.net.ServerSocket
 import java.util.concurrent.CopyOnWriteArrayList
 import java.util.concurrent.atomic.AtomicBoolean
+import org.json.JSONObject
 import kotlin.concurrent.thread
 
 /** Actual Android HTTP/JSON decoding. Only loopback synthetic content, no real account. */
@@ -25,6 +26,29 @@ class GatewaySyncTest {
         }.use { http ->
             assertEquals("accepted-turn", Gateway(http.url, "synthetic").send("t", "hello", "synthetic-message"))
             assertEquals(listOf("/api/sessions/t/messages"), requests.toList())
+        }
+    }
+
+    @Test fun questionMetadataAndRevisionedAnswerUseExactContract() = runBlocking {
+        val revision = "b".repeat(64); val questionId = "a".repeat(64)
+        val question = """{"id":"$questionId","revision":"$revision","turnId":"turn","kind":"async","status":"pending","notice":"核对原题","questions":[{"id":"choice","header":"方式","question":"选哪个？","options":[{"label":"A","description":"推荐说明"}],"isSecret":false,"isOther":true}]}"""
+        SyncHttpFixture { path, _ ->
+            if (path.contains("/answer")) 200 to """{"status":"accepted","notice":"已接受"}"""
+            else 200 to """{"protocol":1,"cursor":"${"c".repeat(64)}","reset":true,"hasOlder":false,"order":[],"items":[],"session":{"id":"t"},"observation":{"state":"waiting"},"pendingQuestions":[$question],"pendingApprovals":[],"controlNotice":"可回答","capabilities":{"questions":true,"approvals":false,"mode":false,"implementPlan":false,"create":false}}"""
+        }.use { http ->
+            val gateway = Gateway(http.url, "synthetic")
+            val conversation = gateway.conversation("t")
+            val parsed = conversation.questions.single()
+            assertEquals("async", parsed.kind)
+            assertEquals("推荐说明", parsed.questions.single().options.single().description)
+            assertTrue(conversation.capabilities.questions)
+            assertFalse(conversation.capabilities.approvals)
+            assertEquals("可回答", conversation.controlNotice)
+            assertEquals("accepted", gateway.answer("t", parsed, mapOf("choice" to "A")).status)
+            assertTrue(http.bodies.single().let { body ->
+                val json = JSONObject(body)
+                json.getString("revision") == revision && json.getJSONObject("answers").getString("choice") == "A"
+            })
         }
     }
 
@@ -55,6 +79,49 @@ class GatewaySyncTest {
         }
     }
 
+    @Test fun desktopOpenQueryIsExplicitAndNeverInheritedByPollingOrOlderHistory() = runBlocking {
+        val requests = CopyOnWriteArrayList<String>()
+        val cursor = "a".repeat(64)
+        SyncHttpFixture { path, _ ->
+            requests.add(path)
+            200 to if (path.contains("cursor="))
+                """{"protocol":1,"cursor":"$cursor","unchanged":true}"""
+            else page(cursor, "\"one\"", item("one", "synthetic"), true)
+        }.use { http ->
+            val gateway = Gateway(http.url, "synthetic")
+            gateway.conversation("t", openDesktop = true)
+            gateway.conversation("t")
+            gateway.conversation("t", older = true)
+            assertTrue(requests[0].contains("open=1"))
+            assertFalse(requests[1].contains("open="))
+            assertFalse(requests[2].contains("open="))
+            assertTrue(requests[2].contains("older=1"))
+            try { gateway.conversation("t", older = true, openDesktop = true); fail("Older history must not open Desktop") }
+            catch (_: IllegalArgumentException) { /* Explicitly incompatible request. */ }
+            assertEquals(3, requests.size)
+        }
+    }
+
+    @Test fun pendingDesktopOpenUsesResponseCodeAndFollowingReadNeverReopens() = runBlocking {
+        val requests = CopyOnWriteArrayList<String>()
+        val cursor = "b".repeat(64)
+        SyncHttpFixture { path, _ ->
+            requests.add(path)
+            if (path.contains("open=1")) 503 to """{"error":"loading","code":"desktop_open_pending"}"""
+            else 200 to page(cursor, "\"one\"", item("one", "synthetic"), true)
+        }.use { http ->
+            val gateway = Gateway(http.url, "synthetic")
+            try { gateway.conversation("t", openDesktop = true); fail("Expected pending code") }
+            catch (failure: GatewayException) {
+                assertEquals(503, failure.status)
+                assertEquals("desktop_open_pending", failure.code)
+            }
+            assertEquals("synthetic", gateway.conversation("t").turns.single().items.single().text)
+            assertTrue(requests[0].contains("open=1"))
+            assertFalse(requests[1].contains("open="))
+        }
+    }
+
     @Test fun summary304ReusesScopedCacheAndOldGatewayDoesNotTriggerHeavyFallback() = runBlocking {
         var summaries = 0; var conditional = false
         SyncHttpFixture { path, headers ->
@@ -81,6 +148,7 @@ private class SyncHttpFixture(private val respond: (String, List<String>) -> Pai
     private val running = AtomicBoolean(true)
     private val socket = ServerSocket(0)
     val url = "http://127.0.0.1:${socket.localPort}"
+    val bodies = CopyOnWriteArrayList<String>()
     private val worker = thread(isDaemon = true, name = "mobile-sync-fixture") {
         while (running.get()) try {
             socket.accept().use { client ->
@@ -89,6 +157,14 @@ private class SyncHttpFixture(private val respond: (String, List<String>) -> Pai
                 val path = reader.readLine().split(' ')[1]
                 val headers = mutableListOf<String>()
                 while (true) { val line = reader.readLine(); if (line.isNullOrEmpty()) break; headers.add(line) }
+                val length = headers.firstOrNull { it.startsWith("Content-Length:", ignoreCase = true) }
+                    ?.substringAfter(':')?.trim()?.toIntOrNull() ?: 0
+                if (length > 0) {
+                    val body = CharArray(length)
+                    var read = 0
+                    while (read < length) { val count = reader.read(body, read, length - read); if (count < 0) break; read += count }
+                    bodies.add(String(body, 0, read))
+                }
                 val (status, payload) = respond(path, headers)
                 val bytes = if (status == 304) byteArrayOf() else payload.toByteArray(Charsets.UTF_8)
                 client.getOutputStream().apply {

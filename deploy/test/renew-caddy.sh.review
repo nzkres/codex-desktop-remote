@@ -28,4 +28,4 @@ if [ "$service" != cdrtest-caddy ] || [ "$project" != codex-desktop-remote-test 
     exit 1
 fi
 
-docker exec "$id" caddy reload --config /etc/caddy/Caddyfile --adapter caddyfile --address 127.0.0.1:22019
+docker exec "$id" caddy reload --force --config /etc/caddy/Caddyfile --adapter caddyfile --address 127.0.0.1:22019

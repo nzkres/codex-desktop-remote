@@ -32,7 +32,8 @@ class TaskRecallUiTest {
     private val task = message("original-task", "userMessage", "检查玻璃界面\n\n保留第二段和换行。")
     private fun snapshot(items: List<MessageItem>, latest: MessageItem = task, older: Boolean = true) = Conversation(
         listOf(Turn("t", "completed", items)), Observation("completed", 0, "gateway", ""), emptyList(), emptyList(),
-        hasOlder = older, latestUserMessage = SyncEntry(latest.id, "r", "t", "completed", latest), taskReferenceSupported = true)
+        hasOlder = older, latestUserMessage = SyncEntry(latest.id, "r", "t", "completed", latest), taskReferenceSupported = true,
+        capabilities = ConversationCapabilities(mode = true))
 
     @Test fun taskOutsideWindowReadsWithoutHistoryThenExplicitlyFindsThreePagesAtATime() {
         val content = mutableStateOf(snapshot((1..25).map { message("r$it") }))
@@ -70,7 +71,8 @@ class TaskRecallUiTest {
     @Test fun decisionsUseReadablePaletteAndKeepAnswersWhileBusy() {
         val night = mutableStateOf(false); val busy = mutableStateOf(false)
         var submitted: Map<String, String> = emptyMap()
-        val request = QuestionRequest("q", listOf(Question("mode", "选择方案", "说明文字也需要清晰可读", listOf("推荐方案", "备用方案"), false, true)))
+        val request = QuestionRequest("q", listOf(Question("mode", "选择方案", "说明文字也需要清晰可读",
+            listOf(QuestionOption("推荐方案", "推荐说明"), QuestionOption("备用方案", "备用说明")), false, true)))
         compose.setContent { HapiStyle(night.value) {
             val p = LocalAppPalette.current
             fun contrast(a: Color, b: Color): Float {
@@ -149,20 +151,48 @@ class TaskRecallUiTest {
         assertEquals(1, reads)
     }
 
-    @Test fun secretAnswerStaysMaskedAndDisabledDuringSubmission() {
+    @Test fun secretAnswerRequiresDesktop() {
         val busy = mutableStateOf(false)
         var submitted = ""
         compose.setContent { HapiStyle(true) {
             QuestionCard(QuestionRequest("secret", listOf(Question("answer", "私密答案", "合成测试", emptyList(), true, true))), busy.value) { _, answers -> submitted = answers.getValue("answer"); busy.value = true }
         } }
-        compose.onNodeWithTag("question-answer-answer").performTextInput("synthetic-only")
-        compose.onNodeWithTag("question-answer-answer").assert(SemanticsMatcher.expectValue(SemanticsProperties.Password, Unit))
+        compose.onNodeWithText("需要在电脑回答").assertIsDisplayed()
+        compose.onNodeWithText("此问题含私密输入，请在电脑回答。").assertIsDisplayed()
+        compose.onNodeWithTag("question-answer-answer").assertDoesNotExist()
+        compose.onNodeWithText("提交").assertIsNotEnabled()
+        assertEquals("", submitted)
+    }
+
+    @Test fun questionStatusHeadingsKeepDesktopRequiredOptionsReadable() {
+        val status = mutableStateOf("desktop_required")
+        val question = Question("choice", "选择", "原题", listOf(QuestionOption("方案一", "完整说明")), false, true)
+        compose.setContent { HapiStyle(false) {
+            QuestionCard(QuestionRequest("r", listOf(question), kind = "async", status = status.value, notice = "请在电脑回答"), false) { _, _ -> }
+        } }
+        compose.onNodeWithText("需要在电脑回答").assertIsDisplayed()
+        compose.onNodeWithText("方案一").assertIsDisplayed().assertIsNotEnabled()
+        compose.onNodeWithText("完整说明").assertIsDisplayed()
+        for ((value, title) in listOf("unknown" to "提交结果待核对", "accepted" to "Desktop已记录答案", "closed" to "已处理或失效")) {
+            compose.runOnIdle { status.value = value }
+            compose.onNodeWithText(title).assertIsDisplayed()
+            compose.onNodeWithText("提交").assertIsNotEnabled()
+        }
+    }
+
+    @Test fun multipleQuestionsKeepDescriptionsAndSubmitLiteralOtherAnswer() {
+        var submitted: Map<String, String>? = null
+        val request = QuestionRequest("r", listOf(
+            Question("first", "选择", "选择一种方式", listOf(QuestionOption("推荐", "推荐项说明")), false, true),
+            Question("second", "原因", "请写原因", emptyList(), false, true)))
+        compose.setContent { HapiStyle(false) { QuestionCard(request, false) { _, answers -> submitted = answers } } }
+        compose.onNodeWithText("推荐项说明").assertIsDisplayed()
+        compose.onNodeWithText("第 2 题 / 共 2 题 · 原因").assertIsDisplayed()
+        compose.onNodeWithText("提交").assertIsNotEnabled()
+        compose.onNodeWithText("其他答案").performClick()
+        compose.onNodeWithTag("question-answer-first").performTextInput("__other__")
+        compose.onNodeWithTag("question-answer-second").performTextInput("合成理由")
         compose.onNodeWithText("提交").performClick()
-        compose.onNodeWithTag("question-answer-answer").assertIsNotEnabled()
-        assertEquals("synthetic-only", submitted)
-        compose.runOnIdle { busy.value = false }
-        compose.onNodeWithTag("question-answer-answer").assertIsEnabled()
-        compose.onNodeWithText("提交").performClick()
-        assertEquals("synthetic-only", submitted)
+        assertEquals(mapOf("first" to "__other__", "second" to "合成理由"), submitted)
     }
 }

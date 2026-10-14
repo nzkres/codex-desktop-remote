@@ -10,9 +10,10 @@ import queue
 import threading
 import time
 import tkinter as tk
-from tkinter import ttk, messagebox
+from tkinter import ttk, messagebox, font as tkfont
 from tkinter.scrolledtext import ScrolledText
 from release_notes import VERSION, format_notes
+from error_catalog import CATALOG, safe_code, describe, report_codes
 
 # 让 Windows 高缩放屏幕上的窗口文字更清晰；不影响连接协议。
 def enable_dpi():
@@ -61,6 +62,13 @@ def status_message(report, *, paired=False, connecting=False):
     if not connecting and report.get('runtimeNeedsReview'):
         return '前次连接尚未确认安全退出；请保留现场，由维护者核对。'
     state = report.get('state')
+    if isinstance(report.get('lastError'), str) and report['lastError'].startswith('relay_'):
+        code = safe_code(report['lastError'])
+        title = CATALOG[code]['title']
+        action = ('服务器需续期证书或重载新证书；无需重新配对。'
+                  if code == 'relay_tls_certificate_expired' else '点击“错误清单与代码说明”查看处理步骤；保留原身份。')
+        retry = '正在自动重试。' if connecting else '这是最近保存的结果，点击连接重新检查。'
+        return title + ' [' + code + ']\n' + retry + action
     if report.get('lastError') == 'connection_unavailable':
         if state == 'claim_pending':
             next_step = ('正在继续查询原申请；地址填错请先断开并联系维护者。' if connecting
@@ -114,6 +122,9 @@ class _Window:
         self.update_phase = None
         self.update_release = None
         self.notes_window = None
+        self.errors_window = None
+        self.error_history = []
+        self.error_current = {}
         root.title("Desktop 手机联调 · " + VERSION)
         root.resizable(False, False)
         frame = ttk.Frame(root, padding=16)
@@ -146,7 +157,7 @@ class _Window:
         )
         ttk.Label(
             frame,
-            text="仅联调指定 Desktop 任务；退出窗口不会停止 Desktop 模型任务。",
+            text="手机接续范围由本机配置决定；退出窗口不会停止 Desktop 模型任务。",
             wraplength=600,
         ).grid(row=5, column=0, columnspan=2, sticky="w")
 
@@ -164,6 +175,11 @@ class _Window:
         self.check_update_button.pack(side='left', padx=4)
         self.install_update_button = ttk.Button(updates, text='下载并安装', command=lambda:self.update('updateinstall'))
         self.install_update_button.pack(side='left', padx=4)
+        diagnostics = ttk.LabelFrame(frame, text="错误诊断", padding=8)
+        diagnostics.grid(row=9, column=0, columnspan=2, sticky="ew", pady=(10, 0))
+        self.error_text = tk.StringVar(value="尚未收到诊断报告")
+        ttk.Label(diagnostics, textvariable=self.error_text, wraplength=580).pack(anchor="w")
+        ttk.Button(diagnostics, text="错误清单与代码说明", command=self.show_errors).pack(anchor="e", pady=(6, 0))
         self._buttons()
         root.protocol("WM_DELETE_WINDOW", self.close)
         self.worker = threading.Thread(target=self._work, name="desktop-remote-lite-network")
@@ -180,7 +196,15 @@ class _Window:
             try:
                 from updates.storage import read
                 journal = home / 'state' / 'transaction.json'
-                phase = read(journal).get('phase') if journal.exists() else 'ready'
+                record = read(journal) if journal.exists() else {}
+                phase = record.get('phase', 'ready')
+                if phase == 'needs_review':
+                    codes = [record.get(key) for key in ('cause', 'error') if record.get(key)]
+                    self._record_errors('更新事务', codes or ['update_needs_review'])
+                elif phase == 'rolled_back':
+                    self._record_errors('更新事务', [record.get('cause') or 'update_rolled_back'])
+                else:
+                    self._record_errors('更新事务', [])
                 self.update_blocked = phase not in ('ready', 'committed', 'rolled_back')
                 if phase != self.update_phase:
                     messages = {'committed':'上次更新：新版启动、保全与健康核验通过；当前连接请查看上方状态。',
@@ -193,6 +217,7 @@ class _Window:
             except Exception:
                 self.update_blocked = True
                 self.update_text.set('更新记录无法读取；请保留现场，暂不建立新连接。')
+                self._record_errors('更新事务', ['update_record_unreadable'])
                 self._buttons()
             self.root.after(500, self._poll_update)
 
@@ -218,6 +243,110 @@ class _Window:
         self.notes_text = notes
         ttk.Button(body, text="返回", command=dialog.destroy).grid(row=1, column=0, sticky="e", pady=(10, 0))
         dialog.bind("<Escape>", lambda _event: dialog.destroy())
+
+    # 只留固定错误码、来源和时间；重复报告不无限刷屏，不写身份或任务数据库。
+    def _record_errors(self, source, codes):
+        if not hasattr(self, 'error_current'):
+            self.error_current, self.error_history = {}, []
+        cleaned = list(dict.fromkeys(safe_code(code) for code in codes))
+        previous = self.error_current.get(source, [])
+        self.error_current[source] = cleaned
+        if cleaned != previous:
+            for code in cleaned:
+                self.error_history.append({'time': time.strftime('%H:%M:%S'), 'source': source, 'code': code})
+            self.error_history[:] = self.error_history[-100:]
+        current = [name + '：' + code for name, items in self.error_current.items() for code in items]
+        if hasattr(self, 'error_text'):
+            self.error_text.set('当前/最近报告：' + '；'.join(current) if current else
+                                '当前报告未返回错误。历史记录仍可查看；这不代表手机任务已验收。')
+        if cleaned != previous and getattr(self, 'errors_window', None) is not None and self.errors_window.winfo_exists():
+            self._refresh_errors()
+
+    def show_errors(self):
+        if self.errors_window is not None and self.errors_window.winfo_exists():
+            self.errors_window.lift()
+            return
+        dialog = tk.Toplevel(self.root)
+        self.errors_window = dialog
+        dialog.title('错误清单与代码说明 · ' + VERSION)
+        dialog.transient(self.root)
+        width = min(1280, max(640, self.root.winfo_screenwidth() - 100))
+        height = min(900, max(460, self.root.winfo_screenheight() - 140))
+        dialog.geometry(f'{width}x{height}')
+        dialog.minsize(640, 460)
+        body = ttk.Frame(dialog, padding=12)
+        body.pack(fill='both', expand=True)
+        body.columnconfigure(0, weight=1)
+        body.rowconfigure(2, weight=1)
+        body.rowconfigure(3, weight=2)
+        ttk.Style(dialog).configure('Diagnostics.Treeview', rowheight=tkfont.nametofont('TkDefaultFont').metrics('linespace') + 10)
+        ttk.Label(body, text='点击一行查看原因、处理步骤及本版本源码位置。历史只记录本次窗口；代码手册不代表发生过。',
+                  wraplength=width - 40).grid(row=0, column=0, sticky='ew')
+        self.error_filter = tk.StringVar()
+        search = ttk.Entry(body, textvariable=self.error_filter)
+        search.grid(row=1, column=0, sticky='ew', pady=6)
+        self.error_tabs = ttk.Notebook(body)
+        self.error_tabs.grid(row=2, column=0, sticky='nsew')
+        self.error_trees = []
+        for label in ('本次窗口的错误记录', '全部错误代码手册'):
+            page = ttk.Frame(self.error_tabs)
+            self.error_tabs.add(page, text=label)
+            tree = ttk.Treeview(page, columns=('source', 'code', 'title'), show='headings', height=4, selectmode='browse', style='Diagnostics.Treeview')
+            for name, heading, width in [('source', '来源 / 时间', 220), ('code', '错误代码', 470), ('title', '说明', 500)]:
+                tree.heading(name, text=heading); tree.column(name, width=width, minwidth=80)
+            scroll = ttk.Scrollbar(page, orient='vertical', command=tree.yview)
+            horizontal = ttk.Scrollbar(page, orient='horizontal', command=tree.xview)
+            tree.configure(yscrollcommand=scroll.set, xscrollcommand=horizontal.set)
+            page.rowconfigure(0, weight=1); page.columnconfigure(0, weight=1)
+            tree.grid(row=0, column=0, sticky='nsew'); scroll.grid(row=0, column=1, sticky='ns')
+            horizontal.grid(row=1, column=0, sticky='ew')
+            tree.bind('<<TreeviewSelect>>', lambda event: self._select_error(event.widget))
+            self.error_trees.append(tree)
+        self.error_details = ScrolledText(body, height=8, wrap='word', font=('Microsoft YaHei UI', 10), padx=10, pady=10)
+        self.error_details.grid(row=3, column=0, sticky='nsew', pady=8)
+        self._set_error_detail('选择错误代码后查看详情。搜索框可输入错误代码或中文名称。\n不会读取或展示令牌、原始日志、任务正文。')
+        actions = ttk.Frame(body); actions.grid(row=4, column=0, sticky='ew')
+        ttk.Button(actions, text='复制安全说明', command=self._copy_error).pack(side='left')
+        ttk.Button(actions, text='关闭', command=dialog.destroy).pack(side='right')
+        dialog.bind('<Escape>', lambda _event: dialog.destroy())
+        self.error_filter.trace_add('write', lambda *_args: self._refresh_errors())
+        self._refresh_errors()
+        if not self.error_history:
+            self.error_tabs.select(1)
+
+    def _refresh_errors(self):
+        query = self.error_filter.get().casefold().strip()
+        rows = [(entry['source'] + ' / ' + entry['time'], entry['code']) for entry in reversed(self.error_history)]
+        manual = [(CATALOG[code]['category'], code) for code in sorted(CATALOG)]
+        for tree, entries in zip(self.error_trees, (rows, manual)):
+            selection = tree.selection()
+            old_code = tree.item(selection[0], 'values')[1] if selection else None
+            tree.delete(*tree.get_children())
+            for source, code in entries:
+                title = CATALOG[code]['title']
+                if query and query not in (source + ' ' + code + ' ' + title).casefold():
+                    continue
+                row = tree.insert('', 'end', values=(source, code, title))
+                if code == old_code:
+                    tree.selection_set(row)
+
+    def _set_error_detail(self, text):
+        self.error_details.configure(state='normal')
+        self.error_details.delete('1.0', 'end')
+        self.error_details.insert('1.0', text)
+        self.error_details.configure(state='disabled')
+
+    def _select_error(self, tree):
+        selected = tree.selection()
+        if selected:
+            code = tree.item(selected[0], 'values')[1]
+            active = any(code in codes for codes in self.error_current.values())
+            prefix = '最近报告仍包含此代码；不等于新的实时诊断。' if active else '代码说明 / 历史记录；未据此判断当前仍有故障。'
+            self._set_error_detail('连接器版本：' + VERSION + '\n' + prefix + '\n\n' + describe(code))
+
+    def _copy_error(self):
+        self.root.clipboard_clear()
+        self.root.clipboard_append(self.error_details.get('1.0', 'end-1c'))
 
     # 统一计算按钮能否点击，避免多处回调各自定义不同的可操作条件。
     # 当前连接时 busy=True，因此检查/安装更新也会被禁用；不是后台自动更新。
@@ -252,7 +381,9 @@ class _Window:
         self.code.set("")
         if not relay.startswith("https://") or not name or not code:
             self.status_text.set("请填写 HTTPS 服务器、设备名和配对码。")
+            self._record_errors("输入", ["input_required"])
             return
+        self._record_errors("输入", [])
         self.busy = True
         self._buttons()
         self.status_text.set("正在配对…")
@@ -323,10 +454,10 @@ class _Window:
             except Exception as error:
                 if kind in ('updatecheck', 'updateinstall'):
                     from updates.security import UpdateError
-                    self.events.put(('updatefailed', error.code if isinstance(error, UpdateError) else 'update_operation_failed'))
+                    self.events.put(('updatefailed', safe_code(error.code) if isinstance(error, UpdateError) else 'update_operation_failed'))
                     continue
                 # Controller exceptions can contain credentials or HTTP bodies.
-                code = str(error) if str(error) in _ERRORS else "operation_failed"
+                code = safe_code(str(error))
                 self.events.put(("failed", code))
 
     # Tk 主线程从队列取结果并更新控件；网络线程不直接触碰 Tk。
@@ -341,6 +472,16 @@ class _Window:
                 if kind == 'failed' or (kind == 'disconnected' and value.get('runtimeNeedsReview')):
                     self.close_error = True
                 continue
+            if kind in ('status', 'paired', 'disconnected'):
+                self._record_errors('连接', report_codes(value, live=self.connecting and kind != 'disconnected'))
+            elif kind == 'failed':
+                value = safe_code(value)
+                self._record_errors('连接', [value])
+            elif kind == 'updatefailed':
+                value = safe_code(value)
+                self._record_errors('更新操作', [value])
+            elif kind == 'updatechecked':
+                self._record_errors('更新操作', [])
             if kind == 'updateprogress':
                 self.update_text.set(f'正在下载并校验：{value}%（尚未更新成功）')
             elif kind == 'updatechecked':
@@ -380,7 +521,7 @@ class _Window:
             elif kind == "failed":
                 self.busy = False
                 self.connecting = False
-                self.status_text.set(_ERRORS.get(value, "操作未完成。请检查连接状态，勿重复配对或删除身份。"))
+                self.status_text.set(_ERRORS.get(value, CATALOG[safe_code(value)]["title"]) + " [" + safe_code(value) + "]\n勿重复配对或删除身份；点击“错误清单与代码说明”查看原因和源码位置。")
             self._buttons()
 
         if self.closing:

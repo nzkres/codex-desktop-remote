@@ -1,3 +1,11 @@
+> 2026-10-14候选提示：普通问答需Android alpha.8与Windows alpha.15配套；当前尚未发布/安装。沿用原配对身份及同证书OTA，不重新配对。异步题仅显示，仍在电脑回答；不要把候选源码当可下载升级包。详见[特殊交互](../MOBILE-SPECIAL-INTERACTIONS.md)与[状态](../../STATUS.md)。
+
+## Android alpha.7 候选：手机点开原对话
+
+此功能需要Windows alpha.14与Android alpha.7配合。现用Windows仍alpha.13；本段不表示候选已经签名发布或安装。先完成CI、原签名包校验及受控升级，保留原配对，不重新配置身份。手机点击原电脑中的标题会请求Desktop加载同一个对话，可能切换电脑页面；后台刷新不自动打开。详细流程与验收见[按需打开](../DESKTOP-ON-DEMAND-OPEN.md)与[最新状态](../../STATUS.md)。
+
+Android必须使用原受控证书连续升级；普通PR debug APK不能覆盖现用测试APP，不要卸载绕过。中继不需要随此次功能升级。下方旧版本安装记录仅供历史参考，以STATUS的实际交付记录为准。
+
 # Android 手机端：安装与首次测试
 
 返回[三个原型的安装起点](./README.md)；版本变化见 [Android 历史](../versions/ANDROID.md)。[私有 `0.1.0-alpha.5` prerelease](https://github.com/nzkres/codex-desktop-remote/releases/tag/v0.1.0-alpha.5) 已发布，七项资产的服务端大小与 SHA-256 和本地一致；逐件证据见 [STATUS](../../STATUS.md)。受控 Android CI 37736837251 已成功，APK 为 `versionCode` 5、包名 `dev.codex.desktopremote.lite` 的 **debuggable 受控测试签名构建**，证书 SHA-256 为 `ffcb12d413ee58613576b7914350ad4df887bf29d50d97f2b20c4e17dcebcf1a`。可先下载核对；隔离测试 HTTPS 源已从主电脑公网通过账号鉴权下载，真实手机安装、登录和在线升级仍待单独批准与验收，见[部署记录](../OTA-ISOLATED-DEPLOYMENT-20261008.md)。

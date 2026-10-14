@@ -210,6 +210,32 @@ class GuiStatusTests(unittest.TestCase):
             self.assertNotIn("secret", message)
             self.assertNotIn("token", message)
 
+    def test_diagnostics_deduplicate_bound_and_preserve_history_on_recovery(self):
+        window = _Window.__new__(_Window)
+        window.error_text = Value()
+        for _ in range(20):
+            window._record_errors('连接', ['relay_timeout'])
+        self.assertEqual(len(window.error_history), 1)
+        window._record_errors('更新操作', ['invalid_release_signature'])
+        window._record_errors('连接', [])
+        self.assertIn('invalid_release_signature', window.error_text.get())
+        self.assertNotIn('relay_timeout', window.error_text.get())
+        self.assertEqual(window.error_history[0]['code'], 'relay_timeout')
+        window._record_errors('连接', ['Bearer secret-value'])
+        self.assertNotIn('secret-value', str(window.error_history))
+        for _ in range(110):
+            window._record_errors('连接', [])
+            window._record_errors('连接', ['relay_timeout'])
+        self.assertEqual(len(window.error_history), 100)
+
+    def test_certificate_status_is_actionable_not_a_pairing_failure(self):
+        message = status_message({'state':'reconnecting','lastError':'relay_tls_certificate_expired'}, connecting=True)
+        for phrase in ('relay_tls_certificate_expired', '重载', '无需重新配对', '正在自动重试'):
+            self.assertIn(phrase, message)
+        snapshot = status_message({'state':'reconnecting','lastError':'relay_tls_certificate_expired'})
+        self.assertIn('最近保存', snapshot)
+        self.assertNotIn('正在自动重试', snapshot)
+
     def test_worker_exception_codes_are_fixed_and_do_not_echo_credential(self):
         for code in ("invalid_relay_url", "https_required", "invalid_device_name",
                      "invalid_relay_response", "relay_response_too_large"):
@@ -217,7 +243,7 @@ class GuiStatusTests(unittest.TestCase):
                 controller = SyntheticController({"state": "not_paired"}, pair_error=ValueError(code))
                 message = worker_and_drain(controller, ("pair", "https://relay.example.test",
                                                         "012345ABCDEF", "fixture"))
-                self.assertNotIn(code, message)
+                self.assertIn(code, message)
                 self.assertNotIn("012345ABCDEF", message)
                 self.assertNotEqual(message, "操作失败。请检查连接器状态后重试。")
 

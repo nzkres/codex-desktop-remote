@@ -14,6 +14,8 @@ import os
 from pathlib import Path
 import re
 import secrets
+import socket
+import ssl
 import subprocess
 import tempfile
 import threading
@@ -199,36 +201,71 @@ class NoRedirect(urllib.request.HTTPRedirectHandler):
         return None
 
 
+# 只按异常类型/数值分类；绝不把异常正文、URL、响应内容或令牌放进错误记录。
+def network_error_code(error):
+    reason = getattr(error, 'reason', error)
+    if isinstance(reason, ssl.SSLCertVerificationError):
+        return 'relay_tls_certificate_expired' if getattr(reason, 'verify_code', None) == 10 else 'relay_tls_untrusted'
+    if isinstance(reason, ssl.SSLError):
+        return 'relay_tls_handshake_failed'
+    if isinstance(reason, (TimeoutError, socket.timeout)):
+        return 'relay_timeout'
+    if isinstance(reason, socket.gaierror):
+        return 'relay_dns_failed'
+    if isinstance(reason, ConnectionRefusedError):
+        return 'relay_connection_refused'
+    return 'relay_network_unavailable'
+
+
 # 有超时和响应大小限制的中继客户端；所有调用走已核对的 base 地址。
 class RelayClient:
     # 构造 HTTPS 客户端；仅回环测试禁用代理，生产仍保留正常 TLS 校验。
     def __init__(self, base, loopback_test=False):
         self.base = endpoint(base, loopback_test)
+        self.network_error = None
         handlers = [NoRedirect()]
         if loopback_test and self.base.startswith("http://127.0.0.1:"):
             handlers.append(urllib.request.ProxyHandler({}))
         self.opener = urllib.request.build_opener(*handlers)
 
+    def failure_code(self, status):
+        if status == 0:
+            return self.network_error or 'relay_network_unavailable'
+        if status in (401, 403, 404, 429):
+            return 'relay_http_' + str(status)
+        if isinstance(status, int) and 500 <= status <= 599:
+            return 'relay_http_5xx'
+        return 'relay_http_unexpected'
+
     # 发送 JSON，返回 (HTTP状态码, JSON对象)。网络不可达返回状态码 0；畸形响应抛错。
     def post(self, path, token, body):
+        self.network_error = None
         request = urllib.request.Request(self.base + path, data=json.dumps(body).encode(), headers={"Authorization": "Bearer " + token, "Content-Type": "application/json"}, method="POST")
         try:
             response = self.opener.open(request, timeout=10)
         except urllib.error.HTTPError as error:
             response = error
-        except (OSError, urllib.error.URLError):
-            return 0, {"error": "connection_unavailable"}
-        with response:
-            raw = response.read(65537)
-            if len(raw) > 65536:
-                raise ConnectorError("relay_response_too_large")
-            try:
-                body = json.loads(raw) if raw else {}
-                if not isinstance(body, dict):
-                    raise ValueError()
-            except (ValueError, UnicodeError):
-                raise ConnectorError("invalid_relay_response") from None
-            return response.status, body
+        except (OSError, urllib.error.URLError) as error:
+            self.network_error = network_error_code(error)
+            return 0, {"error": self.network_error}
+        try:
+            with response:
+                if response.status >= 300:
+                    return response.status, {}
+                raw = response.read(65537)
+                if len(raw) > 65536:
+                    raise ConnectorError("relay_response_too_large")
+                try:
+                    body = json.loads(raw) if raw else {}
+                    if not isinstance(body, dict):
+                        raise ValueError()
+                except (ValueError, UnicodeError):
+                    raise ConnectorError("invalid_relay_response") from None
+                return response.status, body
+        except (OSError, urllib.error.URLError) as error:
+            self.network_error = network_error_code(error)
+            return 0, {"error": self.network_error}
+
 
 
 # 登记状态机与运行循环，界面通过 Controller 间接调用。
@@ -381,12 +418,13 @@ class Connector:
             elif status in (400, 401, 409):
                 state["state"] = "claim_failed"
             else:
-                state["lastError"] = "connection_unavailable"
+                state["lastError"] = client.failure_code(status)
                 self.store.write(state)
                 return self.status()
             self.store.write(state)
             return self.status()
         status, body = client.post("/connector-api/pairings/" + state["pairingId"], token, {})
+        failure_status = status
         if status == 401:
             state["state"] = "revoked"
         elif status == 200 and body.get("state") == "confirmed":
@@ -398,6 +436,7 @@ class Connector:
                 state["state"] = "paused"
             elif body.get("terminalState") == "active":
                 result, _ = client.post(f"/connector-api/terminals/{terminal_id}/heartbeat", token, {"executor": "unknown", "version": CONNECTOR_VERSION})
+                failure_status = result
                 state["state"] = "connected" if result == 204 else "reconnecting"
             else:
                 raise ConnectorError("invalid_terminal_state")
@@ -405,6 +444,6 @@ class Connector:
             state["state"] = "awaiting_confirmation" if body["state"] == "claimed" else body["state"]
         else:
             state["state"] = "reconnecting"
-        state["lastError"] = "connection_unavailable" if state["state"] == "reconnecting" else None
+        state["lastError"] = client.failure_code(failure_status) if state["state"] == "reconnecting" else None
         self.store.write(state)
         return self.status()

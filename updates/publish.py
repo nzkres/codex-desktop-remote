@@ -32,12 +32,12 @@ ROOT = Path(__file__).resolve().parents[1]
 PRODUCT = "codex-desktop-remote"
 KEY_ID = re.compile(r"[A-Za-z0-9._-]{1,64}\Z")
 WINDOWS_REQUIRED = (
-    "windows/controller.py", "windows/gui.py", "windows/demo.py", "windows/release_notes.py",
+    "windows/controller.py", "windows/gui.py", "windows/error_catalog.py", "windows/demo.py", "windows/release_notes.py",
     "windows/releases.json", "windows/ota_entry.py", "windows/update_driver.py",
     "windows/update_helper.py", "windows/update_ui.py",
     "scripts/configure.py", "scripts/probe.mjs", "scripts/update_probe.mjs", "scripts/diagnose_desktop.mjs",
     "src/package.json", "src/compatibility.js", "src/follower.js", "src/main.js",
-    "src/receipts.js", "src/service.js", "src/tasks.js", "src/version.js",
+    "src/activity.js", "src/catalog.js", "src/desktop-open.js", "scripts/desktop_catalog.py", "src/receipts.js", "src/questions.js", "src/service.js", "src/tasks.js", "src/version.js",
     "src/vendor/conversation-timing.js", "src/vendor/desktop-ipc.js",
     "src/vendor/desktop-state.js", "src/vendor/mobile-sync.js",
     "windows/vendor/connection_settings.py", "windows/vendor/connector_core.py",

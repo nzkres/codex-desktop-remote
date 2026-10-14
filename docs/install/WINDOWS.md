@@ -1,3 +1,27 @@
+> 2026-10-14发布结果：Windows私有测试更新源已发布alpha.15/sequence11，现装alpha.13已完成正常TLS鉴权下载、签名和51文件校验；尚未安装alpha.15。详见[发布验收](../WINDOWS-ALPHA15-OTA-REVIEW.md)。不用重新配对。
+
+当前用户操作：等任务空闲、本轮对话结束后，在连接器点「断开」，确认「已安全断开」，再点「检查更新」；应显示0.1.0-alpha.15及更新说明，随后点「下载并安装」。Codex Desktop保持打开。若出现等待/错误或新窗口没有出现，保留提示并反馈，不重复安装、不删除保护记录。看到alpha.15窗口后点击连接，再验收手机原对话。下载成功不等于安装或手机功能已验收。
+
+> 版本配合：alpha.15包含按需打开原对话（需要Android alpha.7或更高）及普通手机问答（需要Android alpha.8）。Android alpha.8尚待受控签名发布与手机安装；本次只发布Windows。异步题仍需在电脑回答。沿用原配对及原签名证书，不卸载重配。详见[特殊交互](../MOBILE-SPECIAL-INTERACTIONS.md)。
+
+以下候选及旧版记录按时间保留，以本文顶部和STATUS最新验收状态为准。
+
+## Windows alpha.14 候选：手机点开原对话
+
+此功能需要Windows alpha.14与Android alpha.7配合。现用Windows仍alpha.13；本段不表示候选已经签名发布或安装。先完成CI、原签名包校验及受控升级，保留原配对，不重新配置身份。手机点击原电脑中的标题会请求Desktop加载同一个对话，可能切换电脑页面；后台刷新不自动打开。详细流程与验收见[按需打开](../DESKTOP-ON-DEMAND-OPEN.md)与[最新状态](../../STATUS.md)。
+
+Android必须使用原受控证书连续升级；普通PR debug APK不能覆盖现用测试APP，不要卸载绕过。中继不需要随此次功能升级。下方旧版本安装记录仅供历史参考，以STATUS的实际交付记录为准。
+
+## alpha.12 开发候选：全部对话标题目录
+
+默认新配置不再要求任务 UUID：`scripts/configure.py --home <全新安装目录> --desktop-root <受支持Desktop目录> --node <Node20.exe> --frpc <frpc.exe>`。脚本默认写 `taskScope=all-local`，验证本机目录与兼容性；不读取正文、不发模型输入、不配对。保留旧命令兼容：显式传 `--thread-id`/`--project` 时使用 selected；也可明确 `--scope selected`。旧已配对安装不要重跑配置脚本，必须经保全审查的维护事务升级并切换范围。
+
+同一Python环境提供只读SQLite；连接器自动把已核对的Python解释器路径传给Node，无需额外安装数据库库。按需打开任务，最多缓存16个可回收Follower；活跃写入/未知停止不回收。列表不拉全历史，手机点开才获取，原权限由 Desktop 实时继承。历史不可读不表示没有记录。
+
+原来显式配置的任务继续作为升级核对基线；手机实际接入的活动任务或发送/停止会记在数据目录 `active-tasks.json`，更新前须实时确认空闲且发送/停止结果确定。仅显示标题的历史不视为已接入执行端。这不停止 Desktop 自身的任务。不要删除交接文件或 runtimeNeedsReview 来解除保护。
+
+此段仅描述新候选；实际签名、安装与手机验收见 STATUS。下文保留首装和旧版本历史步骤，版本以 STATUS 最新记录为准。
+
 ## alpha.11 候选：增加另一条已授权对话
 
 alpha.11 保留原配置顶层任务，可在 `additionalTasks` 数组追加明确选择的现有 Desktop 对话（总计最多8条）。每项必须单独给出 `threadId`、`projectPath`、`title`、`permissionsHash`，可选该任务明确批准的 `approvedAlternatePermissionsHash`；不会继承主任务权限或自动扫描其他任务。手机继续使用同一已配对电脑，在任务列表选择对话，不重复配对，不新建副本。
@@ -71,3 +95,7 @@ $PythonwExe = Join-Path (Split-Path -Parent $PythonExe) 'pythonw.exe'
 受管窗口底部可检查和下载签名更新。**本测试电脑已经完成alpha.7安装，勿重复安装；以下顺序仅适用于尚未升级的受管alpha.6安装**：确认专用任务空闲，先正常断开，再“检查更新”并阅读说明，最后“下载并安装”。已安装alpha.6账本仍为sequence2，新源为sequence3；如检查仍报保护/防重放错误，保留现场，不能删除账本或runtimeNeedsReview。下载校验与助手交接成功后旧窗口才退出。弹窗中的“将验证并重开”描述成功路径，候选或回退失败仍可能停在需维护者复核状态，不能以窗口关闭证明升级成功。维护者可在源码根目录只读调用 `& $PythonExe -B -m updates.cli --home $InstallRoot status`，`check` 和 `stage` 会访问已配置的 HTTPS source，**普通 Windows OTA 的 `apply`/`stop` 命令会拒绝，应使用窗口安装按钮**。alpha.5 的旧审核别名误报曾使普通窗口预检拒绝，因此 alpha.5→alpha.6 使用仓库专用的[维护切换路径](../WINDOWS-ALPHA5-MAINTENANCE.md)；alpha.6→alpha.7 仍须以实际 GUI 在线事务验收，不可从此前维护切换推定成功。发生 `needs_review` 时保留 `data/`、`state/` 与版本目录，见 [恢复说明](../OTA-RECOVERY.md)。
 
 alpha.4 增加私有下载：首次应先在手机完成新设备确认，再检查更新。它读取本安装已有 DPAPI 身份，不新增更新账号或复制其他电脑身份；缺失身份只提示未配对。更新 source 必须位于已配对 relay 的同 HTTPS origin 的 `/desktop-remote-updates/test/windows/`（stable 独立配置），否则在发凭据前拒绝。设备暂停、撤销或凭据无效时服务器拒绝下载。旧 alpha.3 中继不能提供此私有路由；新的受管 relay 已在隔离环境安装，主电脑公网合成设备 Windows 下载及权限/暂停/撤销拒绝已验证，真实电脑配对和 App 内下载仍待验收。
+
+## alpha.13诊断界面候选
+
+[错误清单与纯演示](../WINDOWS-ALPHA13-DIAGNOSTICS.md)介绍点击错误查看原因和源码。源码/包不等于现用安装；安装状态以STATUS最新记录为准。证书过期需管理员续期并让HTTPS入口重载，客户端不需要重新配对。
