@@ -1,3 +1,7 @@
+## 2026-10-15 · Desktop Remote Lite alpha.9 已发布
+
+终端玻璃皮肤、字体与随机网格已开发并以原证书发布到私有 OTA；55 项模拟器回归、独立验包及实际 HTTPS 下载通过。手机可检查更新，实际安装待确认。证据见 docs/ANDROID-ALPHA9-PUBLICATION.md。
+
 ## 2026-10-15 · Android 构件传输期限
 
 受控上传接收期限 180→600 秒、发送方 210→630 秒，适配已批准的离线字体 APK。大小和权限边界不变；Linux 接收器 10/10 验证通过，服务与正式更新源未变化。详见 docs/SERVER-OTA-DELIVERY.md。

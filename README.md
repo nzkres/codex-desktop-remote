@@ -2,7 +2,7 @@
 
 这个独立项目包含三个可迭代原型：沿用原界面的 Android 遥控 App、Windows 连接器、服务器中继。目标是让手机在**用户明确选择的一条 Codex Desktop 原生任务**中看文字、发文字，并看到 Desktop 后续在同一任务中的内容。Desktop 仍拥有任务和执行权限。源码布局及各原型边界见 [PROJECT.md](PROJECT.md) 和 [原型说明](docs/PROTOTYPES.md)；实际通过与未验收项以 [STATUS.md](STATUS.md) 为准。
 
-Android构件现直接保存到自有服务器，手机更新继续走私有HTTPS；alpha.8已发布并通过实际鉴权下载验证，手机可直接OTA；实际安装待用户确认。当前状态见[服务器交付实录](docs/SERVER-OTA-DEPLOYMENT-20261014.md)，不再以GitHub构件配额恢复作为Android发布条件。
+Android构件保存在自有服务器，手机更新走私有HTTPS；**alpha.9 已发布并完成独立验包和实际鉴权完整下载**，手机可直接 OTA，实际安装待确认。新界面与验证记录见 [alpha.9 发布记录](docs/ANDROID-ALPHA9-PUBLICATION.md)。
 
 ## 安装与开始使用
 

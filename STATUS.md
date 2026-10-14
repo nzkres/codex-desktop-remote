@@ -1,6 +1,8 @@
-## Android alpha.9 · 开发验证中（2026-10-15）
+## 2026-10-15 — Desktop Remote Lite alpha.9 已发布（手机待安装）
 
-目标为 Desktop Remote Lite。独立分支实现已批准预览；尚未声明构建、签名、安装或手机验收完成。模型接口未接通，入口只如实说明。
+alpha.9/versionCode 9/sequence 3 已发布，原证书、实际 Manifest、内置 trust、服务器回执和实际 HTTPS 完整下载均独立校验通过。APK 40121564 字节，SHA256 `271e994290e7dc5664da856769601c98935a4191faf2b004045aab4dc27ecc8c`。源码 `648527d2cf00eae5fe06bdd50630bf60d3f91a3e`，受控构建 38612698531，55/55 模拟器回归通过；手机实际安装待用户确认。
+
+已落地封存预览的终端玻璃皮肤、离线字体、随机网格、吸顶与输入框状态。模型修改与异步答题仍需电脑。较大字体包的上传期限已修复；权限、配额、旧包、其他组件源和现用服务保持。完整证据及安装步骤见 [alpha.9 发布记录](docs/ANDROID-ALPHA9-PUBLICATION.md)。
 
 ## 2026-10-14 — Android alpha.8 私有 OTA 已发布（手机待安装）
 

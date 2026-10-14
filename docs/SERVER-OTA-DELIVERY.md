@@ -1,3 +1,5 @@
+> 最新：alpha.9 已沿用本交付流程发布，实际 HTTPS 完整下载已验证；见 [alpha.9 发布记录](ANDROID-ALPHA9-PUBLICATION.md)。
+
 # Android OTA构件改由自有服务器保存
 
 ## 用户要求与当前状态
