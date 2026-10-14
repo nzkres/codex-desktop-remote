@@ -1,8 +1,16 @@
+## Android alpha.7独立发布候选
+
+目前是待审查源码，不是可安装的同签名升级。先完成本PR CI并经用户批准合入main，再用原有受控签名工作流构建APK，复验包名、versionCode=7、APK证书和内置trust，最后发布Android私有源供手机确认覆盖安装。不要安装PR的临时debug包或卸载现用APP绕过证书检查。保留账号、配对和草稿。
+
+本版需配合Windows alpha.14才能从手机请求Desktop打开原对话；该Windows候选在PR #8单独审查，不随本PR修改或部署。更新后选择原电脑，点一条未加载的已有对话，等待原历史；电脑可能切到对应页面。未知读取显示原因和重试，不自动发送消息或新建副本。手机发送及Desktop接续仍需人工一次性验收。
+
+下方首装历史不是本候选已发布的证明，当前状态看STATUS.md。
+
 # Android 手机端：安装与首次测试
 
-返回[三个原型的安装起点](./README.md)；版本变化见 [Android 历史](../versions/ANDROID.md)。[私有 `0.1.0-alpha.5` prerelease](https://github.com/nzkres/codex-desktop-remote/releases/tag/v0.1.0-alpha.5) 已发布，七项资产的服务端大小与 SHA-256 和本地一致；逐件证据见 [STATUS](../../STATUS.md)。受控 Android CI 37736837251 已成功，APK 为 `versionCode` 5、包名 `dev.codex.desktopremote.lite` 的 **debuggable 受控测试签名构建**，证书 SHA-256 为 `ffcb12d413ee58613576b7914350ad4df887bf29d50d97f2b20c4e17dcebcf1a`。可先下载核对；测试 HTTPS 源尚未部署，真实手机安装、登录和在线升级仍待单独验收。
+返回[三个原型的安装起点](./README.md)；版本变化见 [Android 历史](../versions/ANDROID.md)。[私有 `0.1.0-alpha.5` prerelease](https://github.com/nzkres/codex-desktop-remote/releases/tag/v0.1.0-alpha.5) 已发布，七项资产的服务端大小与 SHA-256 和本地一致；逐件证据见 [STATUS](../../STATUS.md)。受控 Android CI 37736837251 已成功，APK 为 `versionCode` 5、包名 `dev.codex.desktopremote.lite` 的 **debuggable 受控测试签名构建**，证书 SHA-256 为 `ffcb12d413ee58613576b7914350ad4df887bf29d50d97f2b20c4e17dcebcf1a`。历史alpha.5首装和隔离9443私有源随后已完成部署，用户已在该环境登录并验证原任务；本次未重新核查手机当前版本。alpha.7的同证书覆盖升级及新版按需加载仍待验收，不能沿用alpha.5成功记录。
 
-第 1 步可现在用于本地下载与核对；第 2–6 步须等专用测试手机和隔离服务器另行准备、确认后执行。
+以下1–6步是alpha.5新设备首装历史步骤；已有配对用户不要重新安装首装包、重新配对或卸载APP，应等待本次alpha.7受控升级。
 
 1. 用有权限的 GitHub 账号打开已发布的私有 [v0.1.0-alpha.5 Release](https://github.com/nzkres/codex-desktop-remote/releases/tag/v0.1.0-alpha.5)，下载 `android-0.1.0-alpha.5.apk`、`bootstrap-0.1.0-alpha.5.zip`、`artifact-verification.json` 和 `SHA256SUMS.txt`；`android-reports-0.1.0-alpha.5.zip` 是测试报告。解压 bootstrap，核对 `android/trust.json` 与 `android/latest.json`；trust 的公钥还须对照已认证仓库记录中的 `keyId=cdr-ota-test-20261008-v1`、SPKI SHA-256 `c3835e3e59b362e0b356d3a7b3589c255187ddce34692167f5160b0e5f5e3a4d`，不能只信同一下载页的哈希。下载成功不等于安装或连通。
 2. 在专用测试手机上核对现有同包名 App 的签名及数据后，再打开已核验 APK，按系统提示允许这一次安装。不同设备的提示可能不同，参见 [Google 的 Android 应用安装帮助](https://support.google.com/android/answer/9457058?hl=zh-Hans)。本包 application ID 是 `dev.codex.desktopremote.lite`，可与**旧项目不同包名**的 App 并存；同包名的旧 debug 安装可能证书不同，**不要卸载绕过或承诺覆盖成功**。
@@ -17,7 +25,7 @@ alpha.5 仍由系统手动确认安装，沿用“版本与更新说明”的检
 
 ## 文件校验与常见问题
 
-部署受管私有源并安装带固定 trust 的受控首装后，App 才能复用当前账号检查/下载，不另填下载密码。测试 origin 固定为 `https://106.53.126.69:9443`，源路径为 `/desktop-remote-updates/test/android/`；**该入口尚未部署**。会话过期提示重新登录，账号切换后旧候选不能继续安装。后续真实覆盖安装顺序见 [验收计划](../OTA-ACCEPTANCE.md)。
+部署受管私有源并安装带固定 trust 的受控首装后，App 才能复用当前账号检查/下载，不另填下载密码。测试 origin 固定为 `https://106.53.126.69:9443`，源路径为 `/desktop-remote-updates/test/android/`；**该隔离入口已部署；本次alpha.7尚未发布，旧元数据可能过期，不能绕过有效期检查**。会话过期提示重新登录，账号切换后旧候选不能继续安装。后续真实覆盖安装顺序见 [验收计划](../OTA-ACCEPTANCE.md)。
 
 如先下载到 Windows 再传到手机，可在 APK 所在目录打开 PowerShell，核对完整性：
 

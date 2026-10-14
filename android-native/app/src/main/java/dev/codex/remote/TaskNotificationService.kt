@@ -39,6 +39,8 @@ class TaskNotificationService : Service() {
         if (poll?.isActive == true && identity == currentScope) return START_STICKY
         poll?.cancel()
         currentScope = identity
+        // Remove only obsolete legacy-route notifications; keep all device scopes and ledgers.
+        TaskNotifications.clearScope(this, TaskNotifications.scope(credentials, TaskTarget()))
         val client = Gateway(credentials.url, credentials.token)
         poll = serviceScope.launch { monitorHosts(client, identity) }
         return START_STICKY
@@ -56,10 +58,12 @@ class TaskNotificationService : Service() {
         var discoveryFailed = false
         fun report() {
             val connected = states.values.count { it == "connected" }
-            updateStatus(if (jobs.size == 1 && !discoveryFailed && connected == 1) "已连接 · 等待任务消息"
+            updateStatus(if (jobs.isEmpty() && !discoveryFailed) "暂无已接入电脑 · 请在远程终端添加"
+                else if (jobs.size == 1 && !discoveryFailed && connected == 1) "已连接 · 等待任务消息"
                 else "$connected/${jobs.size} 台电脑通知已连接" + if (discoveryFailed) " · 终端列表暂不可用" else " · 离线电脑独立重试")
         }
         fun add(target: TaskTarget) {
+            if (!target.isSelected) return
             if (target.id in jobs) return
             targets[target.id] = target
             val identity = TaskNotifications.scope(credentials, target)
@@ -68,14 +72,13 @@ class TaskNotificationService : Service() {
                 monitor(root.forTarget(target), identity, accountIdentity) { state -> states[target.id] = state; report() }
             }
         }
-        add(TaskTarget()) // The first computer stays on its original route until explicitly migrated.
         try {
             while (isActive && stillCurrent(accountIdentity)) {
                 try {
                     val available = root.terminalControl().snapshot().terminals.filter { it.state == "active" }
                     ensureActive()
                     if (!stillCurrent(accountIdentity)) break
-                    val ids = available.map { it.id }.toSet() + ""
+                    val ids = available.map { it.id }.toSet()
                     for (id in jobs.keys.toList().filter { it !in ids }) {
                         jobs.remove(id)?.cancelAndJoin()
                         targets.remove(id)?.let { TaskNotifications.clearScope(this@TaskNotificationService, TaskNotifications.scope(credentials, it)) }
@@ -84,7 +87,14 @@ class TaskNotificationService : Service() {
                     available.forEach { add(TaskTarget(it.id, it.name)) }
                     discoveryFailed = false
                 } catch (cancelled: CancellationException) { throw cancelled }
-                catch (_: Exception) { discoveryFailed = true } // Retain known hosts; their own requests remain authenticated.
+                catch (failure: Exception) {
+                    if (failure is GatewayException && failure.status == 401 && stillCurrent(accountIdentity)) {
+                        updateStatus("登录已过期，请打开 App 重新登录")
+                        stopSelf()
+                        break
+                    }
+                    discoveryFailed = true // Retain known hosts; their own requests remain authenticated.
+                }
                 report()
                 delay(30_000)
             }

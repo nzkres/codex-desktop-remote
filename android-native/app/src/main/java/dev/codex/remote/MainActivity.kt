@@ -47,6 +47,7 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeoutOrNull
 
 class MainActivity : ComponentActivity() {
     private var notificationDestination by mutableStateOf<NotificationDestination?>(null)
@@ -93,8 +94,13 @@ private fun RemoteApp(night: Boolean, destination: NotificationDestination?, onD
     var activityEntries by remember { mutableStateOf<List<ActivityEntry>>(emptyList()) }
     var rootTab by rememberSaveable { mutableStateOf(RootTab.Tasks) }
     var selectedId by rememberSaveable { mutableStateOf<String?>(null) }
+    // Only a direct tap may request Desktop navigation. Consume before the network call;
+    // lifecycle restarts, polling and automatic retries must never replay it.
+    val desktopOpenIntent = remember { DesktopOpenIntent() }
+    var desktopOpenGeneration by remember { mutableIntStateOf(0) }
     var conversation by remember { mutableStateOf<Conversation?>(null) }
     var conversationError by remember { mutableStateOf("") }
+    var desktopOpening by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf("") }
     var busy by remember { mutableStateOf(false) }
     var createOpen by remember { mutableStateOf(false) }
@@ -112,12 +118,22 @@ private fun RemoteApp(night: Boolean, destination: NotificationDestination?, onD
     var syncError by remember { mutableStateOf("") }
     var lastMetadataAt by remember { mutableLongStateOf(0L) }
     var lastMetadataClient by remember { mutableStateOf<Gateway?>(null) }
+    fun openSelected(id: String) {
+        val client = gateway ?: return
+        if (!client.target.isSelected) return
+        desktopOpenIntent.request(client, id)
+        selectedId = id
+        conversation = null
+        conversationError = ""
+    }
     fun selectTarget(target: TaskTarget) {
         val client = gateway ?: return
         if (busy) return
         try {
             credentials.selectTarget(target)
             gateway = client.forTarget(target)
+            desktopOpenIntent.clear()
+            desktopOpening = false
             selectedId = null
             conversation = null
             conversationError = ""
@@ -131,11 +147,29 @@ private fun RemoteApp(night: Boolean, destination: NotificationDestination?, onD
             rootTab = RootTab.Tasks
         } catch (failure: Exception) { error = networkError(failure) }
     }
-    suspend fun refresh(client: Gateway, id: String? = selectedId) {
-        if (client !== gateway) return
+    suspend fun refresh(client: Gateway, id: String? = selectedId, openDesktop: Boolean = false) {
+        if (client !== gateway || !client.target.isSelected) return
         // Show the requested transcript first; list metadata can follow without a blank chat.
         if (id != null) {
-            val fresh = client.conversation(id)
+            if (openDesktop && id != selectedId) return
+            val fresh = try { client.conversation(id, openDesktop = openDesktop) }
+            catch (failure: GatewayException) {
+                if (!openDesktop || failure.code != "desktop_open_pending") throw failure
+                // Desktop may finish loading after the one visible navigation request.
+                // Every follow-up is a plain read; cancellation on task/target switch stops waiting.
+                withTimeoutOrNull(15_000L) {
+                    var loaded: Conversation? = null
+                    while (loaded == null) {
+                        delay(1_000L)
+                        if (client !== gateway || id != selectedId) throw CancellationException("对话已切换")
+                        try { loaded = client.conversation(id) }
+                        catch (readFailure: GatewayException) {
+                            if (!desktopOpenMayStillLoad(readFailure.code)) throw readFailure
+                        }
+                    }
+                    loaded
+                } ?: throw GatewayException("电脑仍在打开这条对话，请稍后点击重试。", 503, "desktop_open_pending")
+            }
             if (client === gateway && id == selectedId) {
                 conversation = fresh
                 conversationError = ""
@@ -176,9 +210,11 @@ private fun RemoteApp(night: Boolean, destination: NotificationDestination?, onD
             // Do not change execution target while a user action is awaiting its receipt.
             if (busy) return@LaunchedEffect
             val target = TaskTarget(destination.terminalId, destination.terminalName)
-            if (destination.scope == TaskNotifications.scope(credentials, target)) {
+            if (target.isSelected && destination.scope == TaskNotifications.scope(credentials, target)) {
                 if (gateway!!.target.id != target.id) selectTarget(target)
                 if (gateway!!.target.id != target.id) return@LaunchedEffect
+                desktopOpenIntent.clear() // Notification navigation never opens Desktop.
+                desktopOpening = false
                 selectedId = destination.threadId
                 conversation = null
                 conversationError = ""
@@ -188,12 +224,16 @@ private fun RemoteApp(night: Boolean, destination: NotificationDestination?, onD
         }
     }
 
-    LaunchedEffect(gateway, selectedId, lifecycleOwner) {
+    LaunchedEffect(gateway, selectedId, lifecycleOwner, desktopOpenGeneration) {
         val client = gateway ?: return@LaunchedEffect
+        if (!client.target.isSelected) return@LaunchedEffect
         lifecycleOwner.lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
         var failures = 0
         while (true) {
-            try { refresh(client, selectedId); failures = 0 } catch (exception: CancellationException) {
+            val openDesktop = desktopOpenIntent.consume(client, selectedId)
+            if (openDesktop) desktopOpening = true
+            val requestedId = selectedId
+            try { refresh(client, requestedId, openDesktop); failures = 0 } catch (exception: CancellationException) {
                 throw exception
             } catch (exception: Exception) {
                 if (client !== gateway) return@repeatOnLifecycle
@@ -202,11 +242,15 @@ private fun RemoteApp(night: Boolean, destination: NotificationDestination?, onD
                     credentials.token = ""
                     TaskNotifications.stop(context, clear = true)
                     gateway = null
+                    desktopOpenIntent.clear()
+                    desktopOpening = false
                     selectedId = null
                     conversation = null
                     error = "登录已过期，请重新登录"
                 } else if (selectedId != null) conversationError = networkError(exception)
                 else syncError = networkError(exception)
+            } finally {
+                if (openDesktop && client === gateway && selectedId == requestedId) desktopOpening = false
             }
             val normal = if (selectedId == null) 8_000L else if (conversation?.observation?.state in setOf("running", "quiet")) 3_000L else 10_000L
             delay(if (failures == 0) normal else (normal * (1L shl failures.coerceAtMost(4))).coerceAtMost(60_000L))
@@ -300,6 +344,8 @@ private fun RemoteApp(night: Boolean, destination: NotificationDestination?, onD
                             credentials.token = token
                             credentials.account = username.trim()
                             gateway = client.forTarget(credentials.taskTarget())
+                            desktopOpenIntent.clear()
+                            desktopOpening = false
                             selectedId = null
                             conversation = null
                             sessions = emptyList()
@@ -315,26 +361,36 @@ private fun RemoteApp(night: Boolean, destination: NotificationDestination?, onD
                     }
                 },
             )
-            selectedId == null -> Column(Modifier.fillMaxSize()) {
+            selectedId == null || !gateway!!.target.isSelected -> Column(Modifier.fillMaxSize()) {
                 Box(Modifier.weight(1f)) {
                     when (rootTab) {
                         RootTab.Terminals -> {
                             val terminalClient = remember(gateway) { gateway!!.terminalControl() }
-                            TerminalScreen(terminalClient, gateway!!.target, busy, ::selectTarget)
+                            val terminalGateway = gateway!!
+                            TerminalScreen(terminalClient, terminalGateway.target, busy, ::selectTarget, onUnauthorized = {
+                                if (gateway === terminalGateway) {
+                                    credentials.token = ""
+                                    TaskNotifications.stop(context, clear = true)
+                                    gateway = null
+                                    selectedId = null
+                                    conversation = null
+                                    error = "登录已过期，请重新登录"
+                                }
+                            })
                         }
-                        RootTab.Tasks -> SessionList(
+                        RootTab.Tasks -> if (gateway!!.target.isSelected) SessionList(
                             sessions = sessions,
                             activityEntries = activityEntries,
                             projects = projects,
-                            onOpen = { selectedId = it; conversation = null; conversationError = "" },
+                            onOpen = { openSelected(it) },
                             onCreate = { createOpen = true },
                             draftStore = draftStore,
                             targetName = gateway!!.target.name,
                             onChooseTarget = { rootTab = RootTab.Terminals },
-                        )
-                        RootTab.Activity -> ActivityScreen(activityEntries, draftStore, gateway!!.target.name) {
-                            selectedId = it; conversation = null; conversationError = ""
-                        }
+                        ) else TargetSelectionRequired { rootTab = RootTab.Terminals }
+                        RootTab.Activity -> if (gateway!!.target.isSelected) ActivityScreen(activityEntries, draftStore, gateway!!.target.name) {
+                            openSelected(it)
+                        } else TargetSelectionRequired { rootTab = RootTab.Terminals }
                         RootTab.Me -> MeScreen(
                             gatewayUrl = credentials.url,
                             night = night,
@@ -427,6 +483,8 @@ private fun RemoteApp(night: Boolean, destination: NotificationDestination?, onD
                                 TaskNotifications.stop(context, clear = true)
                                 SignalLedger(context, "").clearAll()
                                 gateway = null
+                                desktopOpenIntent.clear()
+                                desktopOpening = false
                                 selectedId = null
                                 conversation = null
                             },
@@ -436,7 +494,7 @@ private fun RemoteApp(night: Boolean, destination: NotificationDestination?, onD
                 val draftId = draftStore?.latest(sessions.map { it.id }.toSet())
                 val draftSession = sessions.firstOrNull { it.id == draftId }
                 if (draftId != null && draftSession != null) DraftResumeBar(draftSession.title, draftStore?.read(draftId)?.text.orEmpty()) {
-                    selectedId = draftId; conversation = null; conversationError = ""
+                    openSelected(draftId)
                 }
                 RootBottomBar(rootTab) { rootTab = it }
             }
@@ -450,11 +508,19 @@ private fun RemoteApp(night: Boolean, destination: NotificationDestination?, onD
                     projectName = "${gateway!!.target.name} · " + projects.firstOrNull { it.id == session?.projectId }?.name.orEmpty(),
                     conversation = conversation,
                     loadError = conversationError,
+                    desktopOpening = desktopOpening,
                     busy = busy,
                     night = night,
                     onToggleNight = onToggleNight,
-                    onBack = { selectedId = null; conversation = null },
-                    onRetry = { perform { refresh(it, id) } },
+                    onBack = { desktopOpenIntent.clear(); desktopOpening = false; selectedId = null; conversation = null },
+                    onRetry = {
+                        val client = gateway
+                        if (client != null && id == selectedId && !busy) {
+                            conversationError = ""
+                            desktopOpenIntent.request(client, id)
+                            desktopOpenGeneration++ // Cancel an in-flight poll; restart with one explicit request.
+                        }
+                    },
                     onLoadOlder = {
                         val client = gateway ?: throw IllegalStateException("未连接")
                         val fresh = client.conversation(id, older = true)
@@ -537,6 +603,8 @@ private fun RemoteApp(night: Boolean, destination: NotificationDestination?, onD
                         // Once creation succeeds, a send/read failure must not
                         // leave the create dialog inviting a second new thread.
                         sessions = listOf(created) + sessions.filter { it.id != created.id }
+                        desktopOpenIntent.clear()
+                        desktopOpening = false
                         conversation = null
                         selectedId = created.id
                         createOpen = false
@@ -604,6 +672,21 @@ private fun RemoteApp(night: Boolean, destination: NotificationDestination?, onD
             }, enabled = !switching && candidate.isNotBlank()) { Text(if (switching) "切换中…" else "更改并重新登录") } },
             dismissButton = { TextButton(onClick = { endpointOpen = false }, enabled = !switching) { Text("取消") } },
         )
+    }
+}
+
+@Composable
+private fun TargetSelectionRequired(onChooseTarget: () -> Unit) {
+    Column(
+        Modifier.fillMaxSize().background(HapiPalette.background).padding(24.dp),
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Text("请先选择电脑", color = HapiPalette.ink, fontSize = 22.sp, fontWeight = FontWeight.SemiBold)
+        Spacer(Modifier.height(12.dp))
+        Text("选择一台已接入的电脑后，即可查看它的任务和动态。", color = HapiPalette.muted)
+        Spacer(Modifier.height(20.dp))
+        GlassActionButton("选择电脑", onChooseTarget, Modifier.testTag("choose-task-target"))
     }
 }
 
