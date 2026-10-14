@@ -1,3 +1,5 @@
+> 最新：Android alpha.8/sequence2已发布并完成真实HTTPS鉴权下载；手机可直接检查更新，实际安装待验收。见[发布实录](ANDROID-ALPHA8-PUBLICATION.md)。
+
 > 2026-10-14新方案：[Android构件直接存自有服务器](SERVER-OTA-DELIVERY.md)，保留main原证书构建及正式源鉴权/签名。专用接收账号和CI配置已获准并部署；最新实际结果见[部署实录](SERVER-OTA-DEPLOYMENT-20261014.md)。以下GitHub artifact保存说明是历史流程，不再作为新Android受控构建的交付方式。
 
 # OTA 打包、签名与发布交接

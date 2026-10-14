@@ -1,6 +1,10 @@
 # Android OTA 服务器交付实录（2026-10-14）
 
-## 最新结果
+## 最新进展：私有源已发布
+
+2026-10-14用户继续批准发布。alpha.8/sequence2已上线并通过本机真实HTTPS账号完整下载、匿名401和哈希复验；手机安装待验收。详见[发布实录](ANDROID-ALPHA8-PUBLICATION.md)。以下保留此前“仅暂存”阶段的时间点记录，不作为现用状态。
+
+## 构建交付阶段结果
 
 [受控构建38540921047](https://github.com/nzkres/codex-desktop-remote/actions/runs/38540921047)已成功，main为`d41466a385e2b66e0485c0892a2a53617ccf67a2`，版本`0.1.0-alpha.8`、versionCode8。服务器直接接收目录`/srv/codex-desktop-remote-incoming/android/38540921047-1/`；GitHub没有保存本轮APK构件或新增Release。
 

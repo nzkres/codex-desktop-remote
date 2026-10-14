@@ -4,7 +4,8 @@
 
 | 仓库版本 | 日期 | 本版更新摘要 | 下载 |
 | --- | --- | --- | --- |
-| Android `0.1.0-alpha.7`（待审查） | 2026-10-14 | 明确选择电脑，主动点击标题请求加载原对话；Windows alpha.14单独准备 | 未发布/安装；main受控签名待合并批准，见 [STATUS](../../STATUS.md) |
+| Android `0.1.0-alpha.8`（私有OTA已发布） | 2026-10-14 | 含按需加载原对话、普通问答和特殊交互说明；普通问答需Windows alpha.15 | 原APP检查更新；[已验收的源与包](../ANDROID-ALPHA8-PUBLICATION.md)，手机安装待验收 |
+| Android `0.1.0-alpha.7`（历史候选，功能已并入alpha.8） | 2026-10-14 | 明确选择电脑，主动点击标题请求加载原对话；Windows alpha.14单独准备 | 未单独发布；使用已发布alpha.8，见 [STATUS](../../STATUS.md) |
 | `0.1.0-alpha.5` | 2026-10-08 | 三端受控测试首装包：固定发布 trust、Android 连续测试证书，Windows/relay 在全新临时目录验签引导；更新源与实机验收尚未完成 | [已发布的私有 prerelease](https://github.com/nzkres/codex-desktop-remote/releases/tag/v0.1.0-alpha.5)，七项资产及复验证据见 [STATUS](../../STATUS.md) |
 | `0.1.0-alpha.4` | 2026-10-08 | 三端私有下载鉴权；账号/配对身份复用、严格同源与组件授权；新增落地验收步骤 | [开发预览](https://github.com/nzkres/codex-desktop-remote/releases/tag/v0.1.0-alpha.4) |
 | `0.1.0-alpha.3` | 2026-10-07 | 三端签名 OTA、独立更新助手、事务和隔离升级/回退验证 | [开发预览](https://github.com/nzkres/codex-desktop-remote/releases/tag/v0.1.0-alpha.3) |

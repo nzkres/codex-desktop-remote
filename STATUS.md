@@ -1,3 +1,11 @@
+## 2026-10-14 — Android alpha.8 私有 OTA 已发布（手机待安装）
+
+用户明确批准签名并发布Android alpha.8。北京时间17:36:03在独占Android发布锁内核对旧索引摘要后原子切换到alpha.8/versionCode8/sequence2；17:36:38完成本机经正常TLS、账号鉴权的索引读取及完整APK下载复验。匿名索引和APK均401；临时验收会话单独注销，不影响手机登录。原索引备份、旧APK、Windows/relay更新源、服务PID/启动时间及运行版本均保持。
+
+构建38540921047的原证书APK，11806944字节，SHA256 `02de6dddf6d36cf75bf658711d0731ab8b6dd0d48aa3fd8233095748449e6ee9`；新签名索引SHA256 `fe29a7e43ea82f282af887f9979c08d47d008abad95c4d18ff406fe6e024e29f`，有效至北京时间2026-10-21 17:30:30。原RSA信任验签、错误签名拒绝、旧序号拒绝、alpha.5/6/7升级候选验证均通过。此次无业务代码改动，沿用上一轮自动化结果并完成真实发布验收，不重建同版本APK。
+
+手机现在可在原APP“我的→版本与更新说明”检查并安装alpha.8，登录原:9443、选择原电脑，不卸载或重新配对。手机实际安装、身份/草稿保留、原任务与普通问答验收尚未完成；普通问答需Windows alpha.15，异步问题仍在Desktop回答。完整路径、备份、核验和恢复边界见[发布实录](docs/ANDROID-ALPHA8-PUBLICATION.md)。
+
 ## 2026-10-14 — Android alpha.8 已直传自有服务器并独立验包（未发布到手机）
 
 用户批准的专用账号、CI配置、合并和原证书构建已完成。PR #11合并348fb2d，上传换行修复d41466a；[受控构建38540921047](https://github.com/nzkres/codex-desktop-remote/actions/runs/38540921047)成功，直接保存到106.53.126.69的`/srv/codex-desktop-remote-incoming/android/38540921047-1/`。本轮Android APK不存GitHub Actions artifacts或Release；源码/CI仍在GitHub，Core源码ZIP流程未改。
