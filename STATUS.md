@@ -1,3 +1,13 @@
+## 2026-10-14 — alpha.14本地签名与Android构建证据；独立发布PR #9待批准
+
+固定源码e75a20924c91a9f18090fe46f310ce169c73378c的Windows alpha.14包166779字节，SHA256 b51eaf5ebdb68825bad83a2df46d03b3b00e9b73f5c19db9529c033bd312525a。沿用原DPAPI发行密钥签名sequence10，现用trust验签、解包清单/文件树验证通过；metadata SHA256 d5e0ebf3b31cd1339100c9ecb5a874f187edcd45bfc7289da8d459d01ea95498。未发布或安装；原alpha.13运行保持。命令windows_ota_smoke.py的实际合成GUI/独立助手提交与回退通过。
+
+Core CI 38513358592：Windows/Linux测试、平台适用GUI/helper/维护/HTTPS/cgroup检查和打包均通过；唯一失败为artifact上传，明确Artifact storage quota has been hit。Android CI 38513358589：编译、JVM单元、lint、APK版本记录核对及19项模拟器测试通过；同样仅artifact上传失败。两条整轮CI结论均failure，不能称整体CI成功或产物可下载。未删除GitHub资产或改变付费设置。
+
+独立Android发布PR #9（基于main，仅Android/其CI/文档）已建，108份Android/工作流文件与e75a209逐一一致；本机Node33/33、Python118通过6跳过，独立CI运行中。原完整功能PR #8保持draft。现有受控APK签名main-only，已请求用户批准PR #9测试步骤通过后合并并沿用原证书构建，不包含更新源发布或手机安装；未擅自合并或绕过受控签名流程。
+
+GPT-6 Sol复核本轮代码无阻断。网络读取有25秒超时，Android15秒等待协程的取消可能等底层读取结束，不承诺严格墙钟；不会自动重放打开意图。主电脑实机HTTP成功不是新APK手机验收。下一步处理独立CI结果、合并授权与可下载受控产物，再准备双方升级。审计文件仅本机artifacts/alpha14/package-audit.json。
+
 ## 2026-10-14 — Windows alpha.14 / Android alpha.7：点击标题加载原对话候选
 
 用户确认手机已有多条标题，只是找不到之前报错的一条。改用已有的纯口令测试对话验证，不要求用户再找或发送消息。原生入口核对发现安装清单 codex:// 对应 app/ChatGPT.exe；同目录 Codex.exe 虽签名有效，但本次未恢复目标 owner，不能仅凭启动成功判定可用。

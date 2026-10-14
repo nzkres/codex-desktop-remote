@@ -11,7 +11,7 @@ Android alpha.7 与Windows alpha.14需配合使用；旧APP不会发出打开请
 ## 从点击到历史的代码
 
 1. `android-native/.../DesktopOpenIntent.kt`：将一次用户点击绑定到确切Gateway实例和任务ID，在发请求前消费，避免轮询重放。
-2. `Gateway.kt`：仅显式读取带 `GET /api/sessions/<id>/mobile-sync?open=1`。`MainActivity.kt`收到明确desktop_open_pending后，有限等待并用普通请求读取，切换目标取消等待；通知、后台、分页、发送后刷新都不附open。
+2. `Gateway.kt`：仅显式读取带 `GET /api/sessions/<id>/mobile-sync?open=1`。`MainActivity.kt`收到明确desktop_open_pending后，有限等待并用普通请求读取，切换目标取消等待（底层网络读取超时最长25秒，协程取消可能等该读取结束，不承诺严格15秒墙钟）；通知、后台、分页、发送后刷新都不附open。
 3. `src/service.js`：鉴权后只允许mobile-sync的一次有效open参数，拒绝分页混用。
 4. `src/tasks.js`：任务须仍在本机目录，相同目标共享打开请求；另一目标、断开、更新隔离、写操作或未知回执不导航。即将导航时写既有活动记录；未证实空闲不能升级。
 5. `src/desktop-open.js`：发现已有owner就直接读取；仅remote no-client-found才校验兼容性、再查目录、核对固定启动文件并打开。异步步骤后和spawn前重新检查断开/更新及IPC代数。
