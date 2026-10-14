@@ -1,3 +1,13 @@
+## 2026-10-14 — PR #9获批合并；Android alpha.7受控构建通过校验，产物上传受阻
+
+用户明确批准独立Android PR #9测试步骤通过后合入main并沿用原证书构建，不包含更新源发布或手机安装。最新头864b35dad9980889ed45d2d07a6a1e9537576542的Core CI38514242145与Android CI38514242210均已完成：所有测试/适用检查通过，唯一失败是存储额度导致artifact上传失败。精确匹配该头合并，main合并提交69e6ecfb69bc970be94706a2d3c7b12e24460d62；Android源码/工作流与审查版本无差异。
+
+main受控签名构建[38515183358](https://github.com/nzkres/codex-desktop-remote/actions/runs/38515183358)：原六项Secrets存在且未改动，单元测试/lint/受控APK构建、包名版本记录、原APK证书和内置trust逐字节核对全部通过，临时签名输入清理成功。受控流程不重复模拟器测试；合并前模拟器结果已通过，不能记成本轮签名run执行过模拟器。
+
+CI生成APK为0.1.0-alpha.7、versionCode7、11773392字节、SHA256 4975c5d8f78b5766947bec847cdadb229d6a5cfc24e33ae8604d3a62aaeb852b。以上是CI端构建/校验证据，不是本机下载复验。Save verified controlled-signature test APK and reports因Artifact storage quota has been hit失败，Actions API artifacts.total_count=0；整轮结论failure，没有可下载或已取回APK，不能声称交付完成。没有删除其他资产、修改账单、绕过签名或从日志搬运二进制。
+
+下一步先解决构件保存（恢复Actions存储额度后重新构建，或另审查私有构件归档方式），取回APK并独立校验后再准备Android更新源发布及真实覆盖安装。当前Windows仍alpha.13；本地已签Windows alpha.14保持未发布/安装。真实配对、权限、Gateway/FRP、中继源与手机未改变。PR #9已合并；PR #8仍为Windows功能开发审查。
+
 ## 2026-10-14 — alpha.14本地签名与Android构建证据；独立发布PR #9待批准
 
 固定源码e75a20924c91a9f18090fe46f310ce169c73378c的Windows alpha.14包166779字节，SHA256 b51eaf5ebdb68825bad83a2df46d03b3b00e9b73f5c19db9529c033bd312525a。沿用原DPAPI发行密钥签名sequence10，现用trust验签、解包清单/文件树验证通过；metadata SHA256 d5e0ebf3b31cd1339100c9ecb5a874f187edcd45bfc7289da8d459d01ea95498。未发布或安装；原alpha.13运行保持。命令windows_ota_smoke.py的实际合成GUI/独立助手提交与回退通过。
