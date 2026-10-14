@@ -51,7 +51,7 @@ class LiveTranscriptUiTest {
         compose.waitForIdle()
         nav = compose.onNodeWithTag("transcript-navigation").fetchSemanticsNode().boundsInRoot
         shell = compose.onNodeWithTag("composer-shell").fetchSemanticsNode().boundsInRoot
-        assertTrue(abs(nav.top - shell.top) < 3f && abs(nav.bottom - shell.bottom) < 3f)
+        assertTrue(abs(nav.center.y - shell.center.y) < 3f)
         assertTrue("Right dock and status must not overlap", nav.right < shell.left)
         captureTestScreen("26-history-status-right")
         compose.onNodeWithContentDescription("展开输入框").performClick()

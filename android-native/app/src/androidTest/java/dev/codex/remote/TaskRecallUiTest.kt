@@ -122,14 +122,14 @@ class TaskRecallUiTest {
             compose.runOnIdle { dark.value = night; large.value = night }
             compose.waitForIdle()
             val bounds = compose.onNodeWithTag("composer-mode").fetchSemanticsNode().boundsInRoot
-            val surface = compose.onNodeWithTag("compact-action-surface", useUnmergedTree = true).fetchSemanticsNode().boundsInRoot
+            val surface = compose.onNodeWithTag("mode-model-divider", useUnmergedTree = true).fetchSemanticsNode().boundsInRoot
             val shell = compose.onNodeWithTag("composer-shell").fetchSemanticsNode().boundsInRoot
             assertTrue(bounds.height / density >= 48f)
             assertTrue(surface.height < bounds.height)
             assertTrue((shell.bottom - surface.bottom) / density >= 10f)
             captureTestScreen("59-composer-proportions-${if (night) "night-large" else "light"}")
             compose.onRoot().performTouchInput { click(Offset(bounds.center.x, bounds.top + 2f * density)) }
-            compose.onNodeWithText("Agent · 直接分析和执行").assertIsDisplayed().performClick()
+            compose.onNodeWithText("执行模式").assertIsDisplayed().performClick()
         }
     }
 

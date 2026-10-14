@@ -131,7 +131,7 @@ fun GlassComposer(
                             .clickable(enabled = expanded, role = Role.Button) { modeOpen = true }
                             .padding(horizontal = 8.dp), verticalAlignment = Alignment.CenterVertically) {
                             Text(if (mode == "plan") "计划模式" else "执行模式", color = palette.ink, fontSize = 12.sp)
-                            Box(Modifier.padding(horizontal = 10.dp).width(1.dp).height(14.dp).background(palette.muted.copy(alpha = .5f)))
+                            Box(Modifier.testTag("mode-model-divider").padding(horizontal = 10.dp).width(1.dp).height(14.dp).background(palette.muted.copy(alpha = .5f)))
                             Text("模型 · Desktop", color = palette.muted, fontSize = 12.sp)
                         }
                         Spacer(Modifier.weight(1f))

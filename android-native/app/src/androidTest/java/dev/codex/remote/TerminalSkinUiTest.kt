@@ -13,6 +13,22 @@ import org.junit.Test
 
 class TerminalSkinUiTest {
     @get:Rule val compose=createComposeRule()
+    @Test fun scrollingToCurrentTaskPinsPreviousAndClickReturnsToOriginal() {
+        val items=(1..3).flatMap { round -> listOf(
+            MessageItem("user-$round","userMessage","第 $round 轮：检查接口文档","","","","completed",null,emptyList(),roundNumber=round),
+            MessageItem("reply-$round","agentMessage",(1..40).joinToString("\n") { "第 $it 条检查记录，保留上下文。" },"","","","completed",null,emptyList(),roundNumber=round)) }
+        compose.setContent { HapiStyle(true) {
+            CompositionLocalProvider(LocalChatAppearance provides ChatAppearance(reduceMotion=true)) {
+                ChatScreen("sticky-fixture",Session("sticky-fixture","fixture","多轮任务","COMPLETED",null,"default",0),"fixture",
+                    Conversation(listOf(Turn("t","completed",items)),Observation("completed",0,"gateway",""),emptyList(),emptyList()),
+                    "",false,true,{}, {}, {}, {null}, {}, {}, {}, {_,_->}, {_,_->})
+            }
+        } }
+        compose.onNodeWithTag("transcript").performScrollToIndex(4)
+        compose.onNodeWithTag("sticky-task-user-2").assertIsDisplayed().performClick()
+        compose.onNodeWithTag("message-user-2").assertIsDisplayed()
+        captureTestScreen("terminal-sticky-previous-task")
+    }
     @Test fun preferencesSurviveReopenAndAllFontsLoadOffline() {
         val context=InstrumentationRegistry.getInstrumentation().targetContext
         val name="terminal-skin-test"
