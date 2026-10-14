@@ -1,0 +1,57 @@
+name: Keep latest Actions artifacts
+
+on:
+  workflow_dispatch:
+  workflow_run:
+    workflows: ['Android', 'Core self-test']
+    types: [completed]
+
+permissions:
+  actions: write
+
+concurrency:
+  group: actions-artifact-retention
+  cancel-in-progress: false
+
+jobs:
+  prune:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      # No checkout or execution of the triggering branch/PR. Only repository metadata is read.
+      - uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7
+        with:
+          script: |
+            const repo = context.repo;
+            const names = new Set(['desktop-remote-source-Windows', 'desktop-remote-source-Linux',
+              'desktop-remote-android-debug', 'desktop-remote-android-ota-test']);
+            const artifacts = await github.paginate(github.rest.actions.listArtifactsForRepo, {...repo, per_page: 100});
+            const states = new Map();
+            async function completed(a) {
+              const id = a.workflow_run?.id;
+              if (!id) return false;
+              if (!states.has(id)) states.set(id, (await github.rest.actions.getWorkflowRun({...repo, run_id: id})).data.status);
+              return states.get(id) === 'completed';
+            }
+            let removed = 0, bytes = 0;
+            for (const name of names) {
+              const candidates = [];
+              for (const a of artifacts) {
+                if (a.name === name && !a.expired && await completed(a)) candidates.push(a);
+              }
+              // Artifact IDs are not a creation-time ordering. Newest uploaded file wins across branches.
+              candidates.sort((a, b) => b.created_at.localeCompare(a.created_at) || b.id - a.id);
+              const keep = candidates[0];
+              if (!keep) continue;
+              core.info(`Keep ${name}: ${keep.id}, ${keep.created_at}`);
+              for (const old of candidates.slice(1)) {
+                // If the retained file disappeared/expired, stop rather than delete the last available copy.
+                const current = (await github.rest.actions.getArtifact({...repo, artifact_id: keep.id})).data;
+                if (current.expired || current.name !== name || current.size_in_bytes <= 0)
+                  throw new Error('Retained artifact is no longer available; cleanup stopped.');
+                await github.rest.actions.deleteArtifact({...repo, artifact_id: old.id});
+                removed++; bytes += old.size_in_bytes;
+                core.info(`Deleted ${name}: ${old.id} (${old.size_in_bytes} bytes)`);
+              }
+            }
+            await core.summary.addRaw(`Deleted ${removed} older artifacts (${bytes} bytes). Kept the newest completed-upload artifact per supported name. Active runs, unknown artifact names, releases and caches were not modified.`).write();
