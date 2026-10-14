@@ -33,15 +33,15 @@ class TerminalControlUiTest {
         override suspend fun cancel(id: String) {}
         override suspend fun change(id: String, action: String, name: String) { changes++ }
     }
-    @Test fun choosingComputerIsExplicitAndLegacyEntryRemainsAvailable() {
+    @Test fun choosingComputerIsExplicitWithoutLegacyEntry() {
         val fixture = Fixture()
         var selected: TaskTarget? = null
         compose.setContent { HapiStyle(false) { TerminalScreen(fixture, onSelect = { selected = it }) } }
         compose.onNodeWithContentDescription("查看这台电脑任务").performScrollTo().performClick()
         compose.runOnIdle { assertEquals("a".repeat(32), selected?.id) }
         captureTestScreen("terminal-task-target-selection")
-        compose.onNodeWithContentDescription("原电脑 · 旧通道").performScrollTo().performClick()
-        compose.runOnIdle { assertEquals("", selected?.id) }
+        compose.onNodeWithContentDescription("原电脑 · 旧通道").assertDoesNotExist()
+        compose.runOnIdle { assertEquals("a".repeat(32), selected?.id) }
     }
     @Test fun terminalManagementRemainsReadableAcrossThemesAndLargeText() {
         val fixture = Fixture()

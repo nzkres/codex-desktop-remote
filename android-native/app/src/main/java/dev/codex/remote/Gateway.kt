@@ -89,7 +89,7 @@ private fun JSONObject.syncEntry(): SyncEntry {
             item.optBoolean("turnCompleted"), item.optBoolean("turnLastItem"), item.string("contentRevision")))
 }
 
-class GatewayException(message: String, val status: Int) : Exception(message)
+class GatewayException(message: String, val status: Int, val code: String? = null) : Exception(message)
 
 class Credentials(context: Context) {
     private val prefs = EncryptedSharedPreferences.create(
@@ -230,7 +230,8 @@ class Gateway(private val baseUrl: String, private val token: String, val target
             val payload = stream?.bufferedReader(Charsets.UTF_8)?.use { it.readText() }.orEmpty()
             val json = if (payload.isBlank()) JSONObject() else try { JSONObject(payload) }
                 catch (_: Exception) { throw GatewayException("服务响应异常（HTTP $status），请核对当前电脑连接。", status) }
-            if (status !in 200..299) throw GatewayException(json.optString("error", "HTTP $status"), status)
+            if (status !in 200..299) throw GatewayException(json.optString("error", "HTTP $status"), status,
+                json.optString("code").takeIf { it.matches(Regex("[a-z_]{1,60}")) })
             if (cacheable) connection.getHeaderField("ETag")?.let { summaries[path] = it to json }
             json
         } finally {
@@ -253,13 +254,15 @@ class Gateway(private val baseUrl: String, private val token: String, val target
         ActivityEntry(session.session(), observation.observation())
     }
     internal suspend fun updateStatus(): ConnectorUpdateProof = parseConnectorUpdateProof(request("/api/connector/update-status"))
-    suspend fun conversation(id: String, older: Boolean = false): Conversation = conversationLock.withLock {
+    suspend fun conversation(id: String, older: Boolean = false, openDesktop: Boolean = false): Conversation = conversationLock.withLock {
+        require(!older || !openDesktop) { "加载更早历史不能打开 Desktop 对话" }
         val window = windows.remove(id) ?: ConversationWindow()
         windows[id] = window
         while (windows.size > 2) windows.remove(windows.keys.first())
         val params = buildList {
             if (window.cursor.isNotBlank()) add("cursor=${window.cursor.encode()}")
             if (older) add("older=1")
+            if (openDesktop) add("open=1")
         }.joinToString("&")
         val result = try { request("/api/sessions/${id.encode()}/mobile-sync?$params") }
         catch (exception: GatewayException) {

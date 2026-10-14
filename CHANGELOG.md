@@ -1,3 +1,9 @@
+## Android 0.1.0-alpha.7 — 点标题请求Desktop加载原对话（未发布）
+
+- 包含alpha.6的明确电脑选择、通知作用域修正；alpha.7增加一次性打开意图及等待提示，沿用原界面和草稿。
+- 配合Windows alpha.14候选读取同一原任务，后台不导航，不发送唤醒文字；电脑页面可能切换。
+- 此独立发布PR不改变Windows/relay实现或安装；受控签名、私有更新源与手机验收待后续执行。
+
 # 仓库版本更新总览
 
 这里按版本记录仓库更新。每个软件的完整历史、体验入口和验证方法分别见 [手机](docs/versions/ANDROID.md)、[Windows](docs/versions/WINDOWS.md)、[中继](docs/versions/RELAY.md)，也可从 [全部版本索引](docs/versions/README.md) 查找。每次软件发布必须同时更新本总览与相应组件文档；组件可以独立升级，旧记录保留。

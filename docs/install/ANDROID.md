@@ -1,3 +1,11 @@
+## Android alpha.7独立发布候选
+
+目前是待审查源码，不是可安装的同签名升级。先完成本PR CI并经用户批准合入main，再用原有受控签名工作流构建APK，复验包名、versionCode=7、APK证书和内置trust，最后发布Android私有源供手机确认覆盖安装。不要安装PR的临时debug包或卸载现用APP绕过证书检查。保留账号、配对和草稿。
+
+本版需配合Windows alpha.14才能从手机请求Desktop打开原对话；该Windows候选在PR #8单独审查，不随本PR修改或部署。更新后选择原电脑，点一条未加载的已有对话，等待原历史；电脑可能切到对应页面。未知读取显示原因和重试，不自动发送消息或新建副本。手机发送及Desktop接续仍需人工一次性验收。
+
+下方首装历史不是本候选已发布的证明，当前状态看STATUS.md。
+
 # Android 手机端：安装与首次测试
 
 返回[三个原型的安装起点](./README.md)；版本变化见 [Android 历史](../versions/ANDROID.md)。[私有 `0.1.0-alpha.5` prerelease](https://github.com/nzkres/codex-desktop-remote/releases/tag/v0.1.0-alpha.5) 已发布，七项资产的服务端大小与 SHA-256 和本地一致；逐件证据见 [STATUS](../../STATUS.md)。受控 Android CI 37736837251 已成功，APK 为 `versionCode` 5、包名 `dev.codex.desktopremote.lite` 的 **debuggable 受控测试签名构建**，证书 SHA-256 为 `ffcb12d413ee58613576b7914350ad4df887bf29d50d97f2b20c4e17dcebcf1a`。可先下载核对；测试 HTTPS 源尚未部署，真实手机安装、登录和在线升级仍待单独验收。

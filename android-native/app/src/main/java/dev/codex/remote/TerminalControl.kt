@@ -39,7 +39,8 @@ internal class TerminalControlClient(private val base: String, private val token
                 connection.outputStream.use { it.write(body.toString().toByteArray(Charsets.UTF_8)) }
             }
             when (val status = connection.responseCode) {
-                401, 403 -> error("登录已失效或没有权限，请重新登录后再试。")
+                401 -> throw GatewayException("登录已过期，请重新登录", status)
+                403 -> throw GatewayException("终端管理权限不足，请联系管理员。", status)
                 404, 405 -> error("中继尚未启用远程终端管理，需要升级中继；现有聊天入口不受影响。")
                 !in 200..299 -> error("终端服务暂不可用（$status），请刷新核对。")
             }

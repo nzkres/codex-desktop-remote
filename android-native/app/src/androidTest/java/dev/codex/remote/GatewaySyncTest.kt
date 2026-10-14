@@ -55,6 +55,49 @@ class GatewaySyncTest {
         }
     }
 
+    @Test fun desktopOpenQueryIsExplicitAndNeverInheritedByPollingOrOlderHistory() = runBlocking {
+        val requests = CopyOnWriteArrayList<String>()
+        val cursor = "a".repeat(64)
+        SyncHttpFixture { path, _ ->
+            requests.add(path)
+            200 to if (path.contains("cursor="))
+                """{"protocol":1,"cursor":"$cursor","unchanged":true}"""
+            else page(cursor, "\"one\"", item("one", "synthetic"), true)
+        }.use { http ->
+            val gateway = Gateway(http.url, "synthetic")
+            gateway.conversation("t", openDesktop = true)
+            gateway.conversation("t")
+            gateway.conversation("t", older = true)
+            assertTrue(requests[0].contains("open=1"))
+            assertFalse(requests[1].contains("open="))
+            assertFalse(requests[2].contains("open="))
+            assertTrue(requests[2].contains("older=1"))
+            try { gateway.conversation("t", older = true, openDesktop = true); fail("Older history must not open Desktop") }
+            catch (_: IllegalArgumentException) { /* Explicitly incompatible request. */ }
+            assertEquals(3, requests.size)
+        }
+    }
+
+    @Test fun pendingDesktopOpenUsesResponseCodeAndFollowingReadNeverReopens() = runBlocking {
+        val requests = CopyOnWriteArrayList<String>()
+        val cursor = "b".repeat(64)
+        SyncHttpFixture { path, _ ->
+            requests.add(path)
+            if (path.contains("open=1")) 503 to """{"error":"loading","code":"desktop_open_pending"}"""
+            else 200 to page(cursor, "\"one\"", item("one", "synthetic"), true)
+        }.use { http ->
+            val gateway = Gateway(http.url, "synthetic")
+            try { gateway.conversation("t", openDesktop = true); fail("Expected pending code") }
+            catch (failure: GatewayException) {
+                assertEquals(503, failure.status)
+                assertEquals("desktop_open_pending", failure.code)
+            }
+            assertEquals("synthetic", gateway.conversation("t").turns.single().items.single().text)
+            assertTrue(requests[0].contains("open=1"))
+            assertFalse(requests[1].contains("open="))
+        }
+    }
+
     @Test fun summary304ReusesScopedCacheAndOldGatewayDoesNotTriggerHeavyFallback() = runBlocking {
         var summaries = 0; var conditional = false
         SyncHttpFixture { path, headers ->
