@@ -1,3 +1,9 @@
+## 2026-10-14 — Android OTA构件服务器交付流程
+
+- Android受控签名构建新增直接上传自有服务器私有暂存区，移除Android GitHub构件保存；普通PR不获得传输凭据。
+- 新增固定命令接收、不可覆盖的run/attempt存储、大小/hash/空间校验及测试；下载仍沿用原私有HTTPS和签名验证。
+- 应用源码及版本alpha.8不变；部署需明确批准专用SSH账号，尚未上线。见[配置审查](docs/SERVER-OTA-DELIVERY.md)。
+
 ## 2026-10-14 — Android alpha.8发布代码已合入main
 
 - 经用户明确批准，PR #10合并为e66f710，原证书受控构建授权保留。

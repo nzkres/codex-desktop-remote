@@ -1,3 +1,5 @@
+> 2026-10-14新方案：[Android构件直接存自有服务器](SERVER-OTA-DELIVERY.md)，保留main原证书构建及正式源鉴权/签名。新接收账号尚待批准；以下GitHub artifact保存说明是历史流程，不再作为新Android受控构建的交付方式。
+
 # OTA 打包、签名与发布交接
 
 2026-10-08 签名准备增量：已实现发行RSA密钥的Windows用户作用域DPAPI库，`sign --signing-home`直接在内存解封；受控Android构建新增严格公钥/source预检与APK内trust逐字节核对，并明确PKCS12格式。用户明确批准后，PR #1已合并，专用测试签名及六项Secrets已配置，alpha.5版本记录已准备；**main受控构建与实际包复验已完成，Windows/WSL仅做临时bootstrap；公网部署和手机安装没有执行**。实际公开指纹与证据见STATUS，不替换alpha.4资产。
