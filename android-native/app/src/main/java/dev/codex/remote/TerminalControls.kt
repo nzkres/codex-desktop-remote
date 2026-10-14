@@ -1,6 +1,7 @@
 package dev.codex.remote
 
 import androidx.compose.foundation.background
+import androidx.compose.animation.core.*
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.Text
@@ -8,12 +9,16 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.delay
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 
 /** A task becomes sticky only after its whole original message has left the readable viewport. */
 internal fun stickyTaskIndex(tasks: List<Int>, firstVisible: Int, visibleBottoms: Map<Int, Int>, boundary: Int): Int? =
@@ -32,16 +37,24 @@ internal fun stickyTaskIndex(tasks: List<Int>, firstVisible: Int, visibleBottoms
 
 @Composable internal fun ComposerWorking(active: Boolean, waiting: Boolean, startedAt: Long?, modifier: Modifier = Modifier) {
     val motion=rememberChatMotion()
-    var now by remember(startedAt) { mutableLongStateOf(System.currentTimeMillis()) }
-    // rememberChatMotion also stops the timer's wakeups in the background.
-    LaunchedEffect(active,motion,startedAt) {
-        now=System.currentTimeMillis()
-        while(active && motion) { delay(1000); now=System.currentTimeMillis() }
+    val lifecycle=LocalLifecycleOwner.current.lifecycle
+    var foreground by remember(lifecycle) { mutableStateOf(lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED)) }
+    DisposableEffect(lifecycle) {
+        val observer=LifecycleEventObserver { _,_ -> foreground=lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED) }
+        lifecycle.addObserver(observer)
+        onDispose { lifecycle.removeObserver(observer) }
     }
+    var now by remember(startedAt) { mutableLongStateOf(System.currentTimeMillis()) }
+    LaunchedEffect(active,foreground,startedAt) {
+        now=System.currentTimeMillis()
+        while(active && foreground) { delay(1000); now=System.currentTimeMillis() }
+    }
+    val pulse=if(active && motion) rememberInfiniteTransition(label="working-dot").animateFloat(.3f,1f,
+        infiniteRepeatable(tween(700),RepeatMode.Reverse),label="working-dot-alpha") else null
     val p=LocalAppPalette.current
     Row(modifier,verticalAlignment=Alignment.CenterVertically) {
         Text("●",color=if(active) Color(0xFF36DDB0) else p.muted,fontSize=10.sp,
-            modifier=Modifier.processingLight(active).padding(end=6.dp))
+            modifier=Modifier.graphicsLayer { alpha=pulse?.value ?: 1f }.padding(end=6.dp))
         Text(if(active) "Working · ${if(startedAt==null) "时间未记录" else elapsedText((now-startedAt).coerceAtLeast(0))}"
             else if(waiting) "等待处理" else "就绪",color=p.muted,fontSize=11.sp)
     }

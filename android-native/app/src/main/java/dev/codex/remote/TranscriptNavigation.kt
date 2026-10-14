@@ -73,7 +73,7 @@ internal fun TranscriptNavigation(visible: Boolean, status: TranscriptActivity?,
                 .clickable(enabled = alpha > .95f, role = Role.Button, onClickLabel = "回到最新消息", onClick = onClick)) {
                 GlassMaterial(backdrop, origin, Modifier.matchParentSize())
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    ComposerGlyph("down", palette.ink, Modifier.size(20.dp))
+                    ComposerGlyph("down", palette.ink, Modifier.size(20.dp).testTag("navigation-status").processingLight(status?.animated == true))
                 }
             }
         }

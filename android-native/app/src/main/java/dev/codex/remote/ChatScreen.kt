@@ -462,7 +462,7 @@ fun ChatScreen(
         GlassChatHeader((if (terminalName.isBlank()) "" else "$terminalName · ") + (session?.title ?: "对话"), headerExpanded, night, onExpand = { revealHeader() },
             onBack = onBack, onToggleNight = { revealHeader(); onToggleNight() }, backdrop = backdrop, backdropOrigin = backdropOrigin,
             modifier = Modifier.align(Alignment.TopCenter).padding(top = 4.dp), activity = headerActivity(session, conversation),
-            taskSubtitle = taskHeaderSubtitle(conversation?.userMessageCount, taskReference),
+            taskSubtitle = conversation?.userMessageCount?.let { "共 $it 轮 · 点击回看" } ?: "点击回看任务",
             onTaskClick = {
                 recallSelection = taskReference
                 recallPrevious = messages.filter { it.type == "userMessage" }.asReversed()

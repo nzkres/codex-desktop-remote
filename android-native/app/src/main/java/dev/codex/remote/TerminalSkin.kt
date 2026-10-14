@@ -25,7 +25,7 @@ enum class BodyFont(val label: String, val resource: Int?) {
     KuaiLe("站酷快乐体 · 圆润",R.font.zcoolkuaile), QingKe("站酷庆科黄油体",R.font.zcoolqingkehuangyou),
     XiaoWei("站酷小薇体",R.font.zcoolxiaowei), LongCang("龙藏体",R.font.longcang),
     ZhiMang("志莽行书",R.font.zhimangxing), LiuJian("刘建毛草",R.font.liujianmaocao),
-    WenKai("霞鹜文楷 TC",R.font.lxgwwenkai), NotoSans("思源系黑体",R.font.notosanssc), NotoSerif("思源系宋体",R.font.notoserifsc)
+    WenKai("霞鹜文楷 TC",R.font.lxgwwenkai), NotoSans("系统轻黑体",null), NotoSerif("系统衬线体",null)
 }
 data class TerminalSkin(
     val glass: GlassSkin = GlassSkin.Clear, val font: BodyFont = BodyFont.MaShan,
@@ -45,7 +45,7 @@ internal fun skinInk(s:TerminalSkin,night:Boolean)= if(night) Color(if(s.bright)
 private val bodyTypes=mutableMapOf<BodyFont,Typeface>()
 internal fun configureSkinText(view:TextView, skin:TerminalSkin, night:Boolean) {
     configureChatText(view)
-    view.typeface=bodyTypes.getOrPut(skin.font) { skin.font.resource?.let { ResourcesCompat.getFont(view.context,it) } ?: Typeface.create("sans-serif",Typeface.NORMAL) }
+    view.typeface=bodyTypes.getOrPut(skin.font) { skin.font.resource?.let { ResourcesCompat.getFont(view.context,it) } ?: Typeface.create(when(skin.font) { BodyFont.NotoSans -> "sans-serif-light"; BodyFont.NotoSerif -> "serif"; else -> "sans-serif" },Typeface.NORMAL) }
     view.setTextColor(skinInk(skin,night).toArgb())
     if(skin.textShadow && night) view.setShadowLayer(1.5f*view.resources.displayMetrics.density,0f,view.resources.displayMetrics.density,android.graphics.Color.argb(180,0,0,0)) else view.setShadowLayer(0f,0f,0f,0)
 }

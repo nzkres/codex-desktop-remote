@@ -38,12 +38,12 @@ enum class ChatStyle(val label: String, val detail: String) {
     Sage("鼠尾草", "青绿通栏 · 开放式回复");
 }
 
-data class ChatAppearance(val style: ChatStyle = ChatStyle.Glacier, val clarity: Float = .8f, val reduceMotion: Boolean = false,
+data class ChatAppearance(val style: ChatStyle = ChatStyle.Silver, val clarity: Float = .8f, val reduceMotion: Boolean = false,
     val zebra: ZebraStyle = ZebraStyle.Mist, val skin: TerminalSkin = TerminalSkin())
 val LocalChatAppearance = compositionLocalOf { ChatAppearance() }
 
 internal fun readChatAppearance(prefs: SharedPreferences) = ChatAppearance(
-    ChatStyle.entries.find { it.name == prefs.getString("chat_style", null) } ?: ChatStyle.Glacier,
+    ChatStyle.entries.find { it.name == prefs.getString("chat_style", null) } ?: ChatStyle.Silver,
     prefs.getFloat("glass_clarity", .8f).let { if (it.isFinite()) it.coerceIn(0f, 1f) else .8f },
     prefs.getBoolean("reduce_motion", false),
     ZebraStyle.entries.find { it.name == prefs.getString("zebra_style", null) } ?: ZebraStyle.Mist,
