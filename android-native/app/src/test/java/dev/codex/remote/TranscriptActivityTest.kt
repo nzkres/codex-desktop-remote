@@ -26,6 +26,23 @@ class TranscriptActivityTest {
         assertFalse(transcriptActivity(session, conversation().copy(approvals = listOf(Approval("a", "t", "command", "details", true))))!!.animated)
     }
 
+    @Test fun completedQuestionCardsStayReadableWithoutWaitingIndicator() {
+        val done = session.copy(status = "COMPLETED", activeTurnId = null)
+        val base = conversation("completed")
+        for (status in listOf("accepted", "closed")) {
+            val current = base.copy(questions = listOf(QuestionRequest("q", emptyList(), status = status)))
+            assertFalse(status, current.needsAttention())
+            assertNull(status, transcriptActivity(done, current))
+            assertNull(status, transcriptActivity(done.copy(status = "WAITING_USER"), current))
+        }
+        for (status in listOf("pending", "unknown", "desktop_required", "future_status")) {
+            val current = base.copy(questions = listOf(QuestionRequest("q", emptyList(), status = status)))
+            assertTrue(status, current.needsAttention())
+            assertEquals(status, TranscriptActivity("等待你的回答"), transcriptActivity(done, current))
+        }
+        assertTrue(base.copy(approvals = listOf(Approval("a", "t", "command", "details", false))).needsAttention())
+    }
+
     @Test fun oldTurnAndCompletedCommandDoNotDescribeCurrentActivity() {
         val old = Turn("old", "inProgress", listOf(command))
         val latest = Turn("t", "inProgress", listOf(command.copy(id = "new", status = "completed", exitCode = 0)))

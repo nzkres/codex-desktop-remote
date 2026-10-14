@@ -1,3 +1,17 @@
+## 2026-10-14 — Android alpha.8独立PR #10验收完成，待批准合并/签名
+
+PR https://github.com/nzkres/codex-desktop-remote/pull/10，业务提交b7a524554fbd5f0240fa26ef67834d5e6cfc8d2d。109份Android文件及Android CI工作流与已测试源码0dbf345的Git对象完全一致（tree b40aa270b71bd5124de60ad4f18246c2365057ec，workflow blob 5f1d29989955cc5707a5d91a6845ddc8994e506a）。更新器、应用Manifest、构建签名配置与main无差异；未改Windows/relay业务代码。本机Node36/36，Python118通过6平台跳过；版本历史与git diff --check通过。GPT-6 Sol medium只读复核未发现阻断，强调须配套已发布Windows alpha.15及完整版本文档，均已记录。
+
+PR Android CI38533382850：编译、JVM、lint、包内版本说明及37项模拟器全部通过。CI端debug APK alpha.8/versionCode8，11806368字节，SHA256 3a46fd9a2295db0f5104abe65a48da6c3fc6468626930ebd1ca06ef9db14b3d7；这不是原证书包，也未本地下载复验。北京时间16:22:01构件上传仍报Artifact storage quota has been hit，API artifacts.total_count=0，整轮failure。Core CI38533382485 Windows/Linux适用检查全通过，仅构件上传同样受阻。重复push Android构建已取消，保留完整PR CI；重复Core取消时已完成，无额外重跑。
+
+尚未合并PR #10、受控签名或发布Android源。线上仍alpha.5，手机不能取得尚未发布的alpha.8。下一步请求批准只合并此独立PR并沿用原证书进行受控签名构建；额度未恢复不循环重建或修改付费。取回APK验签后另请批准私有源切换，不包含手机自动安装。证据artifacts/android-alpha8/pre-merge-review.json仅本机，完整交接见docs/ANDROID-ALPHA8-OTA-REVIEW.md。
+
+## 2026-10-14 — Android alpha.8独立发布准备
+
+用户要求继续解决手机无法OTA。线上Android源仍alpha.5/sequence1，APK大小11772524、签名元数据及SHA通过；旧metadata于北京时间2026-10-15 14:33:03过期。Windows alpha.15已发布不代表Android发布。最新核验Android run38530732869仍因GitHub构件配额上传失败，暂无alpha.8可交付包。
+
+独立分支基于main 7f4d80d，提取已测试0dbf345的Android源码/测试/工作流，保留现有main-only签名、原证书及权限；不携带Windows/relay业务改动。准备审查、独立CI和提取完整性验证，尚未合并、签名或发布Android源。后续步骤和恢复边界见docs/ANDROID-ALPHA8-OTA-REVIEW.md。
+
 ## 2026-10-14 — Actions构件默认只保留同类最新一份
 
 用户授权清理当前仓库旧Actions构件，并明确不扩展到其他仓库。独立main维护变更新增Keep latest Actions artifacts：Android/Core self-test完成后以及手动触发时，按构件名分别保留最新已完成运行的未过期构件，删除更旧同名构件；按created_at而非ID判断新旧。签名Android、debug Android、Windows和Linux分开保留。运行中的构件和未知名称不清理；保留件失效时立即停止。没有checkout或执行触发分支的代码，不访问Release、缓存、源码、签名Secrets或其他仓库。
