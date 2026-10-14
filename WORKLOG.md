@@ -1,3 +1,7 @@
+## 2026-10-14 — 独立发布范围复核
+
+GPT-6 Sol逐个比较108份Android/工作流文件，和e75a209完全相同；未混入Windows/relay/updates/deploy产品改动，main具备所引用检查脚本。修正Android安装文档沿用main的“私有源未部署”历史表述，区分已有环境与alpha.7仍未发布。实际运行服务/签名材料/手机未变。独立PR #9已建，合并及受控构建等待用户确认，CI结果另记。
+
 ## 2026-10-14 — Android alpha.7独立发布候选（未合并、未受控签名）
 
 本分支只从已测试功能提交e75a209提取Android代码、测试、版本目录及Android CI，不合入Windows连接器或中继代码。包含此前alpha.6的明确选择电脑/通知目标隔离，以及alpha.7的手机点击标题按需加载原对话。Windows alpha.14候选与实机验证记录在PR #8；本分支的Windows/relay版本仍为main基线，不能当成当前主电脑安装版本。
