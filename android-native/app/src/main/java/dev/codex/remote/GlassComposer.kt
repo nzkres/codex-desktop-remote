@@ -75,7 +75,7 @@ fun GlassComposer(
         onDockRight(right); onExpanded(false)
     }
     if (modeOpen) AlertDialog(onDismissRequest = { modeOpen = false },
-        title = { Text("模式与模型") }, containerColor = palette.card,
+        title = { Text("模式与模型") }, containerColor = palette.card.copy(alpha = .86f),
         text = { Column {
             Text("执行模式", color = palette.muted, fontSize = 12.sp)
             listOf("default" to "执行模式", "plan" to "计划模式").forEach { (value, label) ->

@@ -24,6 +24,7 @@ class TerminalSkinUiTest {
                     "",false,true,{}, {}, {}, {null}, {}, {}, {}, {_,_->}, {_,_->})
             }
         } }
+        compose.onNodeWithTag("transcript").performTouchInput { swipeDown() }
         compose.onNodeWithTag("transcript").performScrollToIndex(4)
         compose.onNodeWithTag("sticky-task-user-2").assertIsDisplayed().performClick()
         compose.onNodeWithTag("message-user-2").assertIsDisplayed()

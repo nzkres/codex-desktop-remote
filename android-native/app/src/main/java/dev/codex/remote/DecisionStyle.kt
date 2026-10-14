@@ -16,8 +16,11 @@ import androidx.compose.ui.unit.sp
 @Composable
 internal fun DecisionSurface(modifier: Modifier = Modifier, warning: Boolean = false, content: @Composable () -> Unit) {
     val palette = LocalAppPalette.current
+    val skin = LocalChatAppearance.current.skin
+    val glassAlpha = when (skin.glass) { GlassSkin.Clear -> .58f; GlassSkin.Smoke -> .78f; GlassSkin.Frost -> .86f }
     Surface(modifier.fillMaxWidth(), shape = RoundedCornerShape(18.dp),
-        color = if (warning) palette.warningSurface.copy(alpha = .85f) else palette.questionSurface.copy(alpha = .72f), contentColor = palette.ink,
+        color = if (warning) palette.warningSurface.copy(alpha = .85f) else
+            (if (palette.isNight) Color(skin.palette.dark) else Color.White).copy(alpha = glassAlpha), contentColor = palette.ink,
         border = BorderStroke(.7.dp, palette.muted.copy(alpha = .45f))) { content() }
 }
 
