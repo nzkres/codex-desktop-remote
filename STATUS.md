@@ -1,3 +1,11 @@
+## 2026-10-14 — Android alpha.8 已直传自有服务器并独立验包（未发布到手机）
+
+用户批准的专用账号、CI配置、合并和原证书构建已完成。PR #11合并348fb2d，上传换行修复d41466a；[受控构建38540921047](https://github.com/nzkres/codex-desktop-remote/actions/runs/38540921047)成功，直接保存到106.53.126.69的`/srv/codex-desktop-remote-incoming/android/38540921047-1/`。本轮Android APK不存GitHub Actions artifacts或Release；源码/CI仍在GitHub，Core源码ZIP流程未改。
+
+从服务器管理员SSH取回后独立验收：APK **0.1.0-alpha.8 / versionCode 8**，**11806944字节**，SHA256 **02de6dddf6d36cf75bf658711d0731ab8b6dd0d48aa3fd8233095748449e6ee9**；真实Manifest包名dev.codex.desktopremote.lite、minSdk26，单签名者及原APK证书、包内版本记录和原trust逐字节匹配，服务器收据全部文件大小/SHA一致。APK仍为现有debuggable受控测试构建，不伪称生产稳定版。
+
+上传账号真实合成验收及修复后Node36/36、Python132通过7跳过已经记录；CI签名构建通过编译/单元/lint/签名/trust/服务器上传，模拟器测试在先前PR Android CI完成，签名构建按设计不重跑模拟器。原签名/身份未更换，服务和Android旧索引保持。**此次批准明确不切换正式Android feed、不安装手机**，手机检查更新尚不能看到alpha.8；下一步准备并审查新的签名元数据、原子发布和私有下载，再经批准切换。详见[部署实录](docs/SERVER-OTA-DEPLOYMENT-20261014.md)与[Android发布审查](docs/ANDROID-ALPHA8-OTA-REVIEW.md)。
+
 ## 2026-10-14 — 自有服务器上传入口已部署，修复 CI 私钥文本格式
 
 用户明确批准专用账号、两项CI配置、PR #11合并及原证书构建。服务器cdr-ota-upload已部署并通过真实SSH合成上传、重复/任意命令/错误主机键拒绝和权限核验，现用服务及Android feed不变。两项Secret实际配置；PR #11已合并main 348fb2d。Android PR CI38537322078整轮成功，Core两平台检查通过、仅旧源码构件上传受GitHub配额阻止。

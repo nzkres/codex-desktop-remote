@@ -1,6 +1,6 @@
 # 三端 OTA：当前实现边界
 
-Android、Windows连接器和Linux中继都有更新实现。alpha.5已建立专用测试RSA/APK签名与固定test信任，受控构建、下载复核和Windows/WSL临时首装通过；**长期HTTPS源尚未部署，生产渠道未建立，三端真实在线升级尚未验收**。代码、CI、构件、安装和真实设备结果分别以[STATUS](../STATUS.md)为准。下载与仓库版本不等于实际部署或真机升级。
+Android、Windows连接器和Linux中继都有更新实现。alpha.5已建立专用测试RSA/APK签名与固定test信任，受控构建、下载复核和Windows/WSL临时首装通过；**隔离测试HTTPS私有源已部署；Android alpha.8已直传服务器并独立验包，但新索引尚未发布、手机尚未覆盖安装。稳定生产渠道未建立，不能据此宣布三端OTA实机验收完成**。代码、CI、构件、安装和真实设备结果分别以[STATUS](../STATUS.md)为准。下载与仓库版本不等于实际部署或真机升级。
 
 统一协议见 [wire contract](../updates/PROTOCOL.md)。首次安装固定渠道、HTTPS source 和 RSA 3072 位以上发布公钥；签名覆盖原始 payload 字节，包另校验大小与 SHA-256。测试与稳定渠道分别配置信任根。无公钥或无源时明确拒绝，不能从一次未经验证的下载取得新公钥。拒绝重定向、跨源目录、过期、序号倒退、同序号换内容、同版本换包和不兼容目标。发行私钥、Android 签名密钥与服务器凭据不入库、包或日志。
 
@@ -12,6 +12,6 @@ alpha.4 的私有下载：Android 使用现有加密登录会话，Windows 使�
 | Windows | 受管安装窗口内检查、下载并安装，独立助手等原窗口退出 | Desktop 任务空闲、权限和回执确定，旧运行时正常清理；候选隔离验证、数据摘要不变后才激活。未知激活结果保留 `needs_review`，不杀可能已接单的候选。 |
 | Linux 中继 | 管理员在受管宿主本机执行 `check/stage/apply/status` | 维护门禁先排空写入和配对，连接器实时证明空闲；委派 cgroup v2 证明进程树退出，新服务和数据摘要验证后开放。未知状态保持门禁与现场。 |
 
-三端版本独立，更新器不升级 Codex Desktop/CLI，不迁移旧身份或现用 Gateway/中继。Windows 与 relay 的首次安装**只能创建新目录**。安装与启动见 [安装起点](install/README.md)，离线准备和发布见 [OTA-PUBLISH](OTA-PUBLISH.md)，阻断与恢复见 [OTA-RECOVERY](OTA-RECOVERY.md)。同源私有 HTTPS 路由、正式密钥和运营部署均需另行建立；14 天 Actions artifact、私有 GitHub Release 下载和本地源码 ZIP 都不是长期 OTA 源。
+三端版本独立，更新器不升级 Codex Desktop/CLI，不迁移旧身份或现用 Gateway/中继。Windows 与 relay 的首次安装**只能创建新目录**。安装与启动见 [安装起点](install/README.md)，离线准备和发布见 [OTA-PUBLISH](OTA-PUBLISH.md)，阻断与恢复见 [OTA-RECOVERY](OTA-RECOVERY.md)。现有测试环境已具备同源私有HTTPS与固定测试密钥，稳定生产渠道仍须独立建立；14 天 Actions artifact、私有 GitHub Release 下载和本地源码 ZIP 都不是长期 OTA 源。
 
 验收须使用同一信任基线的两个真实构件完成 N→N+1 在线下载和实际切换，并分别记录错误签名、坏包、活跃/未知任务、空间不足、中断、树清理失败及身份/数据保留。Android 覆盖安装还须有相同签名证书的真机证据；中继还须有隔离维护窗口的服务重启证据。不能把按钮、签名包生成或测试通过写成升级完成。

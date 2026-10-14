@@ -1,5 +1,13 @@
 # Android OTA 服务器交付实录（2026-10-14）
 
+## 最新结果
+
+[受控构建38540921047](https://github.com/nzkres/codex-desktop-remote/actions/runs/38540921047)已成功，main为`d41466a385e2b66e0485c0892a2a53617ccf67a2`，版本`0.1.0-alpha.8`、versionCode8。服务器直接接收目录`/srv/codex-desktop-remote-incoming/android/38540921047-1/`；GitHub没有保存本轮APK构件或新增Release。
+
+取回独立验包：11806944字节，SHA256 `02de6dddf6d36cf75bf658711d0731ab8b6dd0d48aa3fd8233095748449e6ee9`。apksigner确认一个签名者、原证书`ffcb12d413ee58613576b7914350ad4df887bf29d50d97f2b20c4e17dcebcf1a`；aapt2确认实际Manifest包名dev.codex.desktopremote.lite、versionCode8、minSdk26。APK内版本记录匹配源码，trust逐字节匹配原本机签发记录。仅使用临时便携JDK/SDK校验工具，无系统Java安装或PATH修改。
+
+本轮只完成服务器私有暂存交付。正式Android feed仍alpha.5/sequence1、旧索引哈希不变；没有把包落盘当手机升级完成。未签发/切换本轮新索引，未安装手机。原签名配置、配对和现用服务保留。下一步先准备签名元数据与CAS发布清单，再请用户批准切换；手机安装仍需系统确认。
+
 ## 批准与代码
 
 用户明确批准在106.53.126.69创建受限上传账号、配置两项CI Secrets，检查后合并PR #11并使用原证书构建alpha.8。本次不切换Android正式更新索引，不自动安装手机。前一轮自动审批要求具体账号授权；获得本次明确批准后才实际部署，没有绕过拒绝。
@@ -34,7 +42,7 @@ Android现用latest.json SHA256仍为`0e46801282e1ed0e153bd585b9bf9216379b86607b
 
 [首轮受控签名构建38539346508](https://github.com/nzkres/codex-desktop-remote/actions/runs/38539346508)输入signed_ota=true，固定main提交348fb2d。编译、单元、lint、版本、原APK证书和内置trust检查全部通过，最后上传失败，未产生服务器发行目录，不能报告可交付APK。
 
-故障证据：服务器17:06:05只记录该CI客户端在认证前断开；专用暂存只有先前合成目录，没有run38539346508。GitHub CLI官方`pkg/cmd/secret/set/set.go`的getBody对stdin执行`bytes.TrimRight(body, "\\r\\n")`；本机原密钥含末尾LF，而Linux临时合成密钥实测去掉LF时ssh-keygen报libcrypto，恢复LF后成功。上传脚本现将临时key/known_hosts规范为LF并补末尾LF，不换密钥或权限、不输出秘密，增加缺LF/CRLF回归。GPT-6 Sol medium只读复核无阻断；真实CI重试及取回验包待完成。首次失败已确定未接收，修复后才允许一次新构建。本机修复后Node36/36、Python139项中132通过7平台跳过，版本记录和git diff --check通过。签名合成测试需仓库外TEMP；首次受限沙箱的回环/链接错误及仓库内TEMP触发external_signing_directory_required已通过隔离目录修正，未修改真实签名库。
+故障证据：服务器17:06:05只记录该CI客户端在认证前断开；专用暂存只有先前合成目录，没有run38539346508。GitHub CLI官方`pkg/cmd/secret/set/set.go`的getBody对stdin执行`bytes.TrimRight(body, "\\r\\n")`；本机原密钥含末尾LF，而Linux临时合成密钥实测去掉LF时ssh-keygen报libcrypto，恢复LF后成功。上传脚本现将临时key/known_hosts规范为LF并补末尾LF，不换密钥或权限、不输出秘密，增加缺LF/CRLF回归。GPT-6 Sol medium只读复核无阻断；后续真实CI38540921047重试成功且已取回独立验包，见本页最新结果。首次失败已确定未接收，修复后才允许一次新构建。本机修复后Node36/36、Python139项中132通过7平台跳过，版本记录和git diff --check通过。签名合成测试需仓库外TEMP；首次受限沙箱的回环/链接错误及仓库内TEMP触发external_signing_directory_required已通过隔离目录修正，未修改真实签名库。
 
 ## 维护与后续发布
 

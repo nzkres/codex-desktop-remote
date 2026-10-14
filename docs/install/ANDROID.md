@@ -1,24 +1,27 @@
-> 新交付方式准备中：Android安装包将由受控构建直接送到自有服务器，手机仍在原APP检查更新，不需要GitHub账号下载。不再等待GitHub构件配额；专用上传账号待明确批准，当前alpha.8仍未发布。见[服务器OTA交付](../SERVER-OTA-DELIVERY.md)。
+# Android 安装与更新：从这里开始
 
-> 2026-10-14进度：alpha.8代码已随PR #10合入main，原证书构建已获准，正在等待GitHub构件保存恢复；还没有可下载的alpha.8签名APK，手机OTA源未更新。此时不需要卸载、重新配对或反复检查更新。详见[发布审查](../ANDROID-ALPHA8-OTA-REVIEW.md)。
+## 现用手机（2026-10-14状态）
 
-> 2026-10-14：手机在线源仍为alpha.5，alpha.8正在独立发布准备，不能通过反复检查更新取得未发布APK。Windows alpha.15已单独发布。本轮沿用现有包名、证书和登录/配对，不卸载重装。进度见[Android alpha.8发布审查](../ANDROID-ALPHA8-OTA-REVIEW.md)。
+alpha.8原证书APK已经构建、直接存到自有服务器并取回验包通过，**正式Android更新索引还未切换，手机暂时查不到alpha.8**。无需卸载、重新配对、使用GitHub账号下载或等待GitHub构件配额。
 
-alpha.8准备完成并获准发布后，用户在“我的→版本与更新说明”检查版本、下载并由系统确认覆盖；重新打开核对实际alpha.8及原登录/电脑/任务保留。普通问答需Windows alpha.15，异步题仍需电脑回答。下方alpha.5首装与alpha.7候选记录是历史说明，不代表新包已经可下载。
+维护者先完成签名元数据准备并获准发布，用户再依次操作：
 
-## Android alpha.7独立发布候选
+1. 保留现有APP，登录原测试服务器`https://106.53.126.69:9443`，选择原电脑并确认连接可用。
+2. 打开“我的→版本与更新说明”，检查更新，确认显示alpha.8和本版说明。
+3. 下载并按Android系统提示确认覆盖安装；取消安装不算更新成功，不卸载绕过签名错误。
+4. 重新打开，核对实际版本alpha.8及原登录、电脑、任务、草稿仍在，再测试原任务接续。普通问答需Windows alpha.15；异步题仍需电脑回答。
 
-目前是待审查源码，不是可安装的同签名升级。先完成本PR CI并经用户批准合入main，再用原有受控签名工作流构建APK，复验包名、versionCode=7、APK证书和内置trust，最后发布Android私有源供手机确认覆盖安装。不要安装PR的临时debug包或卸载现用APP绕过证书检查。保留账号、配对和草稿。
+安装包经原私有HTTPS更新源下载，服务器账号鉴权与签名校验保持。上述是发布后的操作步骤，**本次还没有发布或手机安装的完成证据**。维护者入口见[alpha.8发布审查](../ANDROID-ALPHA8-OTA-REVIEW.md)，实际构建/哈希/服务器验收见[部署实录](../SERVER-OTA-DEPLOYMENT-20261014.md)。
 
-本版需配合Windows alpha.14才能从手机请求Desktop打开原对话；该Windows候选在PR #8单独审查，不随本PR修改或部署。更新后选择原电脑，点一条未加载的已有对话，等待原历史；电脑可能切到对应页面。未知读取显示原因和重试，不自动发送消息或新建副本。手机发送及Desktop接续仍需人工一次性验收。
+## 历史alpha.5首装资料
 
-下方首装历史不是本候选已发布的证明，当前状态看STATUS.md。
+以下用于解释现有安装来源；已有配对手机不要照此重新首装。历史GitHub Release保留，新Android受控构建不再存入GitHub构件或Release。
 
 # Android 手机端：安装与首次测试
 
 返回[三个原型的安装起点](./README.md)；版本变化见 [Android 历史](../versions/ANDROID.md)。[私有 `0.1.0-alpha.5` prerelease](https://github.com/nzkres/codex-desktop-remote/releases/tag/v0.1.0-alpha.5) 已发布，七项资产的服务端大小与 SHA-256 和本地一致；逐件证据见 [STATUS](../../STATUS.md)。受控 Android CI 37736837251 已成功，APK 为 `versionCode` 5、包名 `dev.codex.desktopremote.lite` 的 **debuggable 受控测试签名构建**，证书 SHA-256 为 `ffcb12d413ee58613576b7914350ad4df887bf29d50d97f2b20c4e17dcebcf1a`。历史alpha.5首装和隔离9443私有源随后已完成部署，用户已在该环境登录并验证原任务；本次未重新核查手机当前版本。alpha.7的同证书覆盖升级及新版按需加载仍待验收，不能沿用alpha.5成功记录。
 
-以下1–6步是alpha.5新设备首装历史步骤；已有配对用户不要重新安装首装包、重新配对或卸载APP，应等待本次alpha.7受控升级。
+以下1–6步是alpha.5新设备首装历史步骤；已有配对用户不要重新安装首装包、重新配对或卸载APP，应使用本页当前alpha.8发布流程。
 
 1. 用有权限的 GitHub 账号打开已发布的私有 [v0.1.0-alpha.5 Release](https://github.com/nzkres/codex-desktop-remote/releases/tag/v0.1.0-alpha.5)，下载 `android-0.1.0-alpha.5.apk`、`bootstrap-0.1.0-alpha.5.zip`、`artifact-verification.json` 和 `SHA256SUMS.txt`；`android-reports-0.1.0-alpha.5.zip` 是测试报告。解压 bootstrap，核对 `android/trust.json` 与 `android/latest.json`；trust 的公钥还须对照已认证仓库记录中的 `keyId=cdr-ota-test-20261008-v1`、SPKI SHA-256 `c3835e3e59b362e0b356d3a7b3589c255187ddce34692167f5160b0e5f5e3a4d`，不能只信同一下载页的哈希。下载成功不等于安装或连通。
 2. 在专用测试手机上核对现有同包名 App 的签名及数据后，再打开已核验 APK，按系统提示允许这一次安装。不同设备的提示可能不同，参见 [Google 的 Android 应用安装帮助](https://support.google.com/android/answer/9457058?hl=zh-Hans)。本包 application ID 是 `dev.codex.desktopremote.lite`，可与**旧项目不同包名**的 App 并存；同包名的旧 debug 安装可能证书不同，**不要卸载绕过或承诺覆盖成功**。
@@ -33,7 +36,7 @@ alpha.5 仍由系统手动确认安装，沿用“版本与更新说明”的检
 
 ## 文件校验与常见问题
 
-部署受管私有源并安装带固定 trust 的受控首装后，App 才能复用当前账号检查/下载，不另填下载密码。测试 origin 固定为 `https://106.53.126.69:9443`，源路径为 `/desktop-remote-updates/test/android/`；**该隔离入口已部署；本次alpha.7尚未发布，旧元数据可能过期，不能绕过有效期检查**。会话过期提示重新登录，账号切换后旧候选不能继续安装。后续真实覆盖安装顺序见 [验收计划](../OTA-ACCEPTANCE.md)。
+部署受管私有源并安装带固定 trust 的受控首装后，App 才能复用当前账号检查/下载，不另填下载密码。测试 origin 固定为 `https://106.53.126.69:9443`，源路径为 `/desktop-remote-updates/test/android/`；**该隔离入口已部署；alpha.8尚未切换到正式更新索引，旧元数据可能过期，不能绕过有效期检查**。会话过期提示重新登录，账号切换后旧候选不能继续安装。后续真实覆盖安装顺序见 [验收计划](../OTA-ACCEPTANCE.md)。
 
 如先下载到 Windows 再传到手机，可在 APK 所在目录打开 PowerShell，核对完整性：
 
