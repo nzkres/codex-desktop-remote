@@ -1,3 +1,11 @@
+## 2026-10-14 — alpha.13用户点击安装后停在切换前任务预检
+
+用户反馈下载并安装后未出现alpha.13窗口。只读核验：current仍alpha.12，staged候选alpha.13；helper-result为active_or_unverified_desktop_task。primary仍是此前alpha.12 committed，未进入本次prepared/切换/候选启动。应用、更新、runtime三锁可得，身份/任务保全快照可读取，没有重新配对或删除保护。
+
+调用现用alpha.12的只读原任务检查，分别得到原测试任务owner_unavailable、当前维护对话thread_busy；全量原升级检查因owner_unavailable拒绝。前者表示Desktop暂未提供原测试任务执行端，后者是本轮助手正在回复。下载与暂存成功不能当升级成功。GUI先关闭、助手预检失败后没有重新呈现错误窗口，是现有交接体验缺口，后续产品修复需独立版本，不能修改已签alpha.13。
+
+已请用户在原“回复 DESKTOP_REMOTE_READY”发送一次ALPHA13_UPDATE_READY并回报；保持连接器关闭，不重复下载。**尚未启动任何续接等待器或再次apply；收到用户确认后重新核验现场，待当前回合空闲后复用原已验签暂存包继续。** 脱敏证据artifacts/alpha13/installation-preflight-refusal.json；未变更身份、权限、服务器或安装指针。
+
 ## 2026-10-14 — alpha.13签名包与私有源已发布，等待用户安装
 
 固定源码8191cad32af62a5902a72e0eea44bc94bebb49f1构建Windows alpha.13，sequence9，163147字节，ZIP SHA256 fecbcfbc092a19d30840a25dc8d31066e4fcadc92c2bb013b382fdab721e79a1；metadata SHA256 d7e682bc7d06b0e3af81cc5c8c3df749e58c0c42ef037820ec39e4d63cfafeda。原DPAPI发布密钥签名、本机真实trust验签、解包manifest及包内211条源码/仓库位置检查通过。初次审核脚本误将verify的二元返回值直接交unpack，在审核层被拒；按正确返回值复验通过，未重新打包/签名或更改安装。
