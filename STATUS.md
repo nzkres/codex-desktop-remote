@@ -1,3 +1,11 @@
+## 2026-10-14 — alpha.13实际升级完成，手机新对话验收待测
+
+用户确认新窗口出现。独立审计：续接助手输出 committed/success=true/version=0.1.0-alpha.13，助手已退出；实际窗口标题为“Desktop 手机联调 · 0.1.0-alpha.13”。current、staged候选、主事务候选一致；原信任公钥验证发布签名通过，发布包SHA及releaseDigest一致，当前完整文件树与可回退alpha.12槽均验证通过。
+
+当前identity/configuration/taskData摘要逐项与升级前review及事务preserved一致，未重新配对或改变权限。此证据确认已签版本安装、原事务健康门禁及新窗口激活完成；不是手机任务/长时间重连验收，也不是无人维护的完整OTA体验通过。本次正常OTA在切换前任务预检退出后，经已审查的一次性助手复用原暂存包续接；错误窗口缺失仍是后续版本待修体验问题。
+
+只读审计复用installed、verify、slot、snapshot，脱敏结果为artifacts/alpha13/installation-audit.json，所有比较通过。无产品源码修改，不重复打包或修改已发布alpha.13。下一步：用户检查“错误清单与代码说明”，连接后在Desktop新建专用测试对话，手机刷新自动出现标题，点开读取ALPHA13_NEW_CHAT_OK；不逐条添加或重新配对。手机结果待用户回报。
+
 ## 2026-10-14 — alpha.13续接助手已启动，等待本轮对话空闲
 
 用户已收到原测试任务 ALPHA13_UPDATE_READY；实时只读检查原任务 idle=true，当前维护对话 thread_busy。保留已暂存、验签的 alpha.13，现用仍 alpha.12。独立续接助手于11:40:31（北京时间）启动，首次输出 waitingTasksIdle=true / switched=false；此记录不是安装成功。
