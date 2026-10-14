@@ -1,3 +1,11 @@
+## 2026-10-14 — 手机按需打开原对话：验证工具完成，真实未加载路径待测
+
+用户批准继续解决“必须电脑打开才能手机读取”。已只读核对固定Desktop 26.1007源码：存在按UUID打开原对话的原生链接，但不能从导航成功推断owner就绪。新增操作员工具scripts/desktop_open_probe.mjs，默认仅观察；显式--open只在remote no-client-found、二次目录核对和固定启动文件指纹通过后打开一次同一原任务，再验证新快照。没有接入手机HTTP/OTA，没有发送模型输入或更改现用alpha.13。
+
+专用10项合成测试通过，最终node --test 231/231；python -B -m unittest discover -s test -p "test_*.py" 172项（166通过6跳过）。GPT-6 Sol只读审查并复核修正通过。原测试对话只读实测owner已存在、同任务历史可读、idle；不代表未打开任务的自动加载通过。实时本机alpha.13鉴权health/sessions均200、instance一致，返回62条且包含原测试与当前对话；手机展示仍待核实。
+
+用户表示手机没找到目标；已询问是看不到其他对话还是没找到提示加载的那条。尚未真实执行--open，未生成alpha.14或宣称功能已落地。下一步定位一个未加载的现有测试对话验证；通过后仅在手机进入目标时接入，并保留后台列表/轮询及OTA诊断不自动打开的边界。详见docs/DESKTOP-ON-DEMAND-OPEN.md。现有身份、权限、连接、服务器和已签包保持。
+
 ## 2026-10-14 — alpha.13实际升级完成，手机新对话验收待测
 
 用户确认新窗口出现。独立审计：续接助手输出 committed/success=true/version=0.1.0-alpha.13，助手已退出；实际窗口标题为“Desktop 手机联调 · 0.1.0-alpha.13”。current、staged候选、主事务候选一致；原信任公钥验证发布签名通过，发布包SHA及releaseDigest一致，当前完整文件树与可回退alpha.12槽均验证通过。
