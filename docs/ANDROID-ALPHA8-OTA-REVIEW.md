@@ -35,5 +35,8 @@
 ## 证据分层
 
 - 原完整源码0dbf345：Android run38524365342编译、单元、lint、APK核对及37项模拟器通过；上传被配额阻止，整轮failure。
-- 独立分支：提取完整性、本机检查和新CI结果另记STATUS/WORKLOG。
+- 独立PR [#10](https://github.com/nzkres/codex-desktop-remote/pull/10)，代码b7a5245：109份Android文件及工作流与0dbf345的Git对象完全一致；Node36/36、Python118通过6跳过，版本历史通过。GPT-6 Sol只读审查无阻断；原更新器/Manifest/签名配置未改。
+- 独立Android [CI38533382850](https://github.com/nzkres/codex-desktop-remote/actions/runs/38533382850)：编译/JVM/lint/包内版本及37项模拟器通过；唯一失败是构件上传配额，API无构件。CI端debug APK 11806368字节，SHA256 3a46fd9a2295db0f5104abe65a48da6c3fc6468626930ebd1ca06ef9db14b3d7，非受控签名包且未取回。
+- 独立Core [CI38533382485](https://github.com/nzkres/codex-desktop-remote/actions/runs/38533382485)：Windows/Linux适用检查通过，均只因上传配额失败；不能写整体CI成功。
+- 本轮只记录候选及测试，不合并、不发布；受控合并/构建批准与实际私有源发布分开。
 - alpha.8原证书签名包、本地取回验包、私有源发布、手机覆盖安装与功能实测：均未完成。
