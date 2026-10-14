@@ -192,3 +192,56 @@ test('verified active first snapshot survives failure while loading complete his
  await assert.rejects(f.service.read(A),{code:'incomplete_history'});
  assert.equal(f.service.activity.entries().length,1);
 });
+
+test('only explicit mobile open requests prepare Desktop, not polling/list/OTA',async t=>{
+ const f=fixture(t);let opens=0;f.service.prepareDesktop=async()=>{opens++;};
+ await f.service.sessions();await f.service.projects();await f.service.read(A);await f.service.updateStatus();
+ assert.equal(opens,0);await f.service.read(A,{allowDesktopOpen:true});assert.equal(opens,1);
+});
+test('same-task simultaneous opens share one preparation and another task is refused',async t=>{
+ const f=fixture(t);f.rows.push({threadId:B,title:'Second',projectPath:f.dir});
+ let release;const gate=new Promise(r=>release=r);let entered;const start=new Promise(r=>entered=r);let opens=0;
+ f.service.prepareDesktop=async()=>{opens++;entered();await gate;};
+ const first=f.service.read(A,{allowDesktopOpen:true});await start;
+ const second=f.service.read(A,{allowDesktopOpen:true});
+ await assert.rejects(f.service.read(B,{allowDesktopOpen:true}),{code:'operation_busy'});
+ await assert.rejects(f.service.updateStatus(),{code:'operation_busy'});
+ release();await Promise.all([first,second]);assert.equal(opens,1);
+});
+test('disconnect during preparation rejects late launch and update/quarantine refuse intent',async t=>{
+ const f=fixture(t);let release;const gate=new Promise(r=>release=r);let entered;const start=new Promise(r=>entered=r);let launches=0;
+ f.service.prepareDesktop=async(_cfg,_fol,{guard})=>{entered();await gate;guard();launches++;};
+ const read=f.service.read(A,{allowDesktopOpen:true});await start;
+ await assert.rejects(f.service.prepareDisconnect(),{code:'drain_timeout'});release();
+ await assert.rejects(read,{code:'disconnect_preparing'});assert.equal(launches,0);
+ f.service.draining=false;f.service.options.quarantine=true;
+ await assert.rejects(f.service.read(A,{allowDesktopOpen:true}),{code:'update_quarantine'});
+});
+test('directory removal before opening rejects and unknown receipts never open',async t=>{
+ const f=fixture(t);let launched=0;
+ f.service.prepareDesktop=async(_cfg,_fol,{refresh})=>{f.rows.length=0;await refresh();launched++;};
+ await assert.rejects(f.service.read(A,{allowDesktopOpen:true}),{code:'outside_scope'});assert.equal(launched,0);
+ f.rows.push({threadId:A,title:'First',projectPath:f.dir});f.receipts.begin(f.receipts.key(A,'unknown'),f.receipts.digest('x'));
+ await assert.rejects(f.service.read(A,{allowDesktopOpen:true}),{code:'send_unknown'});assert.equal(launched,0);
+});
+test('HTTP opens only authenticated explicit mobile-sync and rejects ambiguous flags',async t=>{
+ const f=fixture(t);let opens=0;f.service.prepareDesktop=async()=>{opens++;};
+ const token='a'.repeat(64),server=httpServer(f.service,token,'b'.repeat(32));
+ await new Promise(r=>server.listen(0,'127.0.0.1',r));t.after(()=>new Promise(r=>server.close(r)));
+ const base='http://127.0.0.1:'+server.address().port,headers={Authorization:'Bearer '+token};
+ assert.equal((await fetch(base+`/api/sessions/${A}/mobile-sync?open=1`)).status,401);assert.equal(opens,0);
+ assert.equal((await fetch(base+`/api/sessions/${A}/mobile-sync`,{headers})).status,200);assert.equal(opens,0);
+ for(const path of ['mobile-sync?open=1&open=1','mobile-sync?open=0','mobile-sync?open=1&older=1','signals?open=1'])
+  assert.equal((await fetch(base+`/api/sessions/${A}/${path}`,{headers})).status,400);
+ assert.equal((await fetch(base+`/api/sessions/${A}/mobile-sync?open=1`,{headers})).status,200);assert.equal(opens,1);
+});
+
+test('pending native open persists activity until fresh mobile idle evidence arrives',async t=>{
+ const f=fixture(t);
+ f.service.prepareDesktop=async(_cfg,_fol,{onOpen})=>{onOpen();throw Object.assign(new Error(),{code:'desktop_open_pending'});};
+ await assert.rejects(f.service.read(A,{allowDesktopOpen:true}),{code:'desktop_open_pending'});
+ assert.equal(f.service.activity.entries().length,1);assert.equal(f.service.activity.entries()[0].threadId,A);
+ f.states.get(A).threadRuntimeStatus.type='active';await assert.rejects(f.service.updateStatus());
+ f.states.get(A).threadRuntimeStatus.type='idle';await f.service.read(A);
+ assert.equal(f.service.activity.entries().length,0);
+});

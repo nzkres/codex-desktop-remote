@@ -8,6 +8,7 @@ import { VERSION } from './version.js';
 import {readCatalog, taskScope, taskId, localProjectPath} from './catalog.js';
 import {MobileSync} from './vendor/mobile-sync.js';
 import {Activity} from './activity.js';
+import {ensureDesktopConversation} from './desktop-open.js';
 
 export function taskConfigs(config) {
   if (taskScope(config) === 'all-local') return [];
@@ -37,9 +38,9 @@ export function taskConfigs(config) {
 }
 
 export class TaskService {
-  constructor(config, receipts, {createFollower = cfg => new Follower(cfg), discover = readCatalog, ...options} = {}) {
+  constructor(config, receipts, {createFollower = cfg => new Follower(cfg), discover = readCatalog, prepareDesktop = ensureDesktopConversation, ...options} = {}) {
     this.config = config; this.services = new Map(); this.draining = false; this.checking = false; this.writes = 0;
-    this.discover = discover; this.createFollower = createFollower; this.receipts = receipts; this.options = options;
+    this.discover = discover; this.createFollower = createFollower; this.prepareDesktop = prepareDesktop; this.desktopOpening = null; this.receipts = receipts; this.options = options;
     this.automatic = taskScope(config) === 'all-local'; this.catalog = new Map(); this.closed = false; this.readers = new Map();
     this.activity = new Activity(receipts);
     if (this.automatic) this.options = {...options,
@@ -131,11 +132,41 @@ export class TaskService {
         status:'UNKNOWN', active_turn_id:null, updated_at:0}; }
     }));
   }
-  async read(id) {
+  // 只由手机显式 open=1 触发；后台 read 默认不打开任何 Desktop 页面。
+  async prepareDesktopRead(service) {
+    const id=service.config.threadId;
+    const guard=()=>{
+      if(this.closed||this.draining) throw new ControlError('disconnect_preparing','连接器正在断开，未打开对话。',503);
+      if(this.options.quarantine) throw new ControlError('update_quarantine','更新验证中，未打开对话。',503);
+      if(this.checking||this.writes) throw new ControlError('operation_busy','任务操作尚未完成，请稍后重试。');
+      this.receipts.assertCertain();this.activity.assertCertain();
+    };
+    guard();
+    if(this.desktopOpening) {
+      if(this.desktopOpening.id!==id) throw new ControlError('operation_busy','正在打开另一条对话，请稍后重试。');
+      return this.desktopOpening.promise;
+    }
+    const pending={id};this.desktopOpening=pending;
+    pending.promise=(async()=>{
+      await this.prepareDesktop(service.config,service.follower,{guard,onOpen:()=>{
+        guard();this.activity.change(service.config,true); // 未取得快照的打开也要阻止更新猜测空闲。
+      },refresh:async()=>{
+        await this.refreshCatalog();guard();
+        const row=this.catalog.get(id);
+        if(!row) throw new ControlError('outside_scope','这个对话已不在本机目录中，请刷新。',403);
+        if(row.projectPath!==service.config.projectPath) throw new ControlError('task_directory_changed','Desktop 对话目录已变化，请重新连接。',409);
+      }});
+      guard();
+    })().finally(()=>{if(this.desktopOpening===pending)this.desktopOpening=null;});
+    return pending.promise;
+  }
+  readForMobile(id, options) { return this.read(id, options); }
+  async read(id, {allowDesktopOpen=false}={}) {
     if (this.checking) throw new ControlError('operation_busy', '更新检查中，请稍后刷新对话。');
     this.readers.set(id, (this.readers.get(id) ?? 0) + 1);
     try {
       const service = await this.target(id);
+      if(allowDesktopOpen && this.automatic) await this.prepareDesktopRead(service);
       const result = await service.read(id, evidence => {
         // 已拿到原生快照再记活动；包含随后因待审批、空历史或状态未知而报错的读取。
         // 断开期间已开始的读取也必须落盘，更新隔离探针则始终只读。

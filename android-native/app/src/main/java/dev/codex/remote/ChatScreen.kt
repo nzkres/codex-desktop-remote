@@ -106,6 +106,7 @@ fun ChatScreen(
     onLoadTask: suspend (MessageItem) -> MessageItem = onLoadFull,
     onLoadTaskPage: suspend (String?) -> TaskHistoryPage? = { null },
     terminalName: String = "",
+    desktopOpening: Boolean = false,
 ) {
     val activity = LocalActivity.current as ComponentActivity
     val scope = remember(activity) { activity.lifecycleScope }
@@ -457,7 +458,8 @@ fun ChatScreen(
             if (loadError.isBlank()) {
                 if (motion) CircularProgressIndicator(modifier = Modifier.size(22.dp).processingLight(true), strokeWidth = 2.dp, color = Green)
                 Spacer(Modifier.height(12.dp))
-                Text("正在加载对话…", Modifier.testTag("conversation-loading-label").processingLight(true), color = TextMuted, fontSize = 13.sp)
+                Text(if (desktopOpening) "正在读取原对话，电脑可能切换到这条对话…" else "正在加载对话…",
+                    Modifier.testTag("conversation-loading-label").processingLight(true), color = TextMuted, fontSize = 13.sp)
             } else {
                 Text("暂时无法读取对话", color = TextInk, fontWeight = FontWeight.SemiBold)
                 Spacer(Modifier.height(5.dp))

@@ -1,3 +1,15 @@
+## 2026-10-14 — Windows alpha.14 / Android alpha.7：点击标题加载原对话候选
+
+用户确认手机已有多条标题，只是找不到之前报错的一条。改用已有的纯口令测试对话验证，不要求用户再找或发送消息。原生入口核对发现安装清单 codex:// 对应 app/ChatGPT.exe；同目录 Codex.exe 虽签名有效，但本次未恢复目标 owner，不能仅凭启动成功判定可用。
+
+真实未加载测试：固定 ChatGPT.exe 及原兼容指纹后，同一 UUID 从 owner_unavailable 到历史可读、idle，模型输入0。另一个隔离鉴权HTTP测试先返回 desktop_open_pending，后续普通读取200、sameTask=true、2条条目、仅一次导航、模型输入0；未使用真实配对凭据，未修改运行服务或任务权限。
+
+候选实现：手机显式点标题/手动重试才带 open=1；连接器只在明确 no-client-found 后请求 Desktop 打开原 UUID。列表、轮询、通知、分页、发送和OTA诊断不自动导航。相同目标合并、不同目标忙碌；断开/更新/未知回执阻止导航。未取得原生快照的打开沿用 active-tasks 记录，阻止更新猜测空闲；后续仍由原 Service 核对目录、实时权限与回执。
+
+验证命令：`node --test` 242/242；`python -B -m unittest discover -s test -p "test_*.py"` 172项，166通过、6平台跳过；`python -B scripts/check_versions.py`通过。Android新增一次性意图与HTTP查询测试；本机 Gradle 下载缓慢且缺SDK，已停止下载，尚无本机编译/APK证据。改由仓库CI执行，并把GatewaySyncTest加入现有模拟器测试集合。CI、签名包、真实手机体验须另记。
+
+当前实际安装仍Windows alpha.13；alpha.14/Android alpha.7未发布、未安装。手机需要新版APP与连接器配合才有按需打开能力；可能切换电脑的Desktop页面。中继转发现有查询参数即可，不需升级中继。下一步核对CI与包，再准备原签名连续升级和手机点击旧对话验收。详见docs/DESKTOP-ON-DEMAND-OPEN.md。
+
 ## 2026-10-14 — 手机按需打开原对话：验证工具完成，真实未加载路径待测
 
 用户批准继续解决“必须电脑打开才能手机读取”。已只读核对固定Desktop 26.1007源码：存在按UUID打开原对话的原生链接，但不能从导航成功推断owner就绪。新增操作员工具scripts/desktop_open_probe.mjs，默认仅观察；显式--open只在remote no-client-found、二次目录核对和固定启动文件指纹通过后打开一次同一原任务，再验证新快照。没有接入手机HTTP/OTA，没有发送模型输入或更改现用alpha.13。

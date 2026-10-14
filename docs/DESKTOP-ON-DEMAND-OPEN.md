@@ -1,43 +1,36 @@
-# 手机按需打开 Desktop 原对话：可行性验证
+# 手机点击标题，加载 Desktop 原对话
 
-状态：验证工具已实现、隔离测试通过；未接入手机请求路径，未发布新版本，未证明未加载原任务能自动恢复。
+状态：Windows alpha.14、Android alpha.7候选代码完成。真实Desktop隔离接口验证通过；现用Windows仍alpha.13，候选签名发布和手机验收未完成。版本与测试的最新结果以 STATUS.md 为准。
 
-## 要解决的体验
+## 用户会看到什么
 
-手机列表来自本机只读对话目录，不要求逐条打开。正文和发送仍依赖 Desktop 当前任务处理端。目标是手机点击标题后，由 Desktop 加载同一个已有对话，然后重新核对任务与权限；不创建另一份线程、不启动独立 app-server、不发唤醒口令。
+手机先列出这台电脑的对话标题。点击一条已有对话时，连接器检查Desktop能否读取；若明确没有加载，就让Desktop自己打开同一个对话，再读历史。电脑可能切换到这条对话页面。不会给模型发送唤醒文字，不复制线程，不创建独立执行器。超过等待时间仍未就绪，会显示“电脑仍在打开这条对话，请稍后点击重试”。
 
-## 本机源码证据
+Android alpha.7 与Windows alpha.14需配合使用；旧APP不会发出打开请求。旧连接器会忽略新APP的open参数，不能因此宣称旧版本已经支持。现有中继转发查询参数，不需新部署。原身份、Desktop授权和未知发送保护不变。
 
-读取且未修改已固定的 Desktop 26.1007.2314.0 app.asar。其链接解析器支持 `codex://threads/<UUID>`；线程 owner 发现只寻找已有拥有者。因此链接打开是候选入口，而不是“自动获得执行端”的证明。它可能切换电脑前台页面，这个副作用必须在产品说明里如实呈现。
+## 从点击到历史的代码
 
-本机 `app/Codex.exe` Authenticode Status=Valid，发布者 OpenAI OpCo, LLC；SHA256 `7f5d9ffb52db7dce878658eb8f67d99f231474188827e3b827bca3a7479abebe`。工具先执行既有版本/asar/CLI兼容检查，打开时额外限制这一启动文件指纹；其他版本不猜测兼容。不修改 Desktop 内部文件。
+1. `android-native/.../DesktopOpenIntent.kt`：将一次用户点击绑定到确切Gateway实例和任务ID，在发请求前消费，避免轮询重放。
+2. `Gateway.kt`：仅显式读取带 `GET /api/sessions/<id>/mobile-sync?open=1`。`MainActivity.kt`收到明确desktop_open_pending后，有限等待并用普通请求读取，切换目标取消等待；通知、后台、分页、发送后刷新都不附open。
+3. `src/service.js`：鉴权后只允许mobile-sync的一次有效open参数，拒绝分页混用。
+4. `src/tasks.js`：任务须仍在本机目录，相同目标共享打开请求；另一目标、断开、更新隔离、写操作或未知回执不导航。即将导航时写既有活动记录；未证实空闲不能升级。
+5. `src/desktop-open.js`：发现已有owner就直接读取；仅remote no-client-found才校验兼容性、再查目录、核对固定启动文件并打开。异步步骤后和spawn前重新检查断开/更新及IPC代数。
+6. 原 `Service.read` 和Follower再取同一UUID的实时快照、核对目录/权限和历史。启动程序成功不等于读取成功；发送仍沿用原门禁。
 
-## 验证工具
+## 本机入口证据
 
-`scripts/desktop_open_probe.mjs <本机配置文件> <已有任务UUID>` 默认只读：核对目录、发现 owner、观察新快照。不补全历史，不发送模型输入；输出固定状态和回合数量，不输出正文、权限细节、配置或凭据。
+只读核对已固定 Desktop 26.1007.2314.0 的安装清单及app.asar，未修改内部文件。AppxManifest.xml的协议所属Application Executable为 `app/ChatGPT.exe`。其SHA-256为 `13d7ee588d7ae20f04f7aa25a65ae82917ada81501304ac8f5e679d0b3306601`，Authenticode Valid，发布者OpenAI OpCo, LLC。现有asar/CLI兼容检查仍保留；其他版本不猜兼容。
 
-追加 `--open` 才允许打开：只有 Desktop 明确返回 remote `no-client-found`、二次目录核对同一 ID/路径后才调用固定程序及固定格式 URI。超时不当作“没有 owner”；每次最多打开一次，随后有限次数重新发现并验证原生快照。启动成功不代表任务就绪。缺失/不完整历史、未知状态、错误身份/路径/权限均不报告成功。程序不杀 Desktop 进程、不改权限、不发送或重放任务。
+原生URI为 `codex://threads/<UUID>`。bootstrap解析threads路由，单实例转发argv，主程序消费deep link。最初尝试同目录Codex.exe未使目标owner就绪，因此未采用该程序；改用安装清单的ChatGPT.exe后实测成功。产品按固定程序及唯一URI参数启动，不用shell、不杀Desktop进程、不传模型输入。
 
-示例（仅操作员使用，路径按实际设置；无需用户手动操作这些命令）：
+## 已验证及尚待验证
 
-```powershell
-$env:CDR_DESKTOP_PYTHON = '<固定 Python 完整路径>'
-& '<固定 Node 完整路径>' scripts/desktop_open_probe.mjs '<现用配置完整路径>' '<测试任务 UUID>'
-# 确认报告 owner_unavailable 后，针对同一个允许测试的任务：
-& '<固定 Node 完整路径>' scripts/desktop_open_probe.mjs '<现用配置完整路径>' '<测试任务 UUID>' --open
-```
+- 默认只读探针 `scripts/desktop_open_probe.mjs <本机配置文件> <已有任务UUID>`；显式 `--open` 才导航，输出固定布尔值/状态/数量，不输出正文或凭据。
+- 已有纯口令测试：ownerBefore=false，打开后sameTask/historyReadable=true、idle，模型输入0。
+- 第二次完整隔离HTTP路径：初次503 desktop_open_pending；后续不带open的读取200、sameTask=true、itemCount=2、opens=1、模型输入0。使用临时数据/回执、随机内存token、隔离端口。测试记录保存在本机ignored artifacts/alpha14，不进入Git。
+- Node242项通过，Python172项中166通过、6平台跳过。覆盖已有owner、明确缺失、超时不导航、二次目录变化、断开竞态、错误代数、去重、鉴权参数、未完成打开阻止OTA等。
+- Android意图与HTTP测试已加入；实际编译、模拟器、签名APK、真实手机点开旧对话与发送接续须分别记录，不能用本机HTTP通过替代。
 
-## 当前验证
+## 手机验收顺序
 
-- 10 项独立合成测试：默认不打开、明确缺失后打开、已有 owner 不导航、超时不导航、非明确缺失不导航、目录变化/非法ID拒绝、兼容/范围拒绝、链接启动不冒充读取成功、错误任务/权限拒绝、未知历史/状态拒绝。
-- Python 主套件172项：166通过、6平台跳过。Node最终结果见STATUS最新记录。
-- GPT-6 Sol只读审查后，已修正默认模式会调用历史补全及未知历史误报两处验证边界；复核无阻断。
-- 原专用测试对话只读结果：ownerBefore=true、opened=false、sameTask=true、historyReadable=true、runtime=idle；模型输入0。此结果仅证明已加载路径，不能替代未打开路径。
-- 现用 alpha.13 本机真实鉴权接口：health=200、instance匹配、sessions=200，返回62条，含原测试任务与当前开发对话。手机是否收到了该列表待用户确认；不输出其他标题/正文。
-- 用户反馈手机没找到目标，正在澄清是任务列表缺失，还是没找到出现加载提示的那条。尚未执行真实 `--open`。
-
-## 通过实机验证后才接入
-
-仅手机明确进入对话的鉴权读取路径允许按需打开，目录刷新、后台轮询、OTA/维护/诊断不触发。按任务合并并发请求，断开/更新/隔离期间不发出打开动作，异步目录查询后再检查。打开后依旧重新发现 owner、核对 ID/cwd/原权限，再读取；发送沿用原门禁，任何未知提交不重试。
-
-下一步先定位一个未加载的已有测试对话，比较打开前后结果。如果链接只打开预览仍无 owner，就如实记录失败，继续验证 Desktop 原生加载入口；不以自动发送消息、伪造 owner 或另一份执行器兜底。
+完成受控同签名APK与Windows包校验和升级后：保留原配对，进入原电脑；选一条已有未加载对话，点击标题，等待历史。核对仍是原任务；若要验发送，由用户发送一次测试文字并在Desktop原对话接续，最后手机核对新回复。结果不明时不重发，不新建替代任务。旧版本和真实数据保持可恢复。

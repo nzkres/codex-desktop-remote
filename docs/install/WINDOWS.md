@@ -1,3 +1,9 @@
+## Windows alpha.14 候选：手机点开原对话
+
+此功能需要Windows alpha.14与Android alpha.7配合。现用Windows仍alpha.13；本段不表示候选已经签名发布或安装。先完成CI、原签名包校验及受控升级，保留原配对，不重新配置身份。手机点击原电脑中的标题会请求Desktop加载同一个对话，可能切换电脑页面；后台刷新不自动打开。详细流程与验收见[按需打开](../DESKTOP-ON-DEMAND-OPEN.md)与[最新状态](../../STATUS.md)。
+
+Android必须使用原受控证书连续升级；普通PR debug APK不能覆盖现用测试APP，不要卸载绕过。中继不需要随此次功能升级。下方旧版本安装记录仅供历史参考，以STATUS的实际交付记录为准。
+
 ## alpha.12 开发候选：全部对话标题目录
 
 默认新配置不再要求任务 UUID：`scripts/configure.py --home <全新安装目录> --desktop-root <受支持Desktop目录> --node <Node20.exe> --frpc <frpc.exe>`。脚本默认写 `taskScope=all-local`，验证本机目录与兼容性；不读取正文、不发模型输入、不配对。保留旧命令兼容：显式传 `--thread-id`/`--project` 时使用 selected；也可明确 `--scope selected`。旧已配对安装不要重跑配置脚本，必须经保全审查的维护事务升级并切换范围。

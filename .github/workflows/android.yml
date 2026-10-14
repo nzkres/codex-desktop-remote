@@ -146,7 +146,7 @@ jobs:
           if [[ "$booted" != true ]]; then echo 'Emulator did not finish booting within the 90-attempt limit.' >&2; exit 1; fi
           adb -s emulator-5554 shell input keyevent 82
           cd android-native
-          bash ./gradlew --no-daemon --max-workers=2 -Pkotlin.compiler.execution.strategy=in-process :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=dev.codex.remote.MainActivityTargetSelectionTest,dev.codex.remote.TaskTargetSwitchUiTest,dev.codex.remote.TerminalControlUiTest,dev.codex.remote.NotificationServiceTest
+          bash ./gradlew --no-daemon --max-workers=2 -Pkotlin.compiler.execution.strategy=in-process :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=dev.codex.remote.MainActivityTargetSelectionTest,dev.codex.remote.TaskTargetSwitchUiTest,dev.codex.remote.TerminalControlUiTest,dev.codex.remote.NotificationServiceTest,dev.codex.remote.GatewaySyncTest
       - name: Verify controlled APK signing certificate
         if: github.event_name == 'workflow_dispatch' && inputs.signed_ota
         env:

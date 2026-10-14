@@ -1,41 +1,20 @@
 // Operator-only feasibility probe. Not wired into HTTP, polling, OTA or startup.
 // It opens an EXISTING native Desktop conversation, never starts a model turn.
-import {spawn} from 'node:child_process';
-import {createHash} from 'node:crypto';
-import {readFile, lstat} from 'node:fs/promises';
-import {join, resolve} from 'node:path';
+import {readFile} from 'node:fs/promises';
+import {resolve} from 'node:path';
 import {pathToFileURL} from 'node:url';
 import {verifyCompatibility} from '../src/compatibility.js';
 import {readCatalog, taskId, localProjectPath, taskScope} from '../src/catalog.js';
 import {Follower} from '../src/follower.js';
 import {configuredPermissionsMatch} from '../src/service.js';
 import {nativeTurns} from '../src/vendor/desktop-state.js';
+import {openNativeConversation} from '../src/desktop-open.js';
 
-const LAUNCHER_SHA256 = '7f5d9ffb52db7dce878658eb8f67d99f231474188827e3b827bca3a7479abebe';
 const refuse = code => { throw Object.assign(new Error(code), {code}); };
 const codes = new Set(['invalid_task_scope','outside_scope','unsupported_version','hash_mismatch',
   'desktop_unavailable','owner_unavailable','owner_unverified','owner_changed','snapshot_unavailable',
   'permissions_changed','incomplete_history','runtime_status_unknown','history_unavailable','launcher_unverified','desktop_open_failed',
   'desktop_open_pending','catalog_unavailable','task_directory_changed']);
-
-// Launch exactly the inspected Desktop program, with one fixed-shape URI argument.
-// The URI may focus/navigate Desktop. Process exit does NOT prove the task loaded.
-export async function openNativeConversation(config, id) {
-  if (process.platform !== 'win32' || !taskId(id)) refuse('launcher_unverified');
-  const binary = join(config.desktopRoot, 'app', 'Codex.exe');
-  for (const path of [config.desktopRoot,join(config.desktopRoot,'app'),binary])
-    if ((await lstat(path)).isSymbolicLink()) refuse('launcher_unverified');
-  if (!(await lstat(binary)).isFile()) refuse('launcher_unverified');
-  const hash = createHash('sha256').update(await readFile(binary)).digest('hex');
-  if (hash !== LAUNCHER_SHA256) refuse('launcher_unverified');
-  // No shell, prompt, permission arguments, environment changes or process kills.
-  await new Promise((accept,reject) => {
-    const child = spawn(binary, [`codex://threads/${id}`], {windowsHide:true,stdio:'ignore'});
-    child.once('spawn',accept);
-    child.once('error',() => reject(Object.assign(new Error(),{code:'desktop_open_failed'})));
-    child.unref();
-  });
-}
 
 export async function probeDesktopOpen(config,id,{
   allowOpen=false, verify=verifyCompatibility, discover=readCatalog,

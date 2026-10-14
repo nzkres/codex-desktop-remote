@@ -291,7 +291,13 @@ export function httpServer(service, token, instance, controlToken = null) {
       if (req.method === 'POST' && route === 'stop') return reply(200, await service.stop(id, await bodyOf(req)));
       if (req.method !== 'GET' || !['mobile-sync','mobile-items','mobile-tasks','signals'].includes(route))
         throw new ControlError('unsupported_route', '不支持这项操作。', 405);
-      const source = await service.read(id);
+      // Only the mobile screen's explicit open/retry carries this one-shot intent.
+      // Ordinary sync polling, history pages, OTA and details remain observation-only.
+      const openValues=url.searchParams.getAll('open');
+      if(openValues.length && (route!=='mobile-sync'||openValues.length!==1||openValues[0]!=='1'||url.searchParams.get('older')==='1'))
+        throw new ControlError('invalid_open_request','打开对话请求无效，请重新进入。',400);
+      const source = typeof service.readForMobile==='function'
+        ? await service.readForMobile(id, {allowDesktopOpen:openValues.length===1}) : await service.read(id);
       // 手机端投影、分页、详情和信号都基于同一次经过范围与权限检查的状态读取。
       if (route === 'mobile-sync') return reply(200, service.sync.sync(id, source, url.searchParams.get('cursor') ?? undefined, url.searchParams.get('older') === '1'));
       if (route === 'mobile-tasks') return reply(200, service.sync.tasks(source, url.searchParams.get('before') ?? undefined));

@@ -229,6 +229,10 @@ _SOURCE_FILES = (
 _CODE_SHAPE = re.compile(r'[a-z][a-z0-9_]{0,79}\Z')
 
 _COMMON = {
+    'launcher_unverified': ('Desktop 对话', '当前 Desktop 原生启动入口未通过版本或文件核对。', '在电脑打开原对话；保留兼容保护，等待支持当前版本的连接器。'),
+    'desktop_open_failed': ('Desktop 对话', '连接器无法启动 Desktop 的原对话链接。', '确认 Desktop 正常运行，再在手机点开原对话；不需要重新配对。'),
+    'desktop_open_pending': ('Desktop 对话', '已请求 Desktop 打开原对话，但还没有取得可核对的处理端。', '稍后点击重试；不要重复发送消息。'),
+    'invalid_open_request': ('Desktop 对话', '手机打开对话请求的参数不符合协议。', '升级配套手机端并重新进入对话；后台刷新不应携带打开请求。'),
     'input_required': ('输入', '必填的连接信息尚未填齐。', '填写 HTTPS 服务器、设备名和配对码后再试。'),
     'invalid_pairing_code': ('配对', '配对码格式不是规定的 12 位字符。', '核对手机上显示的原配对码；不要重复创建配对身份。'),
     'invalid_relay_url': ('配对', '服务器地址格式不符合连接器要求。', '填写原服务器的 HTTPS 地址和端口，不要附加账号、路径或查询参数。'),
@@ -675,7 +679,21 @@ def _entry(code):
             'source': source}
 
 
-CATALOG = {code: _entry(code) for code in sorted(_DECLARED_CODES | _EXTRA_CODES)}
+# These JS-only failures also appear in the phone. Point to their real packaged source lines.
+_JS_ERROR_LOCATIONS = {
+    'launcher_unverified': ('src/desktop-open.js', 'openNativeConversation'),
+    'desktop_open_failed': ('src/desktop-open.js', 'openNativeConversation'),
+    'desktop_open_pending': ('src/desktop-open.js', 'ensureDesktopConversation'),
+    'invalid_open_request': ('src/service.js', 'httpServer'),
+}
+for _code, (_path, _symbol) in _JS_ERROR_LOCATIONS.items():
+    try:
+        _lines = (Path(__file__).resolve().parents[1] / _path).read_text(encoding='utf-8').splitlines()
+        _line = next(i for i, value in enumerate(_lines, 1) if "'" + _code + "'" in value)
+        _SOURCES[_code] = {'path': _path, 'symbol': _symbol, 'line': _line, 'kind': 'raise'}
+    except (OSError, StopIteration):
+        pass
+CATALOG = {code: _entry(code) for code in sorted(_DECLARED_CODES | _EXTRA_CODES | _JS_ERROR_LOCATIONS.keys())}
 
 
 def safe_code(value):
