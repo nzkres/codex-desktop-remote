@@ -14,8 +14,9 @@
 
 - 已实现、已本地测试、已固定源码、已本机签名验签。
 - [CI38420879205](https://github.com/nzkres/codex-desktop-remote/actions/runs/38420879205) Windows/Linux测试、隔离演练、打包上传全部成功，临时源码产物可下载。
-- 已在用户正常关窗后执行prepare，恢复记录及围栏独立审计通过，等待完整Windows重启；真实身份/配置未变、旧guard保留。
-- 尚未执行现用安装切换，尚未通过手机新对话验收。
+- 2026-10-14已完成实际签名维护安装并激活alpha.12窗口；独立签名、版本槽、双事务日志及身份/任务保全审计通过，获批配置仅增加all-local。
+- 首次候选激活前健康拒绝已保留；隔离传输复验通过，独立受控续接提交成功。首次具体诱因仍未证实。
+- 手机新标题自动显示及点进历史读取尚待用户验收。详见STATUS.md最新增量及artifacts/alpha12/installed-alpha12-audit.json。
 - Android、relay和公网更新源本次未更新。
 - 源码输入：`a3b85a9e294db22b8bd40da524729d2437ffb4e9`；草稿PR [#8](https://github.com/nzkres/codex-desktop-remote/pull/8)，堆叠在PR #7上，未合并。
 - Node 当前源137/137；默认发现221/221，其中84条属于忽略目录历史副本。

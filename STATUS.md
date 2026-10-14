@@ -1,3 +1,11 @@
+## 2026-10-14 — alpha.12实际安装提交并独立核验通过，等待手机新对话验收
+
+用户确认新窗口已出现。续接实际输出committed/success=true/version=0.1.0-alpha.12；独立审计current=候选、primary与alpha12-continuation1日志一致，ZIP/发布签名/包清单与固定候选匹配，原身份/config/taskData及保护摘要与续接review和事务preserved完全一致。旧槽可验证、原失败journal精确保留，配置仅增加获批taskScope=all-local，旧权限摘要/任务记录保留；runtimeNeedsReview已正常移除，应用锁由新实例持有。
+
+实际窗口PID4728、标题Desktop 手机联调 · 0.1.0-alpha.12；脱敏完整审计artifacts/alpha12/installed-alpha12-audit.json。这证明本地签名维护安装与激活前真实健康验证完成，不等于长期稳定或手机新对话验收。首次健康拒绝的具体诱因仍未证实，保留原失败及成功续接，不将一次复验成功写成根因已修复。
+
+已请求用户在新窗口点击连接，在Desktop新建专用测试对话并发送一次ALPHA12_NEW_CHAT_OK验收指令，再在手机刷新原电脑任务列表、点进查看同一回复。无需添加任务或重新配对。等待用户分别确认新标题自动显示与历史读取；暂不重复运行任何维护助手。本次未升级Android/relay或发布公网feed。
+
 ## 2026-10-14 — 首次alpha.12候选健康拒绝；传输诊断通过，受控续接已等待
 
 用户未看到新窗口。助手实际结果update_needs_review；primary与alpha12-repair-transaction均needs_review，cause=candidate_health_unverified、error=rollback_or_cleanup_unconfirmed。原引擎在cleanup_target和preserved成功后把current指针恢复alpha.11；回退启动因旧版不理解all-local被明确拒绝，故此汇总错误不等于已证明清理失败。候选从未激活。配置已为批准的all-local，不能手动启动旧版。原运行guard已按正常清理移除，三锁可得；身份/config/taskData与失败事务preserved完全一致，5条回执文件未变。原失败时间01:09:55（本地），诊断未留具体健康异常，不能把87秒时长当确定网络根因。
