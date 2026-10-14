@@ -72,13 +72,30 @@ class UploadAndroidBuildTests(unittest.TestCase):
             self.assertEqual(command[0], 'ssh')
             self.assertNotIn('synthetic-private-key', ' '.join(command))
             key = Path(command[command.index('-i') + 1])
-            self.assertEqual(key.read_text(encoding='ascii'), 'synthetic-private-key')
+            self.assertEqual(key.read_bytes(), b'synthetic-private-key\n')
             return subprocess.CompletedProcess(command, 1, stdout=b'', stderr=b'synthetic failure')
 
         with mock.patch.object(uploader.subprocess, 'run', side_effect=reject):
             with self.assertRaisesRegex(ValueError, 'server_build_upload_failed'):
                 uploader.main()
         self.assert_clean_failure()
+
+    def test_secret_newlines_are_restored_before_ssh(self):
+        # gh secret set strips final newlines; CRLF input also occurs on Windows.
+        for value in ('line-one\nline-two', 'line-one\r\nline-two\r\n'):
+            with self.subTest(value=value):
+                def inspect(command, **kwargs):
+                    key = Path(command[command.index('-i') + 1])
+                    hosts = Path(next(x.split('=', 1)[1] for x in command if x.startswith('UserKnownHostsFile=')))
+                    self.assertEqual(key.read_bytes(), b'line-one\nline-two\n')
+                    self.assertTrue(hosts.read_bytes().endswith(b'\n'))
+                    return subprocess.CompletedProcess(command, 1, stdout=b'', stderr=b'fixture stop')
+
+                with mock.patch.dict(os.environ, {'OTA_UPLOAD_SSH_KEY': value}):
+                    with mock.patch.object(uploader.subprocess, 'run', side_effect=inspect):
+                        with self.assertRaisesRegex(ValueError, 'server_build_upload_failed'):
+                            uploader.main()
+                self.assert_clean_failure()
 
     def test_wrong_receipt_byte_count_has_no_success_summary(self):
         def wrong_receipt(command, **kwargs):

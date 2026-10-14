@@ -26,8 +26,10 @@ def main():
     with tempfile.TemporaryDirectory(prefix='cdr-upload-', dir=os.environ['RUNNER_TEMP']) as temporary:
         folder = Path(temporary)
         key, hosts = folder / 'key', folder / 'known_hosts'
-        key.write_text(os.environ['OTA_UPLOAD_SSH_KEY'], encoding='ascii')
-        hosts.write_text(os.environ['OTA_UPLOAD_KNOWN_HOSTS'], encoding='ascii')
+        # gh secret set trims trailing CR/LF. Linux OpenSSH rejects a private
+        # key without its final LF; restore text framing, never change key data.
+        key.write_bytes((os.environ['OTA_UPLOAD_SSH_KEY'].replace('\r\n', '\n').rstrip('\n') + '\n').encode('ascii'))
+        hosts.write_bytes((os.environ['OTA_UPLOAD_KNOWN_HOSTS'].replace('\r\n', '\n').rstrip('\n') + '\n').encode('ascii'))
         os.chmod(key, 0o600)
         reports = folder / 'reports.zip'
         source = Path('android-native/app/build/reports')

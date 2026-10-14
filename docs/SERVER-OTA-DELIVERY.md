@@ -4,7 +4,7 @@
 
 用户明确要求安装包不再放GitHub构件存储，改用106.53.126.69服务器完成OTA。源码继续在GitHub；受控main构建和原APK证书不变。本改动只替换Android构件保存，不修改APK业务代码或递增应用版本；仍为alpha.8。现有Windows/Android HTTPS下载鉴权继续复用。
 
-实现和合成测试已完成；专用服务器接收账号部署被自动审批拒绝，理由是需要明确批准新增长期SSH访问权限。服务器账号/目录尚未创建，CI传输Secrets尚未配置，受控构建和Android feed切换尚未执行。不能将本PR写成OTA已上线。
+用户随后明确批准专用账号、两项CI配置及合并构建。账号/目录和Secrets已部署，真实SSH合成验收通过，PR #11已合并。首轮受控构建APK检查通过但上传因密钥末尾换行丢失失败，修复后继续验证；Android feed未切换，手机未安装。最新证据见[部署实录](SERVER-OTA-DEPLOYMENT-20261014.md)。
 
 ## 路径与权限
 
@@ -23,7 +23,7 @@ main显式signed_ota构建 → APK版本/证书/内置trust校验 → SSH强制�
 
 CI仅在main+workflow_dispatch+signed_ota且前序检查全部成功时上传。SSH严格固定主机公钥，私钥只在受控RUNNER_TEMP短期文件中使用并清理，不写参数、日志或APK。CI只写公有版本/hash/接收摘要。普通PR/debug构建不上传服务器，也不再保存在GitHub Actions artifacts；诊断保留CI测试结果/日志。既有旧构件和Release不因本改动删除。
 
-新增两项仓库Secrets：OTA_UPLOAD_SSH_KEY、OTA_UPLOAD_KNOWN_HOSTS；只保存专用受限传输密钥和固定公有主机键，不存服务器管理员密钥。现有六项Android签名Secrets不变。RSA发布私钥仍仅本机DPAPI。已在本机仓库外创建server-upload-v1/upload-key.dpapi备用上传密钥（加密、未部署），未写入CI。
+新增两项仓库Secrets：OTA_UPLOAD_SSH_KEY、OTA_UPLOAD_KNOWN_HOSTS；只保存专用受限传输密钥和固定公有主机键，不存服务器管理员密钥。现有六项Android签名Secrets不变。RSA发布私钥仍仅本机DPAPI。专用密钥在本机仓库外以server-upload-v1/upload-key.dpapi加密保存，已写入专用CI上传Secret。上传时补齐配置工具可能裁掉的末尾LF；不更换密钥、关闭主机验证或导出管理员凭据。
 
 ## 部署、验收和撤回
 
@@ -41,4 +41,4 @@ CI仅在main+workflow_dispatch+signed_ota且前序检查全部成功时上传。
 - 接收器合成测试：Windows9通过1真实链接权限跳过；服务器Linux10/10通过（包含真实符号链接和fsync）。
 - GPT-6 Sol复核上传门禁、凭据和收据；建议的bytes核对已补。
 - 本机Node36/36，Python完整134项中127通过7平台跳过；新增发送边界4/4通过（非main拒绝、SSH失败、字节收据不符、私钥临时文件清理及成功摘要）。
-- 新PR CI、真实SSH部署、受控APK构建/取回、私有源及手机安装尚未完成，按STATUS分别记录。
+- PR Android CI及真实SSH部署已完成；受控构建首次上传失败的修复和后续取回核验见部署实录。私有源切换和手机安装另行记录。

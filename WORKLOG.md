@@ -1,3 +1,9 @@
+## 2026-10-14 — 自有服务器上传入口已部署，修复 CI 私钥文本格式
+
+用户明确批准专用账号、两项CI配置、PR #11合并及原证书构建。服务器cdr-ota-upload已部署并通过真实SSH合成上传、重复/任意命令/错误主机键拒绝和权限核验，现用服务及Android feed不变。两项Secret实际配置；PR #11已合并main 348fb2d。Android PR CI38537322078整轮成功，Core两平台检查通过、仅旧源码构件上传受GitHub配额阻止。
+
+首轮受控构建38539346508的APK编译/单元/lint/原证书/trust检查通过，SSH上传失败且服务器未接收。定位到gh secret set去掉末尾换行；Linux合成密钥复现缺LF导致libcrypto错误，补LF恢复。上传脚本补规范LF及回归测试，保持原密钥/账号/证书。GPT-6 Sol medium只读复核无阻断。源码交付范围仍仅Android，未改Core构件保存；尚未发布新版Android源或安装手机。详细证据和维护步骤见docs/SERVER-OTA-DEPLOYMENT-20261014.md。
+
 ## 2026-10-14 — Android签名构件改存自有服务器（实现待部署）
 
 用户要求不再依赖GitHub存储，使用现有服务器做OTA。新增固定SSH命令接收器及main受控签名构建的直接上传脚本，替换Android upload-artifact；普通PR/debug不存GitHub或服务器。正式私有HTTPS下载源、原APK证书/公钥、手机身份保持，应用版本仍alpha.8。暂存与正式feed分权，不增加公网端口。
