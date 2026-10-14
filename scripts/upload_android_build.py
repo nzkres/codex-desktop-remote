@@ -52,7 +52,7 @@ def main():
                    '-o', 'UserKnownHostsFile=' + str(hosts), '-o', 'ConnectTimeout=15',
                    '-o', 'ServerAliveInterval=15', '-o', 'ServerAliveCountMax=3',
                    'cdr-ota-upload@106.53.126.69', 'receive-android-build']
-        result = subprocess.run(command, input=body, capture_output=True, timeout=210)
+        result = subprocess.run(command, input=body, capture_output=True, timeout=630)
         if result.returncode:
             raise ValueError('server_build_upload_failed')
         receipt = json.loads(result.stdout)

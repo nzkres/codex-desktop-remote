@@ -19,7 +19,7 @@ main显式signed_ota构建 → APK版本/证书/内置trust校验 → SSH强制�
 
 ## 传输边界
 
-输入为最多8192字节JSON头和依次排列的4份文件：app.apk（最多48MiB）、output-metadata.json（64KiB）、reports.zip（16MiB）、verification.json（64KiB）。没有调用方路径、shell或解包操作。校验文件名白名单、整数大小、SHA256、run/attempt/commit/version格式及EOF；拒绝损坏、截断、尾随字节、重复键、重复发布、链接和空间不足。单进程锁、180秒期限、文件/目录fsync后改名可见，失败删除仅本次临时目录；断电/kill残留.partial由维护者核对，仍计入配额，不当作完成。
+输入为最多8192字节JSON头和依次排列的4份文件：app.apk（最多48MiB）、output-metadata.json（64KiB）、reports.zip（16MiB）、verification.json（64KiB）。没有调用方路径、shell或解包操作。校验文件名白名单、整数大小、SHA256、run/attempt/commit/version格式及EOF；拒绝损坏、截断、尾随字节、重复键、重复发布、链接和空间不足。单进程锁、600秒期限、文件/目录fsync后改名可见，失败删除仅本次临时目录；断电/kill残留.partial由维护者核对，仍计入配额，不当作完成。
 
 CI仅在main+workflow_dispatch+signed_ota且前序检查全部成功时上传。SSH严格固定主机公钥，私钥只在受控RUNNER_TEMP短期文件中使用并清理，不写参数、日志或APK。CI只写公有版本/hash/接收摘要。普通PR/debug构建不上传服务器，也不再保存在GitHub Actions artifacts；诊断保留CI测试结果/日志。既有旧构件和Release不因本改动删除。
 
@@ -42,3 +42,9 @@ CI仅在main+workflow_dispatch+signed_ota且前序检查全部成功时上传。
 - GPT-6 Sol复核上传门禁、凭据和收据；建议的bytes核对已补。
 - 本机Node36/36，Python完整134项中127通过7平台跳过；新增发送边界4/4通过（非main拒绝、SSH失败、字节收据不符、私钥临时文件清理及成功摘要）。
 - PR Android CI及真实SSH部署已完成；受控构建、直传服务器及取回核验均已完成，首轮失败和修复证据见部署实录。私有源切换与实际下载已完成，详见[发布实录](ANDROID-ALPHA8-PUBLICATION.md)；手机安装待验收。
+
+## 2026-10-15 传输期限调整
+
+alpha.9 内置离线字体后 APK 约 40 MB，仍低于 48 MiB 上限。受控构建 38609926825 两次在原 180 秒接收期限内未能传完；暂存文件正常增长（第二次观测约 15.6 MB），退出后未生成最终构件，正式更新源未切换。接收期限改为 600 秒、发送方等待改为 630 秒；其他大小、摘要、账号、目录、单进程锁和配额限制不变。
+
+本机上传边界测试 14 通过、1 平台跳过；部署前 Linux 接收器 10/10 通过。持原上传锁、核对旧脚本、备份后原子替换；服务 PID/启动时间和三端更新源摘要均未变化。旧脚本备份位于 /opt/codex-desktop-remote-upload/receive_android_build.py.before-20261015-deadline。新脚本 SHA256 为 5e7d6b8b5bd5544368ded885e204e22b8b81ad6b1b4397985fe1216b11312cba。此为交付工具修复，不改变 alpha.9 APP 代码。
