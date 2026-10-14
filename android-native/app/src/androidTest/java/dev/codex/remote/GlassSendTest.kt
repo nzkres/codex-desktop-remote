@@ -55,7 +55,7 @@ class GlassSendTest {
         }
     }
 
-    @Test fun rotatesOnlyWhileSendingThenCollapsesAndKeepsExactlyOneAcceptedMessage() {
+    @Test fun rotatesOnlyWhileSendingThenKeepsEditorAndExactlyOneAcceptedMessage() {
         compose.mainClock.autoAdvance = false
         val gate = CompletableDeferred<String?>()
         val content = mutableStateOf(original)
@@ -75,7 +75,7 @@ class GlassSendTest {
         captureTestScreen("17-glass-sending")
         compose.runOnIdle { gate.complete("sent-turn") }
         compose.mainClock.autoAdvance = true
-        compose.waitUntil(5000) { compose.onAllNodesWithContentDescription("展开输入框").fetchSemanticsNodes().isNotEmpty() }
+        compose.waitUntil(5000) { compose.onAllNodesWithTag("sent-message").fetchSemanticsNodes().isNotEmpty() }
         compose.waitForIdle()
         assertEquals(1, submissions)
         compose.onNodeWithTag("sent-message").assertIsDisplayed()
@@ -89,7 +89,7 @@ class GlassSendTest {
         compose.waitForIdle()
         compose.onAllNodesWithTag("sent-message").assertCountEquals(1)
         compose.onNodeWithText("已发送 · 同步中").assertDoesNotExist()
-        compose.onNodeWithContentDescription("展开输入框").performClick()
+        compose.onNodeWithTag("composer-editor").assertIsDisplayed()
         compose.onNode(hasSetTextAction()).assert(SemanticsMatcher.expectValue(SemanticsProperties.EditableText, AnnotatedString("")))
     }
 

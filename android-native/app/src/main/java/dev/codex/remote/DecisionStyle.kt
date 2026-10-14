@@ -16,8 +16,11 @@ import androidx.compose.ui.unit.sp
 @Composable
 internal fun DecisionSurface(modifier: Modifier = Modifier, warning: Boolean = false, content: @Composable () -> Unit) {
     val palette = LocalAppPalette.current
+    val skin = LocalChatAppearance.current.skin
+    val glassAlpha = when (skin.glass) { GlassSkin.Clear -> .58f; GlassSkin.Smoke -> .78f; GlassSkin.Frost -> .86f }
     Surface(modifier.fillMaxWidth(), shape = RoundedCornerShape(18.dp),
-        color = if (warning) palette.warningSurface else palette.questionSurface, contentColor = palette.ink,
+        color = if (warning) palette.warningSurface.copy(alpha = .85f) else
+            (if (palette.isNight) Color(skin.palette.dark) else Color.White).copy(alpha = glassAlpha), contentColor = palette.ink,
         border = BorderStroke(.7.dp, palette.muted.copy(alpha = .45f))) { content() }
 }
 
@@ -31,7 +34,7 @@ internal fun decisionButtonColors(): ButtonColors {
 }
 
 @Composable
-internal fun DecisionOption(label: String, selected: Boolean, enabled: Boolean, onSelect: () -> Unit) {
+internal fun DecisionOption(label: String, selected: Boolean, enabled: Boolean, description: String = "", onSelect: () -> Unit) {
     val palette = LocalAppPalette.current
     val accent = conversationColors(LocalChatAppearance.current.style, palette.isNight).accent
     Surface(Modifier.fillMaxWidth().padding(vertical = 3.dp), shape = RoundedCornerShape(12.dp),
@@ -43,7 +46,10 @@ internal fun DecisionOption(label: String, selected: Boolean, enabled: Boolean, 
                 colors = RadioButtonDefaults.colors(selectedColor = accent, unselectedColor = palette.muted,
                     disabledSelectedColor = palette.ink, disabledUnselectedColor = palette.muted))
             Spacer(Modifier.width(8.dp))
-            Text(label, color = palette.ink, fontSize = 12.sp)
+            Column(Modifier.weight(1f)) {
+                Text(label, color = palette.ink, fontSize = 12.sp)
+                if (description.isNotBlank()) Text(description, color = palette.muted, fontSize = 11.sp, lineHeight = 15.sp)
+            }
         }
     }
 }

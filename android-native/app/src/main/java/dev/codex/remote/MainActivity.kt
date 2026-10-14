@@ -66,7 +66,7 @@ class MainActivity : ComponentActivity() {
         TaskNotifications.createChannels(this)
         val appearance = getSharedPreferences("appearance", MODE_PRIVATE)
         setContent {
-            var night by remember { mutableStateOf(appearance.getBoolean("night", false)) }
+            var night by remember { mutableStateOf(appearance.getBoolean("night", true)) }
             SideEffect {
                 WindowCompat.getInsetsController(window, window.decorView).isAppearanceLightStatusBars = !night
                 WindowCompat.getInsetsController(window, window.decorView).isAppearanceLightNavigationBars = !night

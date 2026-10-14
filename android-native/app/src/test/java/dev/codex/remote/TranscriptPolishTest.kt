@@ -71,7 +71,7 @@ class TranscriptPolishTest {
             for (night in listOf(false, true)) for (mine in listOf(false, true)) for (stripe in 0..1) {
                 val fallback = if (night) Color(0xFF9BA8BA) else Color(0xFF6B7280)
                 val text = zebraSecondary(zebra, night, fallback).luminance()
-                val surface = messageSurface(ChatAppearance(style = style, zebra = zebra), mine, stripe, night).luminance()
+                val surface = messageSurface(ChatAppearance(style = style, zebra = zebra, skin = TerminalSkin(effect = GridEffect.Off)), mine, stripe, night).luminance()
                 val contrast = (max(text, surface) + .05f) / (min(text, surface) + .05f)
                 assertTrue("Small labels need contrast on $zebra / $style / $night / $mine / $stripe: $contrast", contrast >= 4.5f)
                 if (mine) {
@@ -85,7 +85,7 @@ class TranscriptPolishTest {
     @Test fun bottomInsetUsesExactlyTheLastStripeIncludingUserTint() {
         for (zebra in ZebraStyle.entries.filter { it != ZebraStyle.Off }) for (style in ChatStyle.entries)
             for (night in listOf(false, true)) for (mine in listOf(false, true)) for (stripe in 0..1) {
-                val appearance = ChatAppearance(style = style, zebra = zebra)
+                val appearance = ChatAppearance(style = style, zebra = zebra, skin = TerminalSkin(effect = GridEffect.Off))
                 assertEquals(messageSurface(appearance, mine, stripe, night), transcriptPageSurface(appearance, mine, stripe, night))
             }
         assertEquals(1f, transcriptPageSurface(ChatAppearance(zebra = ZebraStyle.Off), false, 0, false).alpha)

@@ -1,3 +1,7 @@
+## Android alpha.9 · 开发验证中（2026-10-15）
+
+目标为 Desktop Remote Lite。独立分支实现已批准预览；尚未声明构建、签名、安装或手机验收完成。模型接口未接通，入口只如实说明。
+
 ## 2026-10-14 — Android alpha.8 私有 OTA 已发布（手机待安装）
 
 用户明确批准签名并发布Android alpha.8。北京时间17:36:03在独占Android发布锁内核对旧索引摘要后原子切换到alpha.8/versionCode8/sequence2；17:36:38完成本机经正常TLS、账号鉴权的索引读取及完整APK下载复验。匿名索引和APK均401；临时验收会话单独注销，不影响手机登录。原索引备份、旧APK、Windows/relay更新源、服务PID/启动时间及运行版本均保持。
