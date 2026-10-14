@@ -1,3 +1,13 @@
+## 2026-10-14 — Android PR #10已获批合并；受控构建等待构件保存恢复
+
+用户明确批准合并PR #10，并在构件保存恢复后沿用原证书受控签名构建alpha.8；本次不包含Android私有源发布或手机安装。北京时间16:26:18按精确head 4371604af9f8171a2e0fa781dc61c304ff2902a7合并，main提交e66f710660b58d35da67db4ceab41c6d6dd01114。合并后android-native及.github/workflows/android.yml与批准分支完全一致；相较已完整测试的b7a5245，head只增补4份审查文档，没有业务代码变化。
+
+最新Core CI38534848945于16:25:22（Linux）、16:26:23（Windows）上传均仍报Artifact storage quota has been hit，其余适用步骤通过。当前仓库仍只有保留的4份旧最新构件，未获得alpha.8新APK。合并自动触发普通main Android CI38535101592及Core CI38535101712；它们不是受控签名构建，不能用于手机覆盖安装。没有把清理成功当额度恢复，也未反复触发签名构建。
+
+后续签名授权已具备，不重复询问：确认构件保存实际恢复、main Android源码/签名工作流没有未经审查变化后，执行gh workflow run android.yml --repo nzkres/codex-desktop-remote --ref main -f signed_ota=true。必须保留run ID并下载复验证书、包名/versionCode8、包内trust与版本说明、大小/SHA；取回后才准备RSA元数据签名和私有源审查。若main业务代码变化，先复核范围。此刻受控签名构建尚未触发、APK不可下载、Android feed仍未切换，手机未安装。不能声称后续任务已被自动调度。
+
+命令证据：gh pr merge 10 --merge --match-head-commit 4371604af9f8171a2e0fa781dc61c304ff2902a7；gh pr view 10确认MERGED与合并提交；git diff origin/main HEAD --exit-code -- android-native .github/workflows/android.yml通过；最新CI日志仅提取固定配额错误，不保存私密日志。
+
 ## 2026-10-14 — Android alpha.8独立PR #10验收完成，待批准合并/签名
 
 PR https://github.com/nzkres/codex-desktop-remote/pull/10，业务提交b7a524554fbd5f0240fa26ef67834d5e6cfc8d2d。109份Android文件及Android CI工作流与已测试源码0dbf345的Git对象完全一致（tree b40aa270b71bd5124de60ad4f18246c2365057ec，workflow blob 5f1d29989955cc5707a5d91a6845ddc8994e506a）。更新器、应用Manifest、构建签名配置与main无差异；未改Windows/relay业务代码。本机Node36/36，Python118通过6平台跳过；版本历史与git diff --check通过。GPT-6 Sol medium只读复核未发现阻断，强调须配套已发布Windows alpha.15及完整版本文档，均已记录。

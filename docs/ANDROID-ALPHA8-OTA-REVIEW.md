@@ -2,6 +2,8 @@
 
 ## 当前状态
 
+2026-10-14北京时间16:26:18，用户批准后PR #10已合并到main，合并提交e66f710660b58d35da67db4ceab41c6d6dd01114。原证书受控签名构建已获准，但须等构件保存恢复；16:26:23仍有最新上传配额失败，尚未触发alpha.8受控构建。Android私有源发布和手机安装仍不在本次批准中。
+
 2026-10-14：本分支基于main的7f4d80d，只提取已经测试的0dbf345bee1b54e593050a6016db84329bcdbce1中的android-native及Android CI文件；不包含Windows/relay业务代码，不变更签名Secrets或受控签名main-only条件。此文不代表APK已经可下载或已发布。
 
 线上Android测试源实查仍为alpha.5、versionCode5、sequence1，只有android-0.1.0-alpha.5.apk，11772524字节，原签名元数据有效且包SHA匹配。元数据北京时间2026-10-15 14:33:03到期，不能靠改本机时间/忽略过期继续使用。Windows alpha.15已经独立发布；其发布不等于Android发布。
@@ -22,7 +24,7 @@
 ## 检查与发布顺序
 
 1. 本分支提取完整性检查、版本文档检查、现有Node/Python测试；独立Android CI编译、JVM、lint、APK版本检查及37项模拟器测试。
-2. 用户审阅此独立PR后批准合并及原证书签名构建。此前PR #9批准只覆盖alpha.7；不能据此自动合并alpha.8或整批PR #8。
+2. **已完成批准与合并**：用户本轮明确批准PR #10及原证书构建，main合并e66f710。授权不包含整批PR #8、Android源发布或手机安装；后续同一构建不重复询问。
 3. GitHub构件保存目前仍受配额阻止：已按用户授权保留当前仓库同类最新构件，2026-10-14 15:57:55的Android run38530732869仍报Artifact storage quota has been hit。等待额度实际恢复后执行一次受控构建；不把清理成功当额度恢复，不循环重建、不修改付费、不删除其他仓库或Release、不借日志传APK。
 4. 取得受控签名APK及报告后本地独立复验，准备新的Android签名元数据（新sequence、新有效期、固定APK哈希；检查全体既有签发记录避免序号复用），保存旧feed及审批清单。
 5. APK和元数据准备完整且验收后，请用户单独批准Android私有源切换。只发布Android，不重启连接器/中继，不更新Windows源。原子落位、私有鉴权和正常TLS实际下载核对；Android下载用账号身份，不拿仅限Windows的设备身份冒充账号。
@@ -38,5 +40,15 @@
 - 独立PR [#10](https://github.com/nzkres/codex-desktop-remote/pull/10)，代码b7a5245：109份Android文件及工作流与0dbf345的Git对象完全一致；Node36/36、Python118通过6跳过，版本历史通过。GPT-6 Sol只读审查无阻断；原更新器/Manifest/签名配置未改。
 - 独立Android [CI38533382850](https://github.com/nzkres/codex-desktop-remote/actions/runs/38533382850)：编译/JVM/lint/包内版本及37项模拟器通过；唯一失败是构件上传配额，API无构件。CI端debug APK 11806368字节，SHA256 3a46fd9a2295db0f5104abe65a48da6c3fc6468626930ebd1ca06ef9db14b3d7，非受控签名包且未取回。
 - 独立Core [CI38533382485](https://github.com/nzkres/codex-desktop-remote/actions/runs/38533382485)：Windows/Linux适用检查通过，均只因上传配额失败；不能写整体CI成功。
-- 本轮只记录候选及测试，不合并、不发布；受控合并/构建批准与实际私有源发布分开。
+- PR #10已批准并合并（e66f710），原证书构建待构件保存恢复；私有源发布仍待APK验收后单独确认。
 - alpha.8原证书签名包、本地取回验包、私有源发布、手机覆盖安装与功能实测：均未完成。
+
+## 已授权的继续执行入口
+
+构件上传实际恢复后，核对main的Android tree仍为b40aa270b71bd5124de60ad4f18246c2365057ec、工作流blob仍为5f1d29989955cc5707a5d91a6845ddc8994e506a（若改变先复核），再执行：
+
+```text
+gh workflow run android.yml --repo nzkres/codex-desktop-remote --ref main -f signed_ota=true
+```
+
+当前未运行这条签名命令，也未创建自动调度。main普通push CI只证明调试构建；不得把它当作原证书签名包。保存恢复需有实际成功上传/可下载产物的证据；最新失败为Core38534848945的16:26:23配额错误。复核现有六项Secret名称即可，不读取/输出秘密值、不重新配置证书。
