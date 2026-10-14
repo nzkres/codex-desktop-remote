@@ -1,3 +1,13 @@
+## 2026-10-14 — 问答完成状态与候选包复核：检查通过，构件上传受阻
+
+代码提交0dbf345：已回答/已关闭题卡保留说明，但不再触发待回答通知和输入框关注提示；未知状态仍提示核对。独立GPT-6 Sol审查确认原题revision变化会拒绝旧答案，Android持久化后才发送，超时/取消不重发。异步提问只读展示，不能写成手机选择已完成。
+
+本机仅运行当前test目录的全部Node测试176/176（命令：PowerShell收集test/*.test.mjs，node --test @testFiles）；先前257/259计数包含artifacts中历史源码副本，不作为本轮当前源码测试数量。普通node --test的受限沙箱运行还遇到临时目录/junction权限失败；允许合成临时文件与回环端口后，当前测试目录全部通过。Python unittest discover -s test -p "test_*.py"：172项，166通过、6平台跳过。scripts/check_versions.py通过；demo_mobile_special_actions.mjs合成普通问答accepted、异步desktop_required，真实Desktop调用0。windows_ota_smoke.py实际隔离GUI/独立助手升级及失败回退均通过。
+
+前一提交542c194的Core CI38522632230：Windows/Linux所有测试、适用平台演练和打包通过，仅构件上传因GitHub存储额度失败。Android CI38522632286：编译/JVM/lint/APK核对通过，37项模拟器中2项失败；一项旧测试仍点击已明确禁用的新建入口，现改为任务行B项目隔离、A项目不出现、入口禁用与无弹窗检查；另一项草稿恢复增加写入前后存储和实际编辑文本核对，尚待新CI判定。未因旧测试重新开放未支持动作。最终源码0dbf345的Core CI38524365265也已确认：Windows/Linux全部测试与适用演练、打包通过，仅artifact上传因相同存储额度失败。Android CI38524365342已完成：编译、JVM单元、lint、APK包内版本/备注核对以及37项模拟器测试全部通过；旧的两项失败不再复现。只有Save untrusted debug APK and reports因Artifact storage quota has been hit失败，整轮CI仍为failure。Actions API artifacts.total_count=0，没有可下载APK。未删除远端资产、修改额度或绕过签名流程。
+
+本地未签名Windows alpha.15候选2：173997字节，SHA256 6508aede5dd9c461467a2df0ca80584bb43f56c2822d871017e428d495251ae6；51文件逐项SHA、ZIP CRC、包清单、当前源码字节一致验证通过。路径artifacts/alpha15/windows-0.1.0-alpha.15-candidate2-unsigned.zip，审计package-candidate2-audit.json。不是可覆盖现用安装的受信OTA包，没有发布/安装，不含外部Python/Node/FRP。Android CI端debug APK为0.1.0-alpha.8/versionCode8、11806368字节、SHA256 4fe6cfdfd9c8154770396d716d3a62743166ce9b9bf4ffd5075fd5b679e0a7a3；这是CI构建核对，不是本机下载复验，更不是原证书OTA包。受控签名仍需main发布流程，现有PR #9批准不扩展为本批PR #8自动合并。下一步先解决构件保存、准备本批审查与受控签名，然后再做现用服务升级和手机验收。
+
 ## 2026-10-14 — 普通手机问答闭环候选；异步仅显示并明确限制
 
 用户批准按特殊交互方案实现。Windows alpha.15 / Android alpha.8新增普通requestUserInput卡片、选项说明、自由输入/多题、原题revision提交、持久摘要回执与completed原生答题记录核对。待处理请求不再遮断历史；手机加密草稿按账号/电脑/任务/题目版本隔离，未知状态禁止重交。未支持操作禁用并指向电脑处理。
