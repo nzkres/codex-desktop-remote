@@ -580,16 +580,36 @@ private fun RemoteApp(night: Boolean, destination: NotificationDestination?, onD
                                     error = "无法加密保存答案，回答未提交。"
                                 } else {
                                     busy = true
-                                    scope.launch {
+                                    scope.launch(start = kotlinx.coroutines.CoroutineStart.UNDISPATCHED) {
                                         try {
-                                            val receipt = client.answer(id, request, answers)
-                                            store.save(id, request, store.read(id, request).copy(state = receipt.status, notice = receipt.notice))
-                                            if (client === gateway && selectedId == id) refresh(client, id)
-                                        } catch (cancel: CancellationException) { throw cancel }
-                                        catch (_: Exception) {
-                                            if (runCatching { store.save(id, request, store.read(id, request).copy(state = "unknown",
-                                                notice = "提交结果待核对；请刷新确认，不要重复提交。")) }.isFailure)
-                                                error = "回答状态无法保存，请刷新任务核对；不要重复提交。"
+                                            val receipt = try { client.answer(id, request, answers) }
+                                            catch (cancel: CancellationException) {
+                                                if (runCatching { store.save(id, request, store.read(id, request).copy(state = "unknown",
+                                                    notice = "提交已中断，结果待核对；请刷新，不要重复提交。")) }.isFailure)
+                                                    error = "提交已中断且状态无法保存，请刷新任务核对；不要重复提交。"
+                                                throw cancel
+                                            } catch (failure: GatewayException) {
+                                                val rejected = questionAnswerRejectedBeforeSend(failure)
+                                                if (runCatching { store.save(id, request, store.read(id, request).copy(
+                                                    state = if (rejected) "pending" else "unknown",
+                                                    notice = if (rejected) failure.message.orEmpty().ifBlank { "回答未发送，请刷新核对。" }
+                                                        else "提交结果待核对；请刷新确认，不要重复提交。")) }.isFailure)
+                                                    error = "回答状态无法保存，请刷新任务核对；不要重复提交。"
+                                                return@launch
+                                            } catch (_: Exception) {
+                                                if (runCatching { store.save(id, request, store.read(id, request).copy(state = "unknown",
+                                                    notice = "提交结果待核对；请刷新确认，不要重复提交。")) }.isFailure)
+                                                    error = "回答状态无法保存，请刷新任务核对；不要重复提交。"
+                                                return@launch
+                                            }
+                                            if (runCatching { store.save(id, request, store.read(id, request).copy(
+                                                state = receipt.status, notice = receipt.notice)) }.isFailure) {
+                                                error = "电脑已返回回答回执，但本机无法保存状态；请刷新核对，不要重复提交。"
+                                                return@launch
+                                            }
+                                            if (client === gateway && selectedId == id) try { refresh(client, id) }
+                                            catch (cancel: CancellationException) { throw cancel }
+                                            catch (_: Exception) { error = "回答回执已保存，刷新失败；稍后再核对。" }
                                         } finally { busy = false }
                                     }
                                 }

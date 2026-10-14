@@ -40,7 +40,8 @@ class DraftAndActionsUiTest {
         return DraftStore(context.getSharedPreferences(name, Context.MODE_PRIVATE))
     }
     private fun session(id: String) = Session(id, "fixture", "对话 $id", "COMPLETED", null, "default", 0)
-    private fun content() = Conversation(emptyList(), Observation("completed", 0, "gateway", ""), emptyList(), emptyList())
+    private fun content() = Conversation(emptyList(), Observation("completed", 0, "gateway", ""), emptyList(), emptyList(),
+        capabilities = ConversationCapabilities(mode = true))
     @After fun cleanup() { compose.mainClock.autoAdvance = true; names.forEach { context.deleteSharedPreferences(it) } }
 
     @Test fun encryptedDraftsRoundTripIsolateAndProtectAgainstLateReceipts() {
@@ -103,10 +104,13 @@ class DraftAndActionsUiTest {
             when (method.name) { "getAll" -> emptyMap<String, Any>(); "edit" -> editor; else -> null }
         } as SharedPreferences
         val store = QuestionDraftStore(prefs)
+        val nextName = "question-scope-${UUID.randomUUID()}"; names += nextName
+        val nextStore = QuestionDraftStore(context.getSharedPreferences(nextName, Context.MODE_PRIVATE))
+        val selectedStore = mutableStateOf(store)
         val request = QuestionRequest("a".repeat(64), listOf(Question("reason", "原因", "请填写", emptyList(), false, true)), "b".repeat(64))
         var submitted = false
         compose.setContent { HapiStyle(false) {
-            QuestionCard(request, false, store, "thread") { _, _ -> submitted = true }
+            QuestionCard(request, false, selectedStore.value, "thread") { _, _ -> submitted = true }
         } }
         compose.onNodeWithTag("question-answer-reason").performTextInput("未落盘的文字")
         compose.onNodeWithText("答案未能加密保存，仅保留在当前页面；请检查手机存储，勿提交。").assertIsDisplayed()
@@ -114,6 +118,17 @@ class DraftAndActionsUiTest {
         compose.onNodeWithText("提交").assertIsNotEnabled()
         assertFalse(submitted)
         assertTrue(store.read("thread", request).answers.isEmpty())
+        compose.runOnIdle { selectedStore.value = nextStore }
+        compose.onNodeWithText("答案未能加密保存，仅保留在当前页面；请检查手机存储，勿提交。").assertDoesNotExist()
+        compose.onNodeWithTag("question-answer-reason").assert(SemanticsMatcher.expectValue(SemanticsProperties.EditableText, AnnotatedString("")))
+    }
+
+    @Test fun corruptedQuestionDraftFailsClosedInsteadOfReopeningAnswer() {
+        val name = "question-corrupt-${UUID.randomUUID()}"; names += name
+        val prefs = context.getSharedPreferences(name, Context.MODE_PRIVATE)
+        assertTrue(prefs.edit().putString("thread:request:revision", "{broken").commit())
+        try { QuestionDraftStore(prefs); fail("Damaged draft must not be treated as absent") }
+        catch (_: org.json.JSONException) { /* The caller disables question submission. */ }
     }
 
     @Test fun submittingQuestionShowsProgressAndPreventsDuplicateTap() {

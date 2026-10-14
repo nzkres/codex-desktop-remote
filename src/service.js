@@ -187,8 +187,10 @@ export class Service {
       const view=this.questions(state);
       const old=this.receipts.questionRecords(id).find(r=>r.question.id===body.questionId);
       if(old) {
+        const current=view.groups.find(q=>q.id===body.questionId);
         const proof=answerProof(Object.fromEntries(Object.entries(body.answers).map(([id,v])=>[id,[v]])));
-        if(body.revision!==old.question.revision || proof!==old.question.answerProof)
+        if((current && current.revision!==old.question.revision)
+          || body.revision!==old.question.revision || proof!==old.question.answerProof)
           throw new ControlError('question_changed','这份回答与原提交不同，请刷新核对；未重新发送。');
         return {status:old.state==='accepted'?old.outcome:'unknown',notice:view.groups.find(q=>q.id===body.questionId)?.notice??'请刷新核对。'};
       }

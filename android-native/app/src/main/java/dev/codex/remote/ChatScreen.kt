@@ -717,9 +717,9 @@ internal fun QuestionCard(request: QuestionRequest, busy: Boolean, store: Questi
     threadId: String = "", capable: Boolean = true, storageAvailable: Boolean = true,
     onRefresh: () -> Unit = {},
     onAnswer: (QuestionRequest, Map<String, String>) -> Unit) {
-    var transient by remember(request.id, request.revision) { mutableStateOf(QuestionDraft()) }
-    var unsaved by remember(request.id, request.revision) { mutableStateOf<QuestionDraft?>(null) }
-    var saveError by remember(request.id, request.revision) { mutableStateOf(false) }
+    var transient by remember(store, threadId, request.id, request.revision) { mutableStateOf(QuestionDraft()) }
+    var unsaved by remember(store, threadId, request.id, request.revision) { mutableStateOf<QuestionDraft?>(null) }
+    var saveError by remember(store, threadId, request.id, request.revision) { mutableStateOf(false) }
     val draft = unsaved ?: store?.read(threadId, request) ?: transient
     fun save(next: QuestionDraft) {
         if (store == null) { transient = next; return }

@@ -14,15 +14,25 @@ internal data class QuestionDraft(val answers: Map<String, String> = emptyMap(),
 
 /** The scope includes the task endpoint and account. A question revision is a separate draft. */
 class QuestionDraftStore internal constructor(private val prefs: SharedPreferences) {
-    private var records by mutableStateOf(prefs.all.mapNotNull { (key, raw) ->
-        runCatching {
-            val value = JSONObject(raw as String)
-            val answers = value.getJSONObject("answers")
-            val other = value.optJSONArray("other")
-            key to QuestionDraft(answers.keys().asSequence().associateWith { answers.getString(it) },
-                (0 until (other?.length() ?: 0)).map { other!!.getString(it) }.toSet(),
-                value.optString("state", "pending").let { if (it == "submitting") "unknown" else it }, value.optString("notice"))
-        }.getOrNull()
+    private var records by mutableStateOf(prefs.all.map { (key, raw) ->
+        require(raw is String) { "问题草稿记录损坏，请检查手机存储。" }
+        val value = JSONObject(raw)
+        val answers = value.getJSONObject("answers")
+        val other = value.getJSONArray("other")
+        val state = value.getString("state")
+        val notice = value.getString("notice")
+        require(state in setOf("pending", "submitting", "unknown", "accepted", "closed", "desktop_required")) {
+            "问题草稿状态损坏，请检查手机存储。"
+        }
+        val savedAnswers = answers.keys().asSequence().associateWith { id ->
+            require(answers.get(id) is String) { "问题草稿答案损坏，请检查手机存储。" }
+            answers.getString(id)
+        }
+        val savedOther = (0 until other.length()).map { index ->
+            require(other.get(index) is String) { "问题草稿选项损坏，请检查手机存储。" }
+            other.getString(index)
+        }.toSet()
+        key to QuestionDraft(savedAnswers, savedOther, if (state == "submitting") "unknown" else state, notice)
     }.toMap())
 
     private fun key(threadId: String, request: QuestionRequest): String = "$threadId:${request.id}:${request.revision}"

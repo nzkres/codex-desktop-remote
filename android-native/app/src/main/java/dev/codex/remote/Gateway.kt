@@ -98,6 +98,17 @@ private fun JSONObject.syncEntry(): SyncEntry {
 
 class GatewayException(message: String, val status: Int, val code: String? = null) : Exception(message)
 
+/** These codes are emitted before the native answer is forwarded. All other failures are uncertain. */
+internal fun questionAnswerRejectedBeforeSend(error: GatewayException): Boolean =
+    when (error.code) {
+        "invalid_answer" -> error.status == 400
+        "question_changed", "operation_busy", "permissions_changed" -> error.status == 409
+        "question_unsupported" -> error.status == 409 || error.status == 501
+        "outside_scope" -> error.status == 403
+        "update_quarantine", "disconnect_preparing", "runtime_status_unknown" -> error.status == 503
+        else -> false
+    }
+
 class Credentials(context: Context) {
     private val prefs = EncryptedSharedPreferences.create(
         "gateway-credentials",

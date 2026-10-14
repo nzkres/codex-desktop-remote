@@ -7,6 +7,7 @@ import {Service,httpServer,permissionDigest} from '../src/service.js';
 import {Receipts} from '../src/receipts.js';
 import {nativeQuestions} from '../src/questions.js';
 import {MobileSync} from '../src/vendor/mobile-sync.js';
+import {TaskService} from '../src/tasks.js';
 
 function fixture(t,{enabled=true}={}) {
  const dir=mkdtempSync(join(tmpdir(),'question-test-'));t.after(()=>rmSync(dir,{recursive:true,force:true}));
@@ -74,6 +75,7 @@ test('accepted receipt cannot confirm a different answer or changed question rev
  await assert.rejects(f.service.answer(f.id,{...body,answers:{}}),{code:'invalid_answer'});
  f.state.requests=[{id:17,method:'item/tool/requestUserInput',params:{threadId:f.id,turnId:f.turnId,questions:[{...f.q,question:'changed'}]}}];
  assert.equal((await f.service.read(f.id)).pendingQuestions[0].status,'desktop_required');
+ await assert.rejects(f.service.answer(f.id,body),{code:'question_changed'});
  assert.equal(f.calls.length,1);
 });
 test('matching answer text without matching question content cannot confirm receipt',async t=>{
@@ -140,4 +142,19 @@ test('answer HTTP route authenticates, binds request path and rejects body overr
  assert.equal((await fetch(url,{method:'POST',headers,body:JSON.stringify(f.body())})).status,400);
  const {questionId,...body}=f.body();const r=await fetch(url,{method:'POST',headers,body:JSON.stringify(body)});
  assert.equal(r.status,200);assert.equal((await r.json()).status,'accepted');assert.equal(f.calls.length,1);
+});
+test('multi-task dispatcher applies the same answer and drain fences',async t=>{
+ const f=fixture(t);f.follower.close=()=>{};
+ const tasks=new TaskService(f.config,f.receipts,{createFollower:()=>f.follower,questionProtocol:true});t.after(()=>tasks.close());
+ await assert.rejects(tasks.answer('another',f.body()),{code:'outside_scope'});
+ assert.equal((await tasks.answer(f.id,f.body())).status,'accepted');assert.equal(f.calls.length,1);
+ await tasks.prepareDisconnect();await assert.rejects(tasks.answer(f.id,{}),{code:'disconnect_preparing'});
+});
+test('concurrent duplicate taps cannot dispatch a second answer',async t=>{
+ const f=fixture(t),body=f.body(),original=f.follower.forward;let release,started;
+ const gate=new Promise(r=>release=r),ready=new Promise(r=>started=r);
+ f.follower.forward=async(...args)=>{started();await gate;return original(...args);};
+ const first=f.service.answer(f.id,body);await ready;
+ await assert.rejects(f.service.answer(f.id,body),{code:'operation_busy'});
+ release();assert.equal((await first).status,'accepted');assert.equal(f.calls.length,1);
 });
