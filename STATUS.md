@@ -1,3 +1,13 @@
+## 2026-10-14 — alpha.13签名包与私有源已发布，等待用户安装
+
+固定源码8191cad32af62a5902a72e0eea44bc94bebb49f1构建Windows alpha.13，sequence9，163147字节，ZIP SHA256 fecbcfbc092a19d30840a25dc8d31066e4fcadc92c2bb013b382fdab721e79a1；metadata SHA256 d7e682bc7d06b0e3af81cc5c8c3df749e58c0c42ef037820ec39e4d63cfafeda。原DPAPI发布密钥签名、本机真实trust验签、解包manifest及包内211条源码/仓库位置检查通过。初次审核脚本误将verify的二元返回值直接交unpack，在审核层被拒；按正确返回值复验通过，未重新打包/签名或更改安装。
+
+[Core CI 38505660082](https://github.com/nzkres/codex-desktop-remote/actions/runs/38505660082)的Windows/Linux测试、真实助手/维护/HTTPS/cgroup适用步骤和打包均通过；**整轮结论failure，唯一失败步骤为两平台actions/upload-artifact@v4，不能称CI成功或产物可下载。** 本机实际GUI/helper提交与回退通过。
+
+按既有Windows私有源授权，服务端对原alpha.7 latest SHA精确比较并备份，先落不可变alpha.13包，服务器用原信任公钥再验签后原子发布latest；未改Android/relay feed、未重启服务。公网正常TLS匿名metadata/ZIP均401。现用连接仍alpha.12；在连接活跃时下载预检被原identity_or_runtime_requires_review门禁拒绝，未绕过，未执行check/stage或写真实升级账本。因此现设备认证下载与实际安装待用户安全断开后由原GUI执行。
+
+已提示用户等本轮结束，在alpha.12点击断开，确认安全断开，再检查更新/下载并安装alpha.13；Desktop保留，不重配对。之后确认新窗口错误清单入口，并继续手机新标题/历史验收。不要声称现用已升级；不要另起维护助手或删除运行保护。脱敏审计均在artifacts/alpha13/，发布源码已推送原开发分支，PR#8仍draft未合并。
+
 ## 2026-10-14 — 自动重试根因已修复；alpha.13错误清单候选
 
 现用alpha.12自动重试确认为9443仍提供过期证书：磁盘新证已存在，专用Caddy hook相同配置未强制重载。已在既有隔离部署授权内经3项合成测试和原hook精确比较，补--force并重载专用入口。正常TLS200、证书新指纹匹配；原连接自行恢复connected/lastError=null，未重配对或重启Desktop/FRPS。手机新对话仍待验收。
