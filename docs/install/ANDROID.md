@@ -1,3 +1,5 @@
+> 新交付方式准备中：Android安装包将由受控构建直接送到自有服务器，手机仍在原APP检查更新，不需要GitHub账号下载。不再等待GitHub构件配额；专用上传账号待明确批准，当前alpha.8仍未发布。见[服务器OTA交付](../SERVER-OTA-DELIVERY.md)。
+
 > 2026-10-14进度：alpha.8代码已随PR #10合入main，原证书构建已获准，正在等待GitHub构件保存恢复；还没有可下载的alpha.8签名APK，手机OTA源未更新。此时不需要卸载、重新配对或反复检查更新。详见[发布审查](../ANDROID-ALPHA8-OTA-REVIEW.md)。
 
 > 2026-10-14：手机在线源仍为alpha.5，alpha.8正在独立发布准备，不能通过反复检查更新取得未发布APK。Windows alpha.15已单独发布。本轮沿用现有包名、证书和登录/配对，不卸载重装。进度见[Android alpha.8发布审查](../ANDROID-ALPHA8-OTA-REVIEW.md)。
