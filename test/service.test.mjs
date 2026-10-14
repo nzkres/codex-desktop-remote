@@ -214,7 +214,7 @@ test('top-level reviewer alias cannot mask a nested approval extension change',a
 test('unknown live state and pending Desktop action never claim completion',async t=>{
  const f=fixture(t);delete f.state.threadRuntimeStatus;await assert.rejects(f.service.read(f.id),{code:'runtime_status_unknown'});
  f.state.threadRuntimeStatus={type:'idle'};f.state.requests=[{method:'item/tool/requestUserInput'}];
- await assert.rejects(f.service.read(f.id),{code:'desktop_action_required'});
+ assert.match((await f.service.read(f.id)).controlNotice,/电脑/);
 });
 test('authenticated prepare-disconnect is repeatable and permanently fences new controls',async t=>{
  const f=fixture(t),token=randomBytes(32).toString('hex'),controlToken=randomBytes(32).toString('hex'),instance='2'.repeat(32);

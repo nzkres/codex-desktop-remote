@@ -1,3 +1,5 @@
+> 2026-10-14候选提示：普通问答需Android alpha.8与Windows alpha.15配套；当前尚未发布/安装。沿用原配对身份及同证书OTA，不重新配对。异步题仅显示，仍在电脑回答；不要把候选源码当可下载升级包。详见[特殊交互](../MOBILE-SPECIAL-INTERACTIONS.md)与[状态](../../STATUS.md)。
+
 ## Android alpha.7 候选：手机点开原对话
 
 此功能需要Windows alpha.14与Android alpha.7配合。现用Windows仍alpha.13；本段不表示候选已经签名发布或安装。先完成CI、原签名包校验及受控升级，保留原配对，不重新配置身份。手机点击原电脑中的标题会请求Desktop加载同一个对话，可能切换电脑页面；后台刷新不自动打开。详细流程与验收见[按需打开](../DESKTOP-ON-DEMAND-OPEN.md)与[最新状态](../../STATUS.md)。

@@ -170,7 +170,7 @@ test('restart with no followers cannot drain past unknown durable stop or send',
 });
 test('active snapshot is tracked before pending approval or missing history errors',async t=>{
  const f=fixture(t);f.states.get(A).threadRuntimeStatus.type='active';f.states.get(A).requests=[{}];
- await assert.rejects(f.service.read(A),{code:'desktop_action_required'});
+ assert.match((await f.service.read(A)).controlNotice,/电脑/);
  assert.equal(f.service.activity.entries().length,1);
  const g=fixture(t);g.states.get(A).threadRuntimeStatus.type='active';g.states.get(A).turns=[];
  await assert.rejects(g.service.read(A),{code:'history_unavailable'});

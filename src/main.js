@@ -42,13 +42,15 @@ try {
   taskConfigs(config);
   if (taskScope(config) === 'selected') config.projectPath = realpathSync(config.projectPath);
   config.dataDir = realpathSync(config.dataDir);
-  await verifyCompatibility(config);
+  const compatibility = await verifyCompatibility(config);
   const auth = await bootstrap();
   const scope = createHash('sha256').update(config.dataDir.toLowerCase()).digest('hex').slice(0,32);
   // 管道名由数据目录派生，已有实例占用同一管道时 listen 会失败。
   lease = createServer(socket => socket.destroy());
   await new Promise((yes,no) => { lease.once('error',no); lease.listen('\\\\.\\pipe\\desktop-remote-lite-'+scope,yes); });
-  service = new TaskService(config, new Receipts(join(config.dataDir,'receipts')), {quarantine:auth.quarantine === true});
+  service = new TaskService(config, new Receipts(join(config.dataDir,'receipts')), {
+    quarantine:auth.quarantine === true,questionProtocol:compatibility.desktopVersion === '26.1007.2314.0',
+  });
   server = httpServer(service,auth.token,auth.instance,auth.controlToken);
   // HTTP 端口只绑定本机回环地址；listening 状态表示本地服务已监听，不代表 Desktop 执行能力已核实。
   await new Promise((yes,no) => { server.once('error',no); server.listen(config.port,'127.0.0.1',yes); });

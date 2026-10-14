@@ -44,7 +44,7 @@ class ErrorCatalogTests(unittest.TestCase):
                 self.assertIn('错误码：' + code, describe(code))
                 source = entry['source']
                 if source:
-                    self.assertIn(source['path'], (*_SOURCE_FILES, 'windows/error_catalog.py', 'src/desktop-open.js', 'src/service.js'))
+                    self.assertIn(source['path'], (*_SOURCE_FILES, 'windows/error_catalog.py', 'src/desktop-open.js', 'src/service.js', 'src/questions.js'))
                     lines = (ROOT / source['path']).read_text(encoding='utf-8').splitlines()
                     self.assertIsInstance(source['line'], int)
                     self.assertGreaterEqual(source['line'], 1)

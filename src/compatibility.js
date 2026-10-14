@@ -100,12 +100,13 @@ async function inspectCompatibility(config) {
     const version = manifestVersion(await readFile(manifest, 'utf8'));
     if (!version) return fail('invalid_manifest');
     if (!COMPATIBILITY_PINS.some(p => p.desktopVersion === version)) return fail('unsupported_version');
-    return verifyCompatibilityEvidence({
+    const result = verifyCompatibilityEvidence({
       platform: process.platform,
       desktopVersion: version,
       appAsarSha256: await sha256(appAsar),
       codexExeSha256: await sha256(codexExe),
     });
+    return result.ok ? {...result, desktopVersion:version} : result;
   } catch (error) {
     return fail(error?.code === 'ENOENT' ? 'missing_file' : 'io_error');
   }

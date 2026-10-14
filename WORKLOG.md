@@ -1,3 +1,11 @@
+## 2026-10-14 — 普通手机问答闭环候选；异步仅显示并明确限制
+
+用户批准按特殊交互方案实现。Windows alpha.15 / Android alpha.8新增普通requestUserInput卡片、选项说明、自由输入/多题、原题revision提交、持久摘要回执与completed原生答题记录核对。待处理请求不再遮断历史；手机加密草稿按账号/电脑/任务/题目版本隔离，未知状态禁止重交。未支持操作禁用并指向电脑处理。
+
+协议只读核对固定26.1007 ASAR；同步保留requestId原类型，IPC成功不是完成证据。异步follower steer没有调用方expectedTurnId，存在跨回合误投竞态，故没有开放；只显示选项与状态。不是原方案所有交互均完成。GPT-6 Sol负责Android并独立审查原生协议/后端；已修正同题不同答案假确认及旧revision覆盖，普通聊天不能伪装已答。
+
+本地Node257项通过；Python完整回归、Android CI编译/测试/构件仍在核验。当前未修改现用安装/身份/权限/服务或更新源，未签名发布。本机无Java，Android以CI结果为准。下一步取得构建证据并准备受控升级，真实手机答题验收尚未进行。详见docs/MOBILE-SPECIAL-INTERACTIONS.md。
+
 ## 2026-10-14 — 手机特殊交互缺口审计与合成演示
 
 核对普通问答、异步选择框及14类特殊操作。当前Service阻断待请求历史并返回空问题列表；MobileSync丢弃agentMessage.questions；问答、审批、模式、实施路由未接通。Android已有卡片不等于当前连接器支持。GPT-6 Sol完成Android入口只读复核。

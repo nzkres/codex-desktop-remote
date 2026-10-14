@@ -50,8 +50,13 @@ data class MessageItem(
 data class Turn(val id: String, val status: String, val items: List<MessageItem>)
 data class Observation(val state: String, val lastActivityAt: Long, val source: String, val lastItemType: String)
 data class ActivityEntry(val session: Session, val observation: Observation)
-data class Question(val id: String, val title: String, val text: String, val options: List<String>, val secret: Boolean, val allowOther: Boolean)
-data class QuestionRequest(val id: String, val questions: List<Question>)
+data class QuestionOption(val label: String, val description: String)
+data class Question(val id: String, val title: String, val text: String, val options: List<QuestionOption>, val secret: Boolean, val allowOther: Boolean)
+data class QuestionRequest(val id: String, val questions: List<Question>, val revision: String = "", val turnId: String = "",
+    val kind: String = "user-input", val status: String = "pending", val notice: String = "")
+data class QuestionReceipt(val status: String, val notice: String)
+data class ConversationCapabilities(val questions: Boolean = false, val approvals: Boolean = false, val mode: Boolean = false,
+    val implementPlan: Boolean = false, val create: Boolean = false)
 data class Approval(val id: String, val turnId: String, val kind: String, val details: String, val approvable: Boolean)
 data class Conversation(
     val turns: List<Turn>,
@@ -65,6 +70,8 @@ data class Conversation(
     val latestUserMessage: SyncEntry? = null,
     val taskReferenceSupported: Boolean = false,
     val userMessageCount: Int? = null,
+    val controlNotice: String? = null,
+    val capabilities: ConversationCapabilities = ConversationCapabilities(),
 )
 data class TaskHistoryPage(val items: List<MessageItem>, val nextBefore: String?, val total: Int)
 
@@ -274,8 +281,8 @@ class Gateway(private val baseUrl: String, private val token: String, val target
         val questions = result.array("pendingQuestions").map { request ->
             QuestionRequest(request.string("id"), request.array("questions").map { question ->
                 Question(question.string("id"), question.string("header"), question.string("question"),
-                    question.array("options").map { it.string("label") }, question.optBoolean("isSecret"), question.optBoolean("isOther"))
-            })
+                    question.array("options").map { QuestionOption(it.string("label"), it.string("description")) }, question.optBoolean("isSecret"), question.optBoolean("isOther"))
+            }, request.string("revision"), request.string("turnId"), request.string("kind"), request.string("status"), request.string("notice"))
         }
         val approvals = result.array("pendingApprovals").map {
             Approval(it.string("id"), it.string("turnId"), it.string("kind"), it.optJSONObject("details")?.toString(2) ?: "", it.optBoolean("approvable"))
@@ -285,7 +292,11 @@ class Gateway(private val baseUrl: String, private val token: String, val target
             result.optJSONObject("latestTurn")?.optBoolean("hasPlan") == true,
             result.optBoolean("reset") && window.cursor.isNotBlank(),
             result.optJSONObject("latestUserMessage")?.syncEntry(), result.has("latestUserMessage"),
-            if (result.has("userMessageCount")) result.optInt("userMessageCount") else null)
+            if (result.has("userMessageCount")) result.optInt("userMessageCount") else null,
+            result.string("controlNotice").takeIf { it.isNotBlank() },
+            result.optJSONObject("capabilities")?.let { caps -> ConversationCapabilities(caps.optBoolean("questions"),
+                caps.optBoolean("approvals"), caps.optBoolean("mode"), caps.optBoolean("implementPlan"), caps.optBoolean("create")) }
+                ?: ConversationCapabilities())
         val order = result.optJSONArray("order") ?: error("缺少消息顺序，请稍后重试")
         window.applyPage(result.string("cursor"), result.optBoolean("reset"),
             (0 until order.length()).map { order.getString(it) }, result.array("items").map { it.syncEntry() }, metadata)
@@ -336,8 +347,13 @@ class Gateway(private val baseUrl: String, private val token: String, val target
     suspend fun decide(id: String, approvalId: String, approve: Boolean) {
         request("/api/sessions/${id.encode()}/approvals/${approvalId.encode()}/decision", JSONObject().put("decision", if (approve) "approve" else "deny"))
     }
-    suspend fun answer(id: String, requestId: String, answers: Map<String, String>) {
-        request("/api/sessions/${id.encode()}/questions/${requestId.encode()}/answer", JSONObject().put("answers", JSONObject(answers)))
+    suspend fun answer(id: String, question: QuestionRequest, answers: Map<String, String>): QuestionReceipt {
+        require(question.id.matches(Regex("[a-f0-9]{64}")) && question.revision.matches(Regex("[a-f0-9]{64}"))) { "问题编号或版本无效，请刷新后再试" }
+        val response = request("/api/sessions/${id.encode()}/questions/${question.id.encode()}/answer",
+            JSONObject().put("revision", question.revision).put("answers", JSONObject(answers)))
+        val status = response.string("status")
+        require(status in setOf("accepted", "unknown", "closed")) { "回答回执无效，请刷新核对" }
+        return QuestionReceipt(status, response.string("notice"))
     }
 }
 

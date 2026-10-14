@@ -114,6 +114,10 @@ private fun RemoteApp(night: Boolean, destination: NotificationDestination?, onD
         gateway?.let { DraftStore.open(context, draftScope(it.taskEndpoint, credentials.account, credentials.token)) }
     } }
     val draftStore = draftStorage.getOrNull()
+    val questionStorage = remember(gateway) { runCatching {
+        gateway?.let { QuestionDraftStore.open(context, draftScope(it.taskEndpoint, credentials.account, credentials.token)) }
+    } }
+    val questionDraftStore = questionStorage.getOrNull()
 
     var syncError by remember { mutableStateOf("") }
     var lastMetadataAt by remember { mutableLongStateOf(0L) }
@@ -171,6 +175,7 @@ private fun RemoteApp(night: Boolean, destination: NotificationDestination?, onD
                 } ?: throw GatewayException("电脑仍在打开这条对话，请稍后点击重试。", 503, "desktop_open_pending")
             }
             if (client === gateway && id == selectedId) {
+                questionDraftStore?.reconcile(id, fresh.questions)
                 conversation = fresh
                 conversationError = ""
                 fresh.session?.let { current -> sessions = sessions.filterNot { it.id == current.id } + current }
@@ -561,8 +566,47 @@ private fun RemoteApp(night: Boolean, destination: NotificationDestination?, onD
                     onMode = { mode -> perform { it.mode(id, mode) } },
                     onImplement = { perform { it.implementPlan(id) } },
                     onApproval = { approval, approve -> perform { it.decide(id, approval.id, approve) } },
-                    onAnswer = { request, answers -> perform { it.answer(id, request.id, answers) } },
+                    onAnswer = { request, answers ->
+                        val client = gateway
+                        val store = questionDraftStore
+                        if (client != null && store != null && !busy && selectedId == id &&
+                            conversation?.capabilities?.questions == true &&
+                            conversation?.questions?.any { it.id == request.id && it.revision == request.revision &&
+                                it.turnId == request.turnId && it.kind == request.kind && it.status == "pending" &&
+                                it.questions.none { question -> question.secret } } == true) {
+                            val current = store.read(id, request)
+                            if (current.state == "pending") {
+                                if (runCatching { store.save(id, request, current.copy(answers = answers, state = "submitting")) }.isFailure) {
+                                    error = "无法加密保存答案，回答未提交。"
+                                } else {
+                                    busy = true
+                                    scope.launch {
+                                        try {
+                                            val receipt = client.answer(id, request, answers)
+                                            store.save(id, request, store.read(id, request).copy(state = receipt.status, notice = receipt.notice))
+                                            if (client === gateway && selectedId == id) refresh(client, id)
+                                        } catch (cancel: CancellationException) { throw cancel }
+                                        catch (_: Exception) {
+                                            if (runCatching { store.save(id, request, store.read(id, request).copy(state = "unknown",
+                                                notice = "提交结果待核对；请刷新确认，不要重复提交。")) }.isFailure)
+                                                error = "回答状态无法保存，请刷新任务核对；不要重复提交。"
+                                        } finally { busy = false }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    onRefreshQuestions = {
+                        val client = gateway
+                        if (client != null && selectedId == id && !busy) scope.launch {
+                            try { refresh(client, id) }
+                            catch (cancel: CancellationException) { throw cancel }
+                            catch (failure: Exception) { if (client === gateway && selectedId == id) conversationError = networkError(failure) }
+                        }
+                    },
                     draftStore = draftStore,
+                    questionDraftStore = questionDraftStore,
+                    questionStorageAvailable = questionStorage.isSuccess && questionDraftStore != null,
                     onLoadTask = { item ->
                         val client = gateway ?: throw IllegalStateException("未连接")
                         val full = client.taskItem(id, item.id)
@@ -731,11 +775,13 @@ internal fun SessionList(sessions: List<Session>, activityEntries: List<Activity
                 Text("任务", color = HapiPalette.ink, fontSize = 22.sp, fontWeight = FontWeight.SemiBold)
                 Text("${sessions.size} 个对话 · ${projects.size} 个项目", color = HapiPalette.muted, fontSize = 11.sp)
             }
-            GlassActionButton("新对话", onCreate, Modifier.testTag("new-conversation"), icon = "plus")
+            GlassActionButton("新对话", onCreate, Modifier.testTag("new-conversation"), icon = "plus", enabled = false)
         }
+        Text("新建对话请在电脑处理；已有任务可在手机继续。", Modifier.padding(start = 16.dp, bottom = 8.dp),
+            color = HapiPalette.muted, fontSize = 11.sp)
         HorizontalDivider(color = HapiPalette.divider, thickness = 0.5.dp)
         if (sessions.isEmpty()) Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            Text("暂无对话，点右上角创建。", color = HapiPalette.muted)
+            Text("暂无对话，请在电脑新建任务后刷新。", color = HapiPalette.muted)
         } else LazyColumn(Modifier.fillMaxSize()) {
             items(sessions.sortedByDescending { it.updatedAt }, key = { it.id }) { session ->
                 val projectName = projects.firstOrNull { it.id == session.projectId }?.name ?: "Codex"

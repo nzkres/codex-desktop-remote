@@ -48,11 +48,36 @@ export class Receipts {
     const fd = openSync(path, flag, 0o600);
     try { writeFileSync(fd, JSON.stringify(value)); fsyncSync(fd); } finally { closeSync(fd); }
   }
-  begin(key, digest) { this.write(this.file(key), { schema: 1, digest, state: 'pending' }); }
+  begin(key, digest, question = null) { this.write(this.file(key), { schema: 1, digest, state: 'pending', ...(question ? {question} : {}) }); }
   // Desktop 确认后先写临时文件，再原子替换 pending；异常会留下待人工核对的记录。
-  accept(key, digest, turnId) {
+  accept(key, digest, turnId, question = null, outcome = 'accepted') {
     const tmp = this.file(key) + '.' + randomUUID() + '.tmp';
-    this.write(tmp, { schema: 1, digest, state: 'accepted', turnId });
+    this.write(tmp, { schema: 1, digest, state: 'accepted', turnId, ...(question ? {question,outcome} : {}) });
     renameSync(tmp, this.file(key));
+  }
+  // 问答与普通发送共用原账本，所以未知答题也能阻止OTA/断开；不另建绕过保护的库。
+  // 只保存问题标识和答案摘要，不保存题目或答案正文。旧版本仍能识别pending/accepted。
+  questionRecords(threadId) {
+    const result=[];
+    const files=readdirSync(this.directory).filter(n=>n.endsWith('.json'));
+    if(files.length>10000) throw new ControlError('receipt_limit','操作记录需核对。');
+    for(const name of files) {
+      if(!/^[a-f0-9]{64}\.json$/.test(name) || lstatSync(join(this.directory,name)).isSymbolicLink())
+        throw new ControlError('receipt_invalid','操作记录无法核对。');
+      let record;try{record=JSON.parse(readFileSync(join(this.directory,name),'utf8'));}catch{throw new ControlError('receipt_invalid','操作记录无法核对。');}
+      if(record.question?.threadId===threadId) {
+        const q=record.question;
+        if(record.schema!==1 || !['pending','accepted'].includes(record.state)
+          || !/^[a-f0-9]{64}$/.test(record.digest??'') || !/^[a-f0-9]{64}$/.test(q.id??'')
+          || !/^[a-f0-9]{64}$/.test(q.revision??'') || !/^[a-f0-9]{64}$/.test(q.answerProof??'')
+          || !/^[a-f0-9]{64}$/.test(q.questionProof??'')
+          || !(typeof q.nativeId==='string' || Number.isSafeInteger(q.nativeId))
+          || typeof q.turnId!=='string' || !q.turnId || this.key(threadId,'question:'+q.id)+'.json'!==name
+          || (record.state==='accepted' && !['accepted','closed'].includes(record.outcome)))
+          throw new ControlError('receipt_invalid','答题记录无法核对。');
+        result.push({...record,key:name.slice(0,-5)});
+      }
+    }
+    return result;
   }
 }

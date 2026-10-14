@@ -202,12 +202,12 @@ export class Follower {
   // 第 5 步：转发操作。method 选择动作，params 是动作参数，返回的是操作响应里的 result。
   // 调用者（service.js）负责先核对权限、忙闲和回执；本函数不会独立完成这些业务检查。
   async forward(method, params, expectedState = this.state) {
-    // 只允许启动、停止和加载完整历史三种 follower 请求，且始终定向已核实 owner。
+    // 只允许启动、停止、加载历史和回答原问题，且始终定向已核实 owner。
     // 返回 Desktop 响应的 result；调用方负责处理回复丢失造成的未知结果。
     if (!this.state || this.state !== expectedState || this.awaiting || !this.authorized(this.state))
       throw new ControlError('owner_unavailable', '执行端状态已失效，请刷新。', 503);
-    // 三种允许动作：原任务开始新回合、停止回合、加载完整历史。没有创建任务或修改权限的入口。
-    if (!['thread-follower-start-turn', 'thread-follower-interrupt-turn', 'thread-follower-load-complete-history'].includes(method))
+    // 回答使用原requestId；不开放异步steer、创建任务或修改权限入口。
+    if (!['thread-follower-start-turn', 'thread-follower-interrupt-turn', 'thread-follower-load-complete-history', 'thread-follower-submit-user-input'].includes(method))
       throw new ControlError('unsupported_control', '本轮请在 Desktop 完成这项操作。', 501);
     // ...params 把传入参数展开；后写 conversationId 强制使用原任务 ID，防止参数改换任务。
     // 第三个参数 this.owner 把请求定向给已发现的客户端；不是每次随意选择执行器。

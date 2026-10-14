@@ -203,6 +203,7 @@ export class TaskService {
   }
   send(id, body) { return this.write(id, 'send', body); }
   stop(id, body) { return this.write(id, 'stop', body); }
+  answer(id, body) { return this.write(id, 'answer', body); }
   async prepareDisconnect() {
     this.draining = true;
     // 所有任务先一起禁止新写操作，再等待旧操作结束；不停止 Desktop 正在执行的任务。

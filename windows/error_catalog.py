@@ -229,6 +229,9 @@ _SOURCE_FILES = (
 _CODE_SHAPE = re.compile(r'[a-z][a-z0-9_]{0,79}\Z')
 
 _COMMON = {
+    'question_changed': ('手机答题', '题目版本或答案与原提交不一致。', '刷新核对原题；不要重复提交或更换编号重发。'),
+    'question_unsupported': ('手机答题', '当前原生接口不能安全处理这类提问。', '在电脑回答原题；手机仍可查看题目和同步处理状态。'),
+    'invalid_answer': ('手机答题', '回答缺项、格式无效或不属于当前问题的允许选项。', '核对本轮题目，补全非私密答案后提交；私密输入留在电脑处理。'),
     'launcher_unverified': ('Desktop 对话', '当前 Desktop 原生启动入口未通过版本或文件核对。', '在电脑打开原对话；保留兼容保护，等待支持当前版本的连接器。'),
     'desktop_open_failed': ('Desktop 对话', '连接器无法启动 Desktop 的原对话链接。', '确认 Desktop 正常运行，再在手机点开原对话；不需要重新配对。'),
     'desktop_open_pending': ('Desktop 对话', '已请求 Desktop 打开原对话，但还没有取得可核对的处理端。', '稍后点击重试；不要重复发送消息。'),
@@ -681,6 +684,9 @@ def _entry(code):
 
 # These JS-only failures also appear in the phone. Point to their real packaged source lines.
 _JS_ERROR_LOCATIONS = {
+    'question_changed': ('src/questions.js', 'validateAnswer'),
+    'question_unsupported': ('src/service.js', 'answer'),
+    'invalid_answer': ('src/questions.js', 'validateAnswer'),
     'launcher_unverified': ('src/desktop-open.js', 'openNativeConversation'),
     'desktop_open_failed': ('src/desktop-open.js', 'openNativeConversation'),
     'desktop_open_pending': ('src/desktop-open.js', 'ensureDesktopConversation'),

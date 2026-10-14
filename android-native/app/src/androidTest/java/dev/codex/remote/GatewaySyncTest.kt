@@ -8,6 +8,7 @@ import org.junit.runner.RunWith
 import java.net.ServerSocket
 import java.util.concurrent.CopyOnWriteArrayList
 import java.util.concurrent.atomic.AtomicBoolean
+import org.json.JSONObject
 import kotlin.concurrent.thread
 
 /** Actual Android HTTP/JSON decoding. Only loopback synthetic content, no real account. */
@@ -25,6 +26,29 @@ class GatewaySyncTest {
         }.use { http ->
             assertEquals("accepted-turn", Gateway(http.url, "synthetic").send("t", "hello", "synthetic-message"))
             assertEquals(listOf("/api/sessions/t/messages"), requests.toList())
+        }
+    }
+
+    @Test fun questionMetadataAndRevisionedAnswerUseExactContract() = runBlocking {
+        val revision = "b".repeat(64); val questionId = "a".repeat(64)
+        val question = """{"id":"$questionId","revision":"$revision","turnId":"turn","kind":"async","status":"pending","notice":"核对原题","questions":[{"id":"choice","header":"方式","question":"选哪个？","options":[{"label":"A","description":"推荐说明"}],"isSecret":false,"isOther":true}]}"""
+        SyncHttpFixture { path, _ ->
+            if (path.contains("/answer")) 200 to """{"status":"accepted","notice":"已接受"}"""
+            else 200 to """{"protocol":1,"cursor":"${"c".repeat(64)}","reset":true,"hasOlder":false,"order":[],"items":[],"session":{"id":"t"},"observation":{"state":"waiting"},"pendingQuestions":[$question],"pendingApprovals":[],"controlNotice":"可回答","capabilities":{"questions":true,"approvals":false,"mode":false,"implementPlan":false,"create":false}}"""
+        }.use { http ->
+            val gateway = Gateway(http.url, "synthetic")
+            val conversation = gateway.conversation("t")
+            val parsed = conversation.questions.single()
+            assertEquals("async", parsed.kind)
+            assertEquals("推荐说明", parsed.questions.single().options.single().description)
+            assertTrue(conversation.capabilities.questions)
+            assertFalse(conversation.capabilities.approvals)
+            assertEquals("可回答", conversation.controlNotice)
+            assertEquals("accepted", gateway.answer("t", parsed, mapOf("choice" to "A")).status)
+            assertTrue(http.bodies.single().let { body ->
+                val json = JSONObject(body)
+                json.getString("revision") == revision && json.getJSONObject("answers").getString("choice") == "A"
+            })
         }
     }
 
@@ -124,6 +148,7 @@ private class SyncHttpFixture(private val respond: (String, List<String>) -> Pai
     private val running = AtomicBoolean(true)
     private val socket = ServerSocket(0)
     val url = "http://127.0.0.1:${socket.localPort}"
+    val bodies = CopyOnWriteArrayList<String>()
     private val worker = thread(isDaemon = true, name = "mobile-sync-fixture") {
         while (running.get()) try {
             socket.accept().use { client ->
@@ -132,6 +157,14 @@ private class SyncHttpFixture(private val respond: (String, List<String>) -> Pai
                 val path = reader.readLine().split(' ')[1]
                 val headers = mutableListOf<String>()
                 while (true) { val line = reader.readLine(); if (line.isNullOrEmpty()) break; headers.add(line) }
+                val length = headers.firstOrNull { it.startsWith("Content-Length:", ignoreCase = true) }
+                    ?.substringAfter(':')?.trim()?.toIntOrNull() ?: 0
+                if (length > 0) {
+                    val body = CharArray(length)
+                    var read = 0
+                    while (read < length) { val count = reader.read(body, read, length - read); if (count < 0) break; read += count }
+                    bodies.add(String(body, 0, read))
+                }
                 val (status, payload) = respond(path, headers)
                 val bytes = if (status == 304) byteArrayOf() else payload.toByteArray(Charsets.UTF_8)
                 client.getOutputStream().apply {
