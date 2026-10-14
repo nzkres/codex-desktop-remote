@@ -126,7 +126,8 @@ class LifecycleTests(unittest.TestCase):
         stop = threading.Event()
         r, calls = runtime()
         with patch('connector_core.RelayClient') as client:
-            client.return_value.post.return_value = (0, {'error': 'connection_unavailable'})
+            client.return_value.post.return_value = (0, {'error': 'relay_network_unavailable'})
+            client.return_value.failure_code.return_value = 'relay_network_unavailable'
             result = Connector(store, runtime=r).run(stop, lambda report: stop.set())
         self.assertEqual(result['state'], 'reconnecting')
         self.assertFalse(r.allowed)

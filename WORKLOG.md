@@ -1,3 +1,9 @@
+## 2026-10-14 — 证书重载修复与Windows错误诊断
+
+用户要求自动重试要有具体错误码、可点击原因与代码位置。主代理完成GUI/网络分类/私有服务器诊断；GPT-6 Sol medium负责静态错误目录和定向测试，主代理复核源码定位和包内缺失工具的降级。
+
+只读查询verify_code10；磁盘新证与9443旧证指纹不同，定位专用Caddy reload缺--force。先跑Linux3项隔离hook测试，CAS备份替换专用hook，再正常TLS与原身份状态复核，alpha.12自行恢复，无任务消息写入。代码新增error_catalog、GUI清单及relay分类；UI截图纠正高DPI裁切，截图限定测试HWND。Python172项/Node221项通过（Python6平台跳过），最终定向32项通过。命令、证据、示例和发布边界见docs/WINDOWS-ALPHA13-DIAGNOSTICS.md。未替换现用客户端。
+
 ## 2026-10-14 — alpha.12实际安装提交并独立核验通过，等待手机新对话验收
 
 用户确认新窗口已出现。续接实际输出committed/success=true/version=0.1.0-alpha.12；独立审计current=候选、primary与alpha12-continuation1日志一致，ZIP/发布签名/包清单与固定候选匹配，原身份/config/taskData及保护摘要与续接review和事务preserved完全一致。旧槽可验证、原失败journal精确保留，配置仅增加获批taskScope=all-local，旧权限摘要/任务记录保留；runtimeNeedsReview已正常移除，应用锁由新实例持有。

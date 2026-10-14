@@ -180,7 +180,7 @@ class Controller:
         client = RelayClient(state['relay'])
         status, body = client.post(f"/connector-api/terminals/{state['terminalId']}/connection", state['deviceToken'], {})
         if status != 200:
-            raise ConnectorError('task_channel_unavailable')
+            raise ConnectorError(client.failure_code(status))
         settings = validate_connection(body, state)
         ca = public_asset(store.root, '.pem', settings['caPem'].encode())
         template, environment = launch_material(

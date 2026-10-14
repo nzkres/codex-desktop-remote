@@ -81,3 +81,7 @@ $PythonwExe = Join-Path (Split-Path -Parent $PythonExe) 'pythonw.exe'
 受管窗口底部可检查和下载签名更新。**本测试电脑已经完成alpha.7安装，勿重复安装；以下顺序仅适用于尚未升级的受管alpha.6安装**：确认专用任务空闲，先正常断开，再“检查更新”并阅读说明，最后“下载并安装”。已安装alpha.6账本仍为sequence2，新源为sequence3；如检查仍报保护/防重放错误，保留现场，不能删除账本或runtimeNeedsReview。下载校验与助手交接成功后旧窗口才退出。弹窗中的“将验证并重开”描述成功路径，候选或回退失败仍可能停在需维护者复核状态，不能以窗口关闭证明升级成功。维护者可在源码根目录只读调用 `& $PythonExe -B -m updates.cli --home $InstallRoot status`，`check` 和 `stage` 会访问已配置的 HTTPS source，**普通 Windows OTA 的 `apply`/`stop` 命令会拒绝，应使用窗口安装按钮**。alpha.5 的旧审核别名误报曾使普通窗口预检拒绝，因此 alpha.5→alpha.6 使用仓库专用的[维护切换路径](../WINDOWS-ALPHA5-MAINTENANCE.md)；alpha.6→alpha.7 仍须以实际 GUI 在线事务验收，不可从此前维护切换推定成功。发生 `needs_review` 时保留 `data/`、`state/` 与版本目录，见 [恢复说明](../OTA-RECOVERY.md)。
 
 alpha.4 增加私有下载：首次应先在手机完成新设备确认，再检查更新。它读取本安装已有 DPAPI 身份，不新增更新账号或复制其他电脑身份；缺失身份只提示未配对。更新 source 必须位于已配对 relay 的同 HTTPS origin 的 `/desktop-remote-updates/test/windows/`（stable 独立配置），否则在发凭据前拒绝。设备暂停、撤销或凭据无效时服务器拒绝下载。旧 alpha.3 中继不能提供此私有路由；新的受管 relay 已在隔离环境安装，主电脑公网合成设备 Windows 下载及权限/暂停/撤销拒绝已验证，真实电脑配对和 App 内下载仍待验收。
+
+## alpha.13诊断界面候选
+
+[错误清单与纯演示](../WINDOWS-ALPHA13-DIAGNOSTICS.md)介绍点击错误查看原因和源码。源码/包不等于现用安装；安装状态以STATUS最新记录为准。证书过期需管理员续期并让HTTPS入口重载，客户端不需要重新配对。

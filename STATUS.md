@@ -1,3 +1,9 @@
+## 2026-10-14 — 自动重试根因已修复；alpha.13错误清单候选
+
+现用alpha.12自动重试确认为9443仍提供过期证书：磁盘新证已存在，专用Caddy hook相同配置未强制重载。已在既有隔离部署授权内经3项合成测试和原hook精确比较，补--force并重载专用入口。正常TLS200、证书新指纹匹配；原连接自行恢复connected/lastError=null，未重配对或重启Desktop/FRPS。手机新对话仍待验收。
+
+alpha.13新增当前/最近错误、211项可搜索代码手册、点击原因/处理步骤/源码位置、复制安全说明与纯演示。Python172项（166通过6跳过）、Node221项、定向32项、实际合成Tk点击/高DPI验证通过。**当前安装仍alpha.12；候选未切换，签名包/CI另记。** [证据与使用说明](docs/WINDOWS-ALPHA13-DIAGNOSTICS.md)。
+
 ## 2026-10-14 — alpha.12实际安装提交并独立核验通过，等待手机新对话验收
 
 用户确认新窗口已出现。续接实际输出committed/success=true/version=0.1.0-alpha.12；独立审计current=候选、primary与alpha12-continuation1日志一致，ZIP/发布签名/包清单与固定候选匹配，原身份/config/taskData及保护摘要与续接review和事务preserved完全一致。旧槽可验证、原失败journal精确保留，配置仅增加获批taskScope=all-local，旧权限摘要/任务记录保留；runtimeNeedsReview已正常移除，应用锁由新实例持有。

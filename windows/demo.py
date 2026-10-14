@@ -32,4 +32,12 @@ if __name__ == '__main__':
     ttk.Label(root, text='演示模式：所有状态均为合成数据，不代表实际连通。', padding=12).grid(row=1)
     window.relay.set('https://relay.example.test')
     window.name.set('演示电脑（不会登记）')
+    cases = ttk.Frame(root, padding=8)
+    cases.grid(row=2)
+    def simulate(code):
+        window.events.put(('status', {'state': 'reconnecting', 'lastError': code}
+                          if code else {'state': 'connected', 'dataChannel': 'unverified'}))
+    ttk.Button(cases, text='模拟：证书过期', command=lambda: simulate('relay_tls_certificate_expired')).pack(side='left')
+    ttk.Button(cases, text='模拟：HTTP 404', command=lambda: simulate('relay_http_404')).pack(side='left')
+    ttk.Button(cases, text='模拟：登记恢复', command=lambda: simulate(None)).pack(side='left')
     root.mainloop()
