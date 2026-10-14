@@ -1,3 +1,13 @@
+## 2026-10-14 — Windows alpha.15私有源已发布，现装alpha.13鉴权下载验收通过
+
+用户明确批准仅发布Windows。北京时间15:53:48在隔离服务器将Windows测试feed从alpha.13/sequence9原子切换为alpha.15/sequence11；先核对旧索引摘要，再在独立root私有目录验签、解包验证51文件并保留旧索引。固定173385字节签名包SHA256为98f707824659ad3c67a0384f8c5ba7b830040e93d82b140f7313e560ba08cb5e，元数据SHA256为beb98d652ec155db0a1ed6d643f14661b7312161f696f578b050d89ef62dcd25。
+
+15:54:58使用本机现装alpha.13自身更新模块、现有配对设备身份及正常TLS实际下载：metadata/ZIP匿名均401，设备鉴权成功，原发行签名、升级序号、下载大小/SHA、隔离解包51文件全部通过。install/current/trust/ledger/candidate/DPAPI身份前后摘要一致，账本仍9。服务器relay/FRPS/Caddy进程及启动记录、relay current和其他组件feed未变化，旧Windows包保留，目录0700/文件0600。
+
+已发布且私有源可下载；尚未安装alpha.15或实机验收新功能。现用alpha.13保持原状，不自动停止/安装，不合并PR，不更新手机或服务器程序。用户等任务空闲后正常断开，检查更新应看到alpha.15，再自行下载并安装；安装及手机体验另行验收。普通手机问答仍需Android alpha.8，异步选择仍在电脑回答。
+
+审查及恢复限制见docs/WINDOWS-ALPHA15-OTA-REVIEW.md。命令：Python -B artifacts/alpha15/publish-private-feed-local.py prepare / publish；Python -B artifacts/alpha15/verify-published-private-feed.py。审计脚本和结果仅在忽略目录artifacts/alpha15保存，不含凭据；结果private-feed-prepared.json、private-feed-publish.json、private-feed-https-verification.json。服务器审计目录/opt/codex-desktop-remote-test/operator/windows-alpha15-feed-20261014-seq11保留原索引和验证记录。
+
 ## 2026-10-14 — Windows alpha.15原密钥签名及旧客户端验包完成，待发布
 
 用户要求进入下一步。固定Git提交0dbf345重新打包后签发sequence11；此前候选与Git差异仅换行，未签包保留，不作为正式发布输入。新包173385字节，SHA256 98f707824659ad3c67a0384f8c5ba7b830040e93d82b140f7313e560ba08cb5e；metadata SHA256 beb98d652ec155db0a1ed6d643f14661b7312161f696f578b050d89ef62dcd25，有效至北京时间2026-10-21 15:45。

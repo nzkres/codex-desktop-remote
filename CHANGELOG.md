@@ -1,3 +1,9 @@
+## 2026-10-14 — Windows alpha.15私有更新源发布
+
+- 经用户批准将Windows测试源从alpha.13/sequence9切换到alpha.15/sequence11，保留旧包及索引；不改变Android/relay源，不重启服务。
+- 现装alpha.13更新代码实际鉴权下载、签名及51文件验包通过；匿名metadata/ZIP均401。现用安装和账本未变，实际安装与手机验收待执行。
+- 更新[发布验收记录](docs/WINDOWS-ALPHA15-OTA-REVIEW.md)及[安装指引](docs/install/WINDOWS.md)，记录用户下一步和手机版本要求。
+
 ## 2026-10-14 — Windows alpha.15签名发行准备
 
 - 固定Git源码重新打包并沿用原密钥签名sequence11，通过现装alpha.13验签/解包；私有源和现机仍alpha.13。

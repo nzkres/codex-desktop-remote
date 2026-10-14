@@ -1,6 +1,6 @@
 # Windows alpha.15 私有更新源发布审查
 
-状态：2026-10-14本地签名、验签及旧客户端兼容检查完成；尚未发布、尚未安装。现用安装和线上feed仍为alpha.13/sequence9。只涉及Windows测试渠道，不包含Android/relay更新、PR合并、自动停止连接器或实际安装。
+状态：2026-10-14北京时间15:53:48，经用户明确批准，Windows私有测试源已从alpha.13/sequence9切换到alpha.15/sequence11；15:54:58现装alpha.13实际鉴权下载及验包通过。现机仍alpha.13、账本9，尚未安装alpha.15或验收其手机功能。此次不包含Android/relay更新、PR合并、自动停止连接器或实际安装。
 
 ## 固定发行输入
 
@@ -35,7 +35,7 @@ alpha.15包含alpha.14的手机显式点标题后请求Desktop加载原对话，
 3. 仅在完整复核旧metadata未变化后原子替换Windows latest.json。保留alpha.13包和旧索引记录，不重启relay/FRPS/Caddy，不修改Android或relay源。
 4. 正常TLS验证匿名metadata/ZIP拒绝（401），当前配对设备鉴权下载成功；本地实际下载字节的签名、版本、sequence11、大小和SHA全匹配。发布不直接安装，也不改本机防重放账本。
 5. 用户在任务空闲时正常断开，再检查更新、阅读alpha.15说明并下载安装。若当前对话仍在运行，等待本轮结束；任何未确认操作/任务/进程清理仍按原规则延期，不能删除保护强行安装。
-6. 安装完成以实际窗口、current/事务终态、身份/权限/任务保全及健康验证为依据。重新连接后由手机验证原对话和可用功能；这些结果目前均未执行。
+6. 安装完成以实际窗口、current/事务终态、身份/权限/任务保全及健康验证为依据。重新连接后由手机验证原对话和可用功能；alpha.15实际安装及手机功能结果目前均未执行。
 
 ## 故障处理与撤回限制
 
@@ -50,4 +50,8 @@ alpha.15包含alpha.14的手机显式点标题后请求Desktop加载原对话，
 - 本地审查：`artifacts/alpha15/signed-publish-review.json`、`old-client-verification.json`。
 - 固定源码全套测试：Node176/176；Python166通过、6平台跳过；Core CI适用测试通过。
 - 本轮固定Git导出源码问答专项18/18通过；签名包与源文件逐字核对及旧客户端验包通过。
-- 私有源发布、下载验收、现机安装、真实手机验收：**未执行**。
+- 私有源发布：**完成**；服务器复验发行签名、固定包大小/SHA及51清单文件后原子切换，原索引和旧包保留，权限0700/0600。
+- 公网下载验收：**通过**；正常TLS，匿名metadata及ZIP均401，当前配对设备鉴权下载成功，原alpha.13更新代码验证sequence11、签名、实际173385字节/SHA及51文件通过。
+- 现装install/current/trust/ledger/candidate/DPAPI身份前后摘要未变；relay/FRPS/Caddy进程/启动记录及其他feed、服务器程序current未变。
+- 执行审计：`artifacts/alpha15/private-feed-prepared.json`、`private-feed-publish.json`、`private-feed-https-verification.json`；服务器`/opt/codex-desktop-remote-test/operator/windows-alpha15-feed-20261014-seq11`。
+- 现机alpha.15安装、真实手机验收：**未执行**。
