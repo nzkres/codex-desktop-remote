@@ -21,18 +21,18 @@ internal fun GlassMaterial(backdrop: GraphicsLayer, origin: Offset, modifier: Mo
     val density = LocalDensity.current
     val appearance = LocalChatAppearance.current
     val night = LocalAppPalette.current.isNight
-    val blur = remember(density, appearance.clarity) {
+    val blur = remember(density, appearance.clarity, appearance.skin.glass) {
         if (Build.VERSION.SDK_INT >= 31) android.graphics.RenderEffect.createBlurEffect(
-            with(density) { (22f - appearance.clarity * 12f).dp.toPx() },
-            with(density) { (22f - appearance.clarity * 12f).dp.toPx() }, android.graphics.Shader.TileMode.CLAMP).asComposeRenderEffect() else null
+            with(density) { (when (appearance.skin.glass) { GlassSkin.Frost -> 28f; GlassSkin.Smoke -> 18f; GlassSkin.Clear -> 12f } - appearance.clarity * 5f).dp.toPx() },
+            with(density) { (when (appearance.skin.glass) { GlassSkin.Frost -> 28f; GlassSkin.Smoke -> 18f; GlassSkin.Clear -> 12f } - appearance.clarity * 5f).dp.toPx() }, android.graphics.Shader.TileMode.CLAMP).asComposeRenderEffect() else null
     }
     Box(modifier.testTag("glass-material")) {
         Box(Modifier.matchParentSize().graphicsLayer { renderEffect = blur }.drawBehind {
             translate(-origin.x, -origin.y) { drawLayer(backdrop) }
         })
         // Android 8-11 retain real translucency with a stronger scrim (no GPU backdrop blur).
-        val opacity = if (blur == null) .62f else .42f - appearance.clarity * .30f
-        val tint = if (night) Color(0xFF203047) else Color.White
+        val opacity = if (blur == null) .68f else when (appearance.skin.glass) { GlassSkin.Smoke -> .48f; GlassSkin.Frost -> .32f; GlassSkin.Clear -> .16f }
+        val tint = if (night) Color(appearance.skin.palette.dark) else Color.White
         Box(Modifier.matchParentSize().background(Brush.verticalGradient(listOf(tint.copy(alpha = opacity), tint.copy(alpha = opacity * .6f)))))
     }
 }

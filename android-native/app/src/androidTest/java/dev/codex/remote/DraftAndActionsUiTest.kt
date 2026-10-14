@@ -223,12 +223,14 @@ class DraftAndActionsUiTest {
             if (dialog.value) NewTaskDialog(listOf(Project("fixture", "示例项目")), busy.value, { dialog.value = false }) { _, _, _, _ -> creates++ }
         } }
         compose.onNodeWithTag("composer-mode").performClick()
-        compose.onNodeWithText("Plan · 先规划再实施").performClick()
+        compose.onNodeWithText("计划模式", useUnmergedTree = true).performClick()
         assertEquals("plan", mode.value)
-        compose.onNodeWithTag("composer-mode").assertContentDescriptionEquals("Plan · 规划")
+        compose.onNodeWithTag("composer-mode").assertTextContains("计划模式")
         captureTestScreen("49-glass-agent-plan-action")
         compose.runOnIdle { running.value = true }
-        compose.onNodeWithTag("composer-mode").assertIsNotEnabled()
+        compose.onNodeWithTag("composer-mode").performClick()
+        compose.onNodeWithText("计划模式 ✓").assertIsNotEnabled()
+        compose.onNodeWithText("关闭").performClick()
         compose.onNodeWithTag("new-conversation").performClick()
         compose.onNodeWithTag("confirm-new-conversation").assertIsEnabled()
         captureTestScreen("50-glass-create-dialog")

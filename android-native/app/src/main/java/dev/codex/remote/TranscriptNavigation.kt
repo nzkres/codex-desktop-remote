@@ -55,16 +55,15 @@ internal fun TranscriptNavigation(visible: Boolean, status: TranscriptActivity?,
     val progress by animateFloatAsState(if (expanded) 1f else 0f, tween(if (motion) 460 else 0), label = "navigation-dock")
     var origin by remember { mutableStateOf(Offset.Zero) }
     val label = if (status?.animated == true) "正在执行" else status?.label ?: "回到最新"
-    BoxWithConstraints(modifier.fillMaxWidth(), contentAlignment = Alignment.BottomCenter) {
+    BoxWithConstraints(modifier.fillMaxWidth(), contentAlignment = Alignment.BottomEnd) {
         val shellHeight = composerHeight.coerceAtLeast(60.dp)
         // Fade through the composer morph, then settle above it; never cover its send/stop control.
         val alpha = when { progress < .12f -> 1f - progress / .12f; progress > .88f -> (progress - .88f) / .12f; else -> 0f }
         val bottom = 12.dp + (shellHeight + 10.dp) * progress
-        AnimatedVisibility(visible, Modifier.padding(bottom = bottom),
+        AnimatedVisibility(visible, Modifier.padding(bottom = bottom, end = 18.dp),
             enter = fadeIn(tween(if (motion) 180 else 0)) + slideInVertically(tween(if (motion) 260 else 0)) { it / 4 },
             exit = fadeOut(tween(if (motion) 150 else 0)) + slideOutVertically(tween(if (motion) 180 else 0)) { it / 5 }) {
-            Box(Modifier.widthIn(max = (maxWidth - 160.dp).coerceAtLeast(112.dp))
-                .height(60.dp - 12.dp * progress)
+            Box(Modifier.size(48.dp)
                 .graphicsLayer { this.alpha = alpha }
                 .testTag("transcript-navigation")
                 .shadow(8.dp, CircleShape).clip(CircleShape)
@@ -73,15 +72,8 @@ internal fun TranscriptNavigation(visible: Boolean, status: TranscriptActivity?,
                 .semantics { contentDescription = "$label，回到最新消息"; stateDescription = status?.label ?: "正在查看历史消息" }
                 .clickable(enabled = alpha > .95f, role = Role.Button, onClickLabel = "回到最新消息", onClick = onClick)) {
                 GlassMaterial(backdrop, origin, Modifier.matchParentSize())
-                Row(Modifier.fillMaxHeight().padding(horizontal = 14.dp), horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalAlignment = Alignment.CenterVertically) {
-                    if (status?.animated == true) {
-                        if (motion) CircularProgressIndicator(Modifier.size(14.dp).processingLight(true), color = palette.ink, strokeWidth = 1.5.dp)
-                        else Box(Modifier.size(6.dp).background(palette.muted, CircleShape))
-                    }
-                    Text(label, color = palette.ink, fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.weight(1f, fill = false).testTag("navigation-status").processingLight(status?.animated == true))
-                    Text("↓", color = palette.muted, fontSize = 18.sp)
+                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    ComposerGlyph("down", palette.ink, Modifier.size(20.dp))
                 }
             }
         }
