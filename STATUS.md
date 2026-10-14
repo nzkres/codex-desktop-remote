@@ -1,3 +1,13 @@
+## 2026-10-14 — alpha.13续接助手已启动，等待本轮对话空闲
+
+用户已收到原测试任务 ALPHA13_UPDATE_READY；实时只读检查原任务 idle=true，当前维护对话 thread_busy。保留已暂存、验签的 alpha.13，现用仍 alpha.12。独立续接助手于11:40:31（北京时间）启动，首次输出 waitingTasksIdle=true / switched=false；此记录不是安装成功。
+
+助手仅对明确 thread_busy 有界等待15分钟，其他异常停止；冻结安装文件、原身份/config/taskData摘要与助手/审查哈希，检查原已签源码和候选完整性。空闲后调用未修改的原 Transaction.apply，再执行原生预检、保全、健康和回退流程；不改权限或配对、不跳过健康检查。独占且持久的一次性执行标记防止失败后自动重试交易。原 helper-result 和拒绝记录保留。
+
+命令：`python -B artifacts/alpha13/test-resume-staged.local.py`，7/7隔离测试通过（busy→idle、异常拒绝、超时、状态变化、失败不重试、错误版本、独占标记）；GPT-6 Sol只读复核通过。通过隐藏独立Python进程启动 `resume-staged.local.py <review-sha256>`；固定review SHA256 e931193dc042ca9f8ccad84ddd2d69dbabcad444c30b20a2964de4a00505c49e。一次性脚本与审查数据仅在本机ignored artifacts/alpha13，未加入发行包或Git。
+
+下一步：本轮结束后等待助手安装；再独立核对current、事务committed、签名、身份和权限保全及实际窗口，最后由用户测试错误清单与手机新对话标题/历史。Android、服务器和已签alpha.13字节未改。不得以等待器启动代替实机安装/手机验收。脱敏启动记录：artifacts/alpha13/resume-launch-evidence.json。
+
 ## 2026-10-14 — alpha.13用户点击安装后停在切换前任务预检
 
 用户反馈下载并安装后未出现alpha.13窗口。只读核验：current仍alpha.12，staged候选alpha.13；helper-result为active_or_unverified_desktop_task。primary仍是此前alpha.12 committed，未进入本次prepared/切换/候选启动。应用、更新、runtime三锁可得，身份/任务保全快照可读取，没有重新配对或删除保护。
