@@ -6,8 +6,15 @@ import {join} from 'node:path';
 import {Service,httpServer,permissionDigest} from '../src/service.js';
 import {Receipts} from '../src/receipts.js';
 import {nativeQuestions} from '../src/questions.js';
-import {MobileSync} from '../src/vendor/mobile-sync.js';
+import {MobileSync,mobileSignals} from '../src/vendor/mobile-sync.js';
 import {TaskService} from '../src/tasks.js';
+
+test('answered cards remain readable without creating pending question notifications',()=>{
+ const source={thread:{turns:[]},session:{},pendingQuestions:
+  ['pending','unknown','desktop_required','accepted','closed','future_status',undefined].map((status,i)=>({id:String(i),status}))};
+ assert.deepEqual(mobileSignals(source).questions,['0','1','2','5','6']);
+ assert.equal(source.pendingQuestions.length,7);
+});
 
 function fixture(t,{enabled=true}={}) {
  const dir=mkdtempSync(join(tmpdir(),'question-test-'));t.after(()=>rmSync(dir,{recursive:true,force:true}));

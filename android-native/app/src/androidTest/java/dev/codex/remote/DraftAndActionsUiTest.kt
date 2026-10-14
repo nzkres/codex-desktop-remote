@@ -158,7 +158,10 @@ class DraftAndActionsUiTest {
             }
         } }
         val raw = "第一行\n\n  保留缩进的第二行"
-        compose.onNodeWithTag("composer-editor").performTextInput(raw)
+        // This case tests page/conversation restoration from an exact multiline
+        // editor value; use one semantic edit so input behavior is a separate test.
+        compose.onNodeWithTag("composer-editor").performTextReplacement(raw)
+        assertEquals("A draft before leaving the conversation", raw, drafts.read("a")?.text)
         compose.runOnIdle { selected.value = null }
         compose.onNodeWithTag("draft-preview", useUnmergedTree = true).assertIsDisplayed()
         compose.onNodeWithText("第一行 保留缩进的第二行", useUnmergedTree = true).assertIsDisplayed()
@@ -168,6 +171,10 @@ class DraftAndActionsUiTest {
         compose.onNodeWithTag("composer-editor").performTextInput("B 独立草稿")
         compose.runOnIdle { selected.value = null }
         compose.onNodeWithTag("draft-resume").performClick()
+        assertEquals("A draft after visiting B", raw, drafts.read("a")?.text)
+        val restoredText = compose.onNodeWithTag("composer-editor").fetchSemanticsNode()
+            .config[SemanticsProperties.EditableText].text
+        assertEquals("Restored A editor text after visiting B", raw, restoredText)
         compose.onNodeWithTag("composer-editor").assert(SemanticsMatcher.expectValue(SemanticsProperties.EditableText, AnnotatedString(raw)))
         assertEquals("B 独立草稿", drafts.read("b")?.text)
     }

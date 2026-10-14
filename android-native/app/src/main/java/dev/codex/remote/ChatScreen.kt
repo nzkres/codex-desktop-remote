@@ -493,7 +493,7 @@ fun ChatScreen(
             running = session?.activeTurnId != null, sending = sending,
             expanded = composerExpanded, onExpanded = { composerExpanded = it },
             dockRight = dockRight, onDockRight = { dockRight = it; dockPrefs.edit().putBoolean("composer_dock_right", it).apply() },
-            hasAttention = showPlanChoice || conversation?.let { it.questions.isNotEmpty() || it.approvals.isNotEmpty() } == true,
+            hasAttention = showPlanChoice || conversation?.needsAttention() == true,
             error = sendError, focusRequester = composerFocus, backdrop = backdrop, backdropOrigin = backdropOrigin,
             onHeight = { composerHeight = it }, onMode = onMode, onStop = onStop,
             modifier = Modifier.align(Alignment.BottomCenter).padding(horizontal = 14.dp, vertical = 12.dp),

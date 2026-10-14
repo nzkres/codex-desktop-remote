@@ -176,5 +176,7 @@ export function mobileSignals(source) {
     const latest = array(source.thread.turns).at(-1);
     return { turnId: latest?.id ?? null, completed: latest?.status === "completed",
         plan: source.session.mode === "plan" && array(latest?.items).some((i) => i.type === "plan"),
-        questions: array(source.pendingQuestions).map((q) => q.id), approvals: array(source.pendingApprovals).map((a) => a.id) };
+        // Answered cards remain in the transcript, but must not notify as new pending work.
+        questions: array(source.pendingQuestions).filter((q) => !["accepted", "closed"].includes(q.status)).map((q) => q.id),
+        approvals: array(source.pendingApprovals).map((a) => a.id) };
 }
