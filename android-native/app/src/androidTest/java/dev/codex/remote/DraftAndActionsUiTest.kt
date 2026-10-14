@@ -1,6 +1,7 @@
 package dev.codex.remote
 
 import android.content.Context
+import android.content.SharedPreferences
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.runtime.*
@@ -24,6 +25,7 @@ import org.junit.Test
 import org.junit.rules.Timeout
 import org.junit.runner.RunWith
 import java.io.File
+import java.lang.reflect.Proxy
 import java.util.UUID
 import java.util.concurrent.TimeUnit
 
@@ -38,7 +40,8 @@ class DraftAndActionsUiTest {
         return DraftStore(context.getSharedPreferences(name, Context.MODE_PRIVATE))
     }
     private fun session(id: String) = Session(id, "fixture", "对话 $id", "COMPLETED", null, "default", 0)
-    private fun content() = Conversation(emptyList(), Observation("completed", 0, "gateway", ""), emptyList(), emptyList())
+    private fun content() = Conversation(emptyList(), Observation("completed", 0, "gateway", ""), emptyList(), emptyList(),
+        capabilities = ConversationCapabilities(mode = true))
     @After fun cleanup() { compose.mainClock.autoAdvance = true; names.forEach { context.deleteSharedPreferences(it) } }
 
     @Test fun encryptedDraftsRoundTripIsolateAndProtectAgainstLateReceipts() {
@@ -67,6 +70,79 @@ class DraftAndActionsUiTest {
         assertFalse(disk.contains("另一个对话")); assertFalse(disk.contains("DRAFT_PRIVATE_FIXTURE"))
     }
 
+    @Test fun questionDraftsIsolateRevisionAndTurnInterruptedSubmissionUnknown() {
+        val scope = draftScope("https://fixture.invalid/terminal-a", "fixture", "synthetic")
+        names += "question-drafts-$scope"
+        val request = QuestionRequest("a".repeat(64), listOf(Question("choice", "方式", "选哪个", emptyList(), false, true)),
+            "b".repeat(64), "turn", "async")
+        val store = QuestionDraftStore.open(context, scope)
+        store.save("thread", request, QuestionDraft(mapOf("choice" to "原文\n第二行"), setOf("choice"), "submitting"))
+        val restored = QuestionDraftStore.open(context, scope)
+        assertEquals("原文\n第二行", restored.read("thread", request).answers["choice"])
+        assertEquals("unknown", restored.read("thread", request).state)
+        restored.reconcile("thread", listOf(request.copy(status = "pending")))
+        assertEquals("unknown", restored.read("thread", request).state) // A poll must not authorize replay.
+        assertTrue(restored.read("thread-2", request).answers.isEmpty())
+        assertTrue(restored.read("thread", request.copy(revision = "c".repeat(64))).answers.isEmpty())
+        val otherScope = draftScope("https://fixture.invalid/terminal-b", "fixture", "synthetic")
+        names += "question-drafts-$otherScope"
+        assertTrue(QuestionDraftStore.open(context, otherScope).read("thread", request).answers.isEmpty())
+        restored.reconcile("thread", listOf(request.copy(status = "closed", notice = "电脑已回答")))
+        assertEquals("closed", QuestionDraftStore.open(context, scope).read("thread", request).state)
+        restored.reconcile("thread", listOf(request.copy(status = "accepted", notice = "Desktop 已记录")))
+        assertEquals("closed", restored.read("thread", request).state) // Terminal state never regresses.
+        restored.save("accepted-thread", request, QuestionDraft(mapOf("choice" to "原答案"), state = "unknown"))
+        restored.reconcile("accepted-thread", listOf(request.copy(status = "accepted", notice = "Desktop 已记录")))
+        assertEquals("accepted", QuestionDraftStore.open(context, scope).read("accepted-thread", request).state)
+    }
+
+    @Test fun questionDraftWriteFailureKeepsVisibleUnsavedTextAndDisablesSubmit() {
+        val editor = Proxy.newProxyInstance(javaClass.classLoader, arrayOf(SharedPreferences.Editor::class.java)) { proxy, method, _ ->
+            when (method.name) { "commit" -> false; "putString" -> proxy; else -> proxy }
+        } as SharedPreferences.Editor
+        val prefs = Proxy.newProxyInstance(javaClass.classLoader, arrayOf(SharedPreferences::class.java)) { _, method, _ ->
+            when (method.name) { "getAll" -> emptyMap<String, Any>(); "edit" -> editor; else -> null }
+        } as SharedPreferences
+        val store = QuestionDraftStore(prefs)
+        val nextName = "question-scope-${UUID.randomUUID()}"; names += nextName
+        val nextStore = QuestionDraftStore(context.getSharedPreferences(nextName, Context.MODE_PRIVATE))
+        val selectedStore = mutableStateOf(store)
+        val request = QuestionRequest("a".repeat(64), listOf(Question("reason", "原因", "请填写", emptyList(), false, true)), "b".repeat(64))
+        var submitted = false
+        compose.setContent { HapiStyle(false) {
+            QuestionCard(request, false, selectedStore.value, "thread") { _, _ -> submitted = true }
+        } }
+        compose.onNodeWithTag("question-answer-reason").performTextInput("未落盘的文字")
+        compose.onNodeWithText("答案未能加密保存，仅保留在当前页面；请检查手机存储，勿提交。").assertIsDisplayed()
+        compose.onNodeWithTag("question-answer-reason").assertTextContains("未落盘的文字")
+        compose.onNodeWithText("提交").assertIsNotEnabled()
+        assertFalse(submitted)
+        assertTrue(store.read("thread", request).answers.isEmpty())
+        compose.runOnIdle { selectedStore.value = nextStore }
+        compose.onNodeWithText("答案未能加密保存，仅保留在当前页面；请检查手机存储，勿提交。").assertDoesNotExist()
+        compose.onNodeWithTag("question-answer-reason").assert(SemanticsMatcher.expectValue(SemanticsProperties.EditableText, AnnotatedString("")))
+    }
+
+    @Test fun corruptedQuestionDraftFailsClosedInsteadOfReopeningAnswer() {
+        val name = "question-corrupt-${UUID.randomUUID()}"; names += name
+        val prefs = context.getSharedPreferences(name, Context.MODE_PRIVATE)
+        assertTrue(prefs.edit().putString("thread:request:revision", "{broken").commit())
+        try { QuestionDraftStore(prefs); fail("Damaged draft must not be treated as absent") }
+        catch (_: org.json.JSONException) { /* The caller disables question submission. */ }
+    }
+
+    @Test fun submittingQuestionShowsProgressAndPreventsDuplicateTap() {
+        val name = "question-progress-${UUID.randomUUID()}"; names += name
+        val store = QuestionDraftStore(context.getSharedPreferences(name, Context.MODE_PRIVATE))
+        val request = QuestionRequest("a".repeat(64), listOf(Question("choice", "方式", "原题",
+            listOf(QuestionOption("方案一", "完整说明")), false, false)), "b".repeat(64))
+        store.save("thread", request, QuestionDraft(mapOf("choice" to "方案一"), state = "submitting"))
+        compose.setContent { HapiStyle(false) { QuestionCard(request, false, store, "thread") { _, _ -> fail("Duplicate answer") } } }
+        compose.onAllNodesWithText("正在提交").assertCountEquals(2)
+        compose.onNodeWithText("方案一").assertIsDisplayed().assertIsNotEnabled()
+        compose.onNodeWithTag("question-submit").assertIsNotEnabled()
+    }
+
     @Test fun draftSurvivesSwitchingPagesAndConversationsWithSingleLinePreviews() {
         val drafts = store(); val selected = mutableStateOf<String?>("a")
         val tasks = listOf(session("a"), session("b"))
@@ -82,7 +158,10 @@ class DraftAndActionsUiTest {
             }
         } }
         val raw = "第一行\n\n  保留缩进的第二行"
-        compose.onNodeWithTag("composer-editor").performTextInput(raw)
+        // This case tests page/conversation restoration from an exact multiline
+        // editor value; use one semantic edit so input behavior is a separate test.
+        compose.onNodeWithTag("composer-editor").performTextReplacement(raw)
+        assertEquals("A draft before leaving the conversation", raw, drafts.read("a")?.text)
         compose.runOnIdle { selected.value = null }
         compose.onNodeWithTag("draft-preview", useUnmergedTree = true).assertIsDisplayed()
         compose.onNodeWithText("第一行 保留缩进的第二行", useUnmergedTree = true).assertIsDisplayed()
@@ -92,6 +171,10 @@ class DraftAndActionsUiTest {
         compose.onNodeWithTag("composer-editor").performTextInput("B 独立草稿")
         compose.runOnIdle { selected.value = null }
         compose.onNodeWithTag("draft-resume").performClick()
+        assertEquals("A draft after visiting B", raw, drafts.read("a")?.text)
+        val restoredText = compose.onNodeWithTag("composer-editor").fetchSemanticsNode()
+            .config[SemanticsProperties.EditableText].text
+        assertEquals("Restored A editor text after visiting B", raw, restoredText)
         compose.onNodeWithTag("composer-editor").assert(SemanticsMatcher.expectValue(SemanticsProperties.EditableText, AnnotatedString(raw)))
         assertEquals("B 独立草稿", drafts.read("b")?.text)
     }

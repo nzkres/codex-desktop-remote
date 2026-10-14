@@ -1,3 +1,9 @@
+## 2026-10-14 — Android alpha.8独立发布准备
+
+用户要求继续解决手机无法OTA。线上Android源仍alpha.5/sequence1，APK大小11772524、签名元数据及SHA通过；旧metadata于北京时间2026-10-15 14:33:03过期。Windows alpha.15已发布不代表Android发布。最新核验Android run38530732869仍因GitHub构件配额上传失败，暂无alpha.8可交付包。
+
+独立分支基于main 7f4d80d，提取已测试0dbf345的Android源码/测试/工作流，保留现有main-only签名、原证书及权限；不携带Windows/relay业务改动。准备审查、独立CI和提取完整性验证，尚未合并、签名或发布Android源。后续步骤和恢复边界见docs/ANDROID-ALPHA8-OTA-REVIEW.md。
+
 ## 2026-10-14 — Actions构件默认只保留同类最新一份
 
 用户授权清理当前仓库旧Actions构件，并明确不扩展到其他仓库。独立main维护变更新增Keep latest Actions artifacts：Android/Core self-test完成后以及手动触发时，按构件名分别保留最新已完成运行的未过期构件，删除更旧同名构件；按created_at而非ID判断新旧。签名Android、debug Android、Windows和Linux分开保留。运行中的构件和未知名称不清理；保留件失效时立即停止。没有checkout或执行触发分支的代码，不访问Release、缓存、源码、签名Secrets或其他仓库。

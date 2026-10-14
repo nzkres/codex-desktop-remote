@@ -44,6 +44,7 @@ import kotlin.math.roundToInt
 fun GlassComposer(
     draft: String, onDraft: (String) -> Unit,
     mode: String, busy: Boolean, running: Boolean, sending: Boolean,
+    modeEnabled: Boolean = true,
     expanded: Boolean, onExpanded: (Boolean) -> Unit,
     dockRight: Boolean, onDockRight: (Boolean) -> Unit,
     hasAttention: Boolean, error: String,
@@ -114,14 +115,15 @@ fun GlassComposer(
                         Box {
                             GlassActionButton(if (mode == "plan") "Plan · 规划" else "Agent · 执行", { modeOpen = true },
                                 Modifier.testTag("composer-mode"), icon = if (mode == "plan") "plan" else "agent",
-                                enabled = expanded && !busy && !running && !sending, selected = mode == "plan", chevron = true,
+                                enabled = modeEnabled && expanded && !busy && !running && !sending, selected = mode == "plan", chevron = true,
                                 menuOpen = modeOpen, backdrop = backdrop, backdropOrigin = backdropOrigin, compact = true)
-                            DropdownMenu(expanded = modeOpen && expanded && !busy && !running && !sending, onDismissRequest = { modeOpen = false },
+                            DropdownMenu(expanded = modeEnabled && modeOpen && expanded && !busy && !running && !sending, onDismissRequest = { modeOpen = false },
                                 shape = RoundedCornerShape(20.dp), containerColor = palette.card, tonalElevation = 0.dp) {
                                 DropdownMenuItem(text = { Text("Agent · 直接分析和执行") }, onClick = { modeOpen = false; onMode("default") })
                                 DropdownMenuItem(text = { Text("Plan · 先规划再实施") }, onClick = { modeOpen = false; onMode("plan") })
                             }
                         }
+                        if (!modeEnabled) Text("切换模式请在电脑处理", color = palette.muted, fontSize = 11.sp)
                         Spacer(Modifier.weight(1f))
                         FilledIconButton(onClick = if (running) onStop else onSend,
                             enabled = expanded && !busy && !sending && (running || draft.isNotBlank()),
