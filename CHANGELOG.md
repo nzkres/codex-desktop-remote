@@ -1,3 +1,8 @@
+## 2026-10-14 — Windows alpha.15签名发行准备
+
+- 固定Git源码重新打包并沿用原密钥签名sequence11，通过现装alpha.13验签/解包；私有源和现机仍alpha.13。
+- 新增[发布审查](docs/WINDOWS-ALPHA15-OTA-REVIEW.md)，明确固定输入、手机版本要求、发布步骤和回退限制；尚未发布或安装。
+
 ## Windows 0.1.0-alpha.15 / Android 0.1.0-alpha.8 — 普通手机问答（候选）
 
 - 普通问答显示完整选项和说明、自由输入、多题，并按原题提交；答案摘要和Desktop completed记录核对后才确认。

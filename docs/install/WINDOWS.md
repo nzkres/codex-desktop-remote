@@ -1,3 +1,5 @@
+> 2026-10-14发行准备：alpha.15已用原密钥签名并通过alpha.13更新代码验包，尚未发布。现用更新源仍alpha.13，检查显示最新正常；请等[发布验收](../WINDOWS-ALPHA15-OTA-REVIEW.md)后再操作，不用重新配对。
+
 > 2026-10-14候选提示：普通问答需Android alpha.8与Windows alpha.15配套；当前尚未发布/安装。沿用原配对身份及同证书OTA，不重新配对。异步题仅显示，仍在电脑回答；不要把候选源码当可下载升级包。详见[特殊交互](../MOBILE-SPECIAL-INTERACTIONS.md)与[状态](../../STATUS.md)。
 
 ## Windows alpha.14 候选：手机点开原对话
