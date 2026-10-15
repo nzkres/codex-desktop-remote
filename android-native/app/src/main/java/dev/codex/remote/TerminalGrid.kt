@@ -66,7 +66,7 @@ internal class GridSimulation(private val random: Random = Random.Default) {
 }
 
 @Composable internal fun TerminalGrid(running: Boolean, modifier: Modifier = Modifier, quota: DeviceQuota? = null,
-    showQuota: Boolean = true) {
+    showQuota: Boolean = true, live: LiveQuotaRuntime? = null) {
     val skin=LocalChatAppearance.current.skin
     val motion=rememberChatMotion()
     val pace=gridPace(running,skin.idleStill,motion,skin.speed)
@@ -86,6 +86,11 @@ internal class GridSimulation(private val random: Random = Random.Default) {
     var observedNow by remember { mutableLongStateOf(System.currentTimeMillis()) }
     LaunchedEffect(quota) { while(true) { observedNow=System.currentTimeMillis();delay(30000) } }
     Canvas(modifier) {
+        live?.tick // Read only during drawing; device/page switches share one account scene.
+        val liveNow=System.currentTimeMillis()
+        val scene=if(live!=null && showQuota) live.registry.scene(live.registry.selectedDevice,quota,liveNow) else null
+        if(!motion) scene?.advance(0f,false,false)
+        val presentation=scene?.presentation
         val unit=24.dp.toPx()
         val cols=ceil(size.width/unit).toInt(); val rows=ceil(size.height/unit).toInt()
         val line=if(night) Color.White else Color.Black
@@ -98,6 +103,16 @@ internal class GridSimulation(private val random: Random = Random.Default) {
             val color=Color.hsv(hue,.55f,if(night) 1f else .65f, (cell.strength*.25f*boundedLight(skin.brightness)).coerceIn(0f,.48f))
             drawRect(color,Offset(cell.x*unit+1,cell.y*unit+1),Size(unit-2,unit-2))
         }
-        if (showQuota) drawQuotaCore(quota,observedNow,clock.floatValue,skin,night)
+        presentation?.sweep?.let { progress ->
+            val y=size.height*(1f-progress)
+            val beam=if(night) Color(0xFFB0EDDA) else Color(0xFF285A4C)
+            drawRect(androidx.compose.ui.graphics.Brush.verticalGradient(
+                0f to Color.Transparent,.5f to beam.copy(alpha=(.2f*boundedLight(skin.flowBrightness)).coerceAtMost(.35f)),1f to Color.Transparent,
+                startY=y-size.height*.12f,endY=y+size.height*.12f),
+                topLeft=Offset(0f,y-size.height*.12f),size=Size(size.width,size.height*.24f))
+        }
+        val runningNow=live?.registry?.let { it.running(it.key(it.selectedDevice,quota?.snapshot),liveNow) }==true
+        val frame=scene?.activity?.frame?.let { if(motion) it else QuotaActivityFrame(if(runningNow).65f else 0f,it.angle,.5f) }
+        if (showQuota) drawQuotaCore(quota,observedNow,clock.floatValue,skin,night,activity=frame,presentation=presentation)
     }
 }

@@ -2,7 +2,8 @@ package dev.codex.remote
 
 /** Pure event policy: no Android APIs, network, transcript text or credentials. */
 data class SignalActivity(val id: String, val fingerprint: String, val active: Boolean, val updatedAt: Long)
-data class SignalSnapshot(val turnId: String?, val completed: Boolean, val plan: Boolean, val questions: Set<String>, val approvals: Set<String>)
+data class SignalSnapshot(val turnId: String?, val completed: Boolean, val plan: Boolean, val questions: Set<String>, val approvals: Set<String>,
+    val running: Boolean? = null, val usage: UsageSnapshot? = null, val readRevision: String = "", val readKey: String = "")
 data class SignalCheckpoint(val fingerprint: String, val delivered: Set<String> = emptySet())
 data class TaskSignal(val kind: String, val key: String)
 

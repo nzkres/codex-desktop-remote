@@ -101,6 +101,9 @@ private fun RemoteApp(night: Boolean, destination: NotificationDestination?, onD
     val repositoryScope = remember(credentials.url, credentials.account, credentials.token) { draftScope(credentials.url, credentials.account, credentials.token) }
     val repositoryStore = remember(repositoryScope) { runCatching { ProjectRepositoryStore.open(context, repositoryScope) }.getOrNull() }
     val quotaStore = remember(repositoryScope) { runCatching { DeviceQuotaStore.open(context, repositoryScope) }.getOrNull() }
+    val readStore = remember(repositoryScope) { runCatching { ConversationReadStore.open(context,repositoryScope) }.getOrNull() }
+    val quotaRuntime = rememberLiveQuota(gateway, repositoryScope, quotaStore, readStore)
+    quotaRuntime.registry.selectedDevice = gateway?.target?.id.orEmpty()
     val targetSummaries = remember(repositoryScope) { mutableMapOf<String, Triple<List<Session>, List<Project>, Long>>() }
     var selectedId by rememberSaveable { mutableStateOf<String?>(null) }
     // Only a direct tap may request Desktop navigation. Consume before the network call;
@@ -189,9 +192,11 @@ private fun RemoteApp(night: Boolean, destination: NotificationDestination?, onD
             if (client === gateway && id == selectedId) {
                 val resolved = retainQuestionLifecycle(conversation, fresh, questionDraftStore, id)
                 questionDraftStore?.reconcile(id, resolved.questions)
+                runCatching { readStore?.observe(client.target.id,id,resolved.readRevision,System.currentTimeMillis()) }.onFailure { quotaRuntime.readError=true }
                 hubStatuses[id] = HubStatus(resolved.questions.any { it.status in setOf("pending", "desktop_required") },
                     resolved.observation.state == "running" && resolved.questions.none { it.status in setOf("pending", "desktop_required") }, System.currentTimeMillis())
                 runCatching { quotaStore?.update(client.target.id, id, resolved.usage) }
+                quotaRuntime.registry.observe(client.target.id,id,headerActivity(resolved.session,resolved).running,resolved.usage,System.currentTimeMillis())
                 conversation = resolved
                 conversationError = ""
                 fresh.session?.let { current -> sessions = sessions.filterNot { it.id == current.id } + current }
@@ -335,7 +340,7 @@ private fun RemoteApp(night: Boolean, destination: NotificationDestination?, onD
 
     val palette = LocalAppPalette.current
     Box(Modifier.fillMaxSize().background(if(palette.isNight) Color(LocalChatAppearance.current.skin.palette.dark) else palette.background)) {
-    if (selectedId == null) TerminalGrid(sessions.any { hubStatuses[it.id]?.running == true }, Modifier.matchParentSize(),quotaStore?.values?.get(gateway?.target?.id))
+    if (selectedId == null) TerminalGrid(sessions.any { hubStatuses[it.id]?.running == true }, Modifier.matchParentSize(),quotaStore?.values?.get(gateway?.target?.id), live = quotaRuntime)
     Column(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing)) {
         if (gateway != null && draftStorage.isFailure) Text("本机草稿存储暂不可用，请复制输入内容后再离开对话。",
             color = palette.errorInk, fontSize = 12.sp, modifier = Modifier.padding(12.dp))
@@ -388,7 +393,7 @@ private fun RemoteApp(night: Boolean, destination: NotificationDestination?, onD
             selectedId == null || !gateway!!.target.isSelected -> Column(Modifier.fillMaxSize()) {
                 Box(Modifier.weight(1f)) {
                     when (rootTab) {
-                        RootTab.Tasks -> ConversationHub(gateway!!, sessions, projects, activityEntries, busy, hubStatuses, lastMetadataAt, draftStore, quotaStore,
+                        RootTab.Tasks -> ConversationHub(gateway!!, sessions, projects, activityEntries, busy, hubStatuses, lastMetadataAt, draftStore, quotaStore, quotaRuntime, readStore,
                             onSelect = ::selectTarget, onOpen = { id, question -> openSelected(id, question) }, onManage = { terminalManagerOpen = true })
                         RootTab.Projects -> ProjectRepositoryScreen(repositoryStore)
                         RootTab.Me -> MeScreen(
@@ -511,6 +516,8 @@ private fun RemoteApp(night: Boolean, destination: NotificationDestination?, onD
                     conversation = conversation,
                     loadError = conversationError,
                     desktopOpening = desktopOpening,
+                    quotaRuntime = quotaRuntime,
+                    onRead = { revision -> runCatching { readStore?.acknowledge(gateway!!.target.id,id,revision) }.onFailure { quotaRuntime.readError=true } },
                     busy = busy,
                     night = night,
                     onToggleNight = onToggleNight,

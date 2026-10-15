@@ -118,7 +118,7 @@ export class MobileSync {
                 break;
             }
         }
-        const meta = { session: source.session, observation: source.observation,
+        const meta = { ...mobileReadMarker(source), session: source.session, observation: source.observation,
             latestUserMessage: latestUser ? preview(latestUser) : null,
             userMessageCount: all.filter(entry => entry.item.type === "userMessage").length,
             pendingQuestions: source.pendingQuestions, pendingApprovals: source.pendingApprovals,
@@ -171,13 +171,28 @@ export class MobileSync {
         return { items: result, nextBefore: end > 0 ? result.at(-1)?.key : null, total: all.length };
     }
 }
+/** Stable attention watermark shared by list signals and the rendered transcript. */
+export function mobileReadMarker(source) {
+    const turn = array(source.thread.turns).at(-1);
+    const questions = array(source.pendingQuestions).filter(q => !["accepted", "closed", "expired"].includes(q.status));
+    if (!turn || (!["completed","failed","interrupted"].includes(turn.status) && !questions.length)) return {};
+    const result = entries({ ...source, thread: { ...source.thread, turns: [turn] } }).filter(e => e.turnId === turn.id && ["agentMessage", "plan"].includes(e.item.type)).at(-1);
+    const q = questions.at(-1);
+    const readKey = q ? `question-${q.id}-${q.revision ?? ''}` : result?.key;
+    if (!readKey) return {};
+    return { readRevision: digest([turn.id, turn.status, result?.revision, questions.map(q => [q.id,q.revision])]), readKey };
+}
+
 /** Only event identifiers/status cross the network, never notification transcript text. */
 export function mobileSignals(source) {
     // 仅返回最近回合状态、计划标记和待处理项 ID，不附带通知正文。
     const latest = array(source.thread.turns).at(-1);
-    return { turnId: latest?.id ?? null, completed: latest?.status === "completed",
+    return { ...mobileReadMarker(source), turnId: latest?.id ?? null, completed: latest?.status === "completed",
+        running: source.observation?.source === 'desktop-ipc' && ['running','idle'].includes(source.observation?.state)
+            ? source.observation.state === 'running' && !array(source.pendingQuestions).some(q=>!["accepted","closed","expired"].includes(q.status)) && array(source.pendingApprovals).length===0 : null,
+        usage: source.usage ?? null,
         plan: source.session.mode === "plan" && array(latest?.items).some((i) => i.type === "plan"),
         // Answered cards remain in the transcript, but must not notify as new pending work.
-        questions: array(source.pendingQuestions).filter((q) => !["accepted", "closed"].includes(q.status)).map((q) => q.id),
+        questions: array(source.pendingQuestions).filter((q) => !["accepted", "closed", "expired"].includes(q.status)).map((q) => q.id),
         approvals: array(source.pendingApprovals).map((a) => a.id) };
 }

@@ -4,7 +4,7 @@ package dev.codex.remote
 internal data class TranscriptActivity(val label: String, val animated: Boolean = false)
 
 /** Completed cards remain readable history but no longer request an action. Unknown states stay visible. */
-internal fun QuestionRequest.needsAttention(): Boolean = status !in setOf("accepted", "closed")
+internal fun QuestionRequest.needsAttention(): Boolean = status !in setOf("accepted", "closed", "expired")
 internal fun Conversation.needsAttention(): Boolean = approvals.isNotEmpty() || questions.any { it.needsAttention() }
 
 internal fun sessionProcessing(session: Session, observation: Observation?): Boolean =

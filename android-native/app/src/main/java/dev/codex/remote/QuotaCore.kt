@@ -39,7 +39,7 @@ internal fun quotaDigitCells(text: String): List<Pair<Int,Int>> = text.take(4).f
 }
 
 internal fun DrawScope.drawQuotaCore(value: DeviceQuota?, now: Long, time: Float, skin: TerminalSkin, night: Boolean,
-    activity: QuotaActivityFrame? = null) {
+    activity: QuotaActivityFrame? = null, presentation: QuotaPresentation? = null) {
     val limit=quotaLimit(value); val windows=quotaWindows(limit)
     val stale=value?.unavailable==true || limit?.let { usageStale(it,now) }!=false
     val power=boundedLight(skin.flowBrightness)
@@ -54,7 +54,7 @@ internal fun DrawScope.drawQuotaCore(value: DeviceQuota?, now: Long, time: Float
     val combined=skin.quotaStyle==QuotaStyle.Dual && windows.size==2
     val geometry=quotaCoreGeometry(size.width,size.height,if(combined)1 else windows.size)
     geometry.forEachIndexed { index,g ->
-        val w=windows.getOrNull(index);val amount=w?.remaining
+        val w=windows.getOrNull(index);val amount=w?.let { presentation?.numbers?.get(it.minutes)?.roundToInt() ?: it.remaining }
         val fraction=(amount ?: 0)/100f
         val c=g.center;val r=g.radius
         val ink=tint.copy(alpha=alpha)
@@ -106,7 +106,8 @@ internal fun DrawScope.drawQuotaCore(value: DeviceQuota?, now: Long, time: Float
             QuotaStyle.Dual -> {
                 for((ring,scale) in (if(combined)listOf(.94f,.81f)else listOf(.94f)).withIndex()) {
                     val radius=r*scale
-                    val actual=(windows.getOrNull(if(combined)ring else index)?.remaining ?: 0)/100f
+                    val win=windows.getOrNull(if(combined)ring else index)
+                    val actual=(win?.let { presentation?.numbers?.get(it.minutes) ?: it.remaining.toFloat() } ?: 0f)/100f
                     drawCircle(ink.copy(alpha=alpha*.15f),radius,c,style=Stroke(r*.026f))
                     drawArc(ink.copy(alpha=alpha*if(scale>.9f).85f else .55f),-90f,360f*actual,false,
                         c-Offset(radius,radius),Size(radius*2,radius*2),style=Stroke(r*.026f))
@@ -123,13 +124,26 @@ internal fun DrawScope.drawQuotaCore(value: DeviceQuota?, now: Long, time: Float
         val slots=if(combined)windows else listOf(w)
         slots.forEachIndexed { slot,window ->
         val numberCenter=if(combined)c+Offset(0f,if(slot==0)-r*.27f else r*.27f)else c
-        val text=window?.remaining?.let { "$it%" } ?: "—"
+        val text=window?.let { "${presentation?.numbers?.get(it.minutes)?.roundToInt() ?: it.remaining}%" } ?: "—"
         val pixel=min(r*(if(combined).048f else .073f),r*1.38f/(text.length*6-1))
         val origin=numberCenter-Offset((text.length*6-1)*pixel/2,7*pixel/2)
         quotaDigitCells(text).forEach { (x,y) ->
             val point=origin+Offset(x*pixel,y*pixel)
+            // Solid pixel silhouettes occlude the grid/sweep; the displaced dark
+            // edge reads as a cast shadow, with the luminous digit in front.
+            if(presentation!=null) {
+                val shadow=if(night) Color(skin.palette.dark) else Color.White
+                drawRect(shadow.copy(alpha=.9f),point-Offset(pixel*.16f,pixel*.1f),Size(pixel*1.12f,pixel*1.12f))
+                drawRect(shadow.copy(alpha=.65f),point+Offset(pixel*.28f,pixel*.4f),Size(pixel*.88f,pixel*1.45f))
+                if(presentation.resetLight>0f) drawLine(tint.copy(alpha=(presentation.resetLight*.5f).coerceAtMost(.5f)),
+                    point+Offset(pixel*.4f,pixel*2.5f),point+Offset(pixel*.4f,-pixel*1.5f),pixel*.25f)
+            }
             drawRect(ink.copy(alpha=alpha*.13f),point-Offset(pixel*.3f,pixel*.3f),Size(pixel*1.45f,pixel*1.45f))
-            drawRect(ink,point,Size(pixel*.78f,pixel*.78f))
+            val projection=(x+y).toFloat()/(text.length*6+6)
+            val wave=presentation?.let { exp(-((projection-(it.flare-.55f))/.15f).pow(2))*it.scatter } ?: 0f
+            if(wave>0f) drawCircle(Brush.radialGradient(listOf(tint.copy(alpha=(wave*.38f).coerceAtMost(.38f)),Color.Transparent),
+                center=point+Offset(pixel*.4f,pixel*.4f),radius=pixel*3f),pixel*3f,point+Offset(pixel*.4f,pixel*.4f))
+            drawRect(ink.copy(alpha=(alpha+wave*.55f).coerceAtMost(.9f)),point,Size(pixel*.78f,pixel*.78f))
         }
         paint.textSize=min(11.dp.toPx(),r*.15f);paint.color=ink.copy(alpha=alpha*.9f).toArgb()
         val label=if(window==null) "未同步" else (if(stale)"上次 · " else "")+window.label

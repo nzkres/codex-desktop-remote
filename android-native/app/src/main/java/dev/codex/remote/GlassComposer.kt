@@ -22,7 +22,6 @@ import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.*
 import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.graphics.layer.GraphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onGloballyPositioned
@@ -174,16 +173,11 @@ fun GlassComposer(
 private fun SendingOrbit(color: Color, motion: Boolean) {
     val orbit = if (motion) rememberInfiniteTransition(label = "sendingOrbit").animateFloat(0f, 360f,
         infiniteRepeatable(tween(1000, easing = LinearEasing)), label = "sendRotation") else null
-    Canvas(Modifier.size(27.dp).testTag("send-orbit").processingLight(true).semantics { stateDescription = if (motion) "旋转中" else "正在发送" }) {
+    Canvas(Modifier.size(27.dp).testTag("send-orbit").semantics { stateDescription = if (motion) "旋转中" else "正在发送" }) {
         val line = 1.8.dp.toPx()
         drawCircle(color.copy(alpha = .22f), radius = size.minDimension / 2 - line, style = Stroke(line))
         drawArc(color, orbit?.value ?: -90f, 105f, false, Offset(line, line), Size(size.width - line * 2, size.height - line * 2), style = Stroke(line, cap = StrokeCap.Round))
-        rotate(orbit?.value ?: 0f) {
-            val w = size.width; val h = size.height
-            drawLine(color, Offset(w * .5f, h * .7f), Offset(w * .5f, h * .3f), line, StrokeCap.Round)
-            drawLine(color, Offset(w * .35f, h * .46f), Offset(w * .5f, h * .3f), line, StrokeCap.Round)
-            drawLine(color, Offset(w * .65f, h * .46f), Offset(w * .5f, h * .3f), line, StrokeCap.Round)
-        }
+
     }
 }
 

@@ -1,5 +1,6 @@
 """Read bounded quota events for one authorized Desktop task; never expose log text."""
 import datetime
+import hashlib
 import json
 import math
 from pathlib import Path
@@ -7,6 +8,26 @@ import re
 import sqlite3
 import sys
 from contextlib import closing
+
+def quota_account_key(home, captured_at):
+    """Only the account identifier is selected; no token/email leaves this process.
+
+    Do not attach an old quota observation to a newly changed login file.
+    """
+    try:
+        path=home/'auth.json'
+        if path.is_symlink() or (hasattr(path,'is_junction') and path.is_junction()): return None
+        with path.open('rb') as stream:
+            import os,stat
+            info=os.fstat(stream.fileno())
+            if not stat.S_ISREG(info.st_mode) or info.st_nlink!=1 or not 0<info.st_size<=131072: return None
+            if int(info.st_mtime*1000)>captured_at: return None
+            value=json.loads(stream.read(131073))
+        tokens=value.get('tokens')
+        account=tokens.get('account_id') if isinstance(tokens,dict) else None
+        if not isinstance(account,str) or not re.fullmatch(r'[A-Za-z0-9_-]{8,160}',account): return None
+        return hashlib.sha256(('desktop-remote-quota-account-v1\n'+account).encode()).hexdigest()
+    except (OSError,ValueError,TypeError,AttributeError): return None
 
 def window(value):
     if not isinstance(value,dict): return None
@@ -61,7 +82,11 @@ def read_usage(home,thread_id):
             if isinstance(plan,str) and plan.lower() in ('free','go','plus','pro','team','business','enterprise','edu'):
                 found[limit_id]['planType']=plan.lower()
         if len(found)>=8: break
-    return {'status':'snapshot' if found else 'unavailable','source':'desktop-task-snapshot','limits':list(found.values())}
+    result={'status':'snapshot' if found else 'unavailable','source':'desktop-task-snapshot','limits':list(found.values())}
+    if found:
+        key=quota_account_key(home,min(row['capturedAt'] for row in found.values()))
+        if key: result['accountKey']=key
+    return result
 
 if __name__=='__main__':
     try:

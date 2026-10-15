@@ -5,6 +5,21 @@ module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
 ID='11111111-1111-4111-8111-111111111111'
 
 class DesktopUsageTests(unittest.TestCase):
+    def test_account_key_is_stable_private_and_requires_snapshot_after_login(self):
+        import os
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory);path=self.fixture(root)
+            auth=root/'auth.json'
+            auth.write_text(json.dumps({'tokens':{'account_id':'synthetic-account-111','access_token':'PRIVATE_TOKEN'},'email':'PRIVATE_EMAIL'}))
+            os.utime(auth,(1700000000,1700000000));self.append(path)
+            first=module.read_usage(root,ID)
+            self.assertRegex(first['accountKey'],r'^[a-f0-9]{64}$')
+            self.assertNotIn('PRIVATE',json.dumps(first));self.assertNotIn('synthetic-account',json.dumps(first))
+            self.assertEqual(first['accountKey'],module.read_usage(root,ID)['accountKey'])
+            os.utime(auth,(1900000000,1900000000))
+            self.assertNotIn('accountKey',module.read_usage(root,ID))
+            auth.write_text(json.dumps({'tokens':{'account_id':'synthetic-account-222'}}));os.utime(auth,(1700000000,1700000000))
+            self.assertNotEqual(first['accountKey'],module.read_usage(root,ID)['accountKey'])
     def fixture(self,root):
         sessions=root/'sessions';sessions.mkdir();path=sessions/'fixture.jsonl'
         path.write_text(json.dumps({'type':'session_meta','payload':{'id':ID}})+'\n',encoding='utf8')

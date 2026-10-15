@@ -1,3 +1,7 @@
+## 2026-10-16 本轮候选
+
+Android alpha.20与Windows alpha.19：正式动效、运行状态、阅读位置和紧凑首页。软件安装与真实任务另验收，见[STATUS](../../STATUS.md)。
+
 # 版本说明索引
 
 **仓库中的 Markdown 是三个软件版本说明的主要阅读入口。** 按软件查看完整历史：[Android 手机端](ANDROID.md)、[Windows 连接器](WINDOWS.md)、[服务器中继](RELAY.md)。每份按新到旧排列，逐版列出日期、更新内容、在哪里体验、怎样验证以及限制。仓库组合变化见根目录 [CHANGELOG.md](../../CHANGELOG.md)，维护规则见 [ITERATION.md](../ITERATION.md)；实际构建、安装、运行与部署证据以根目录 [STATUS.md](../../STATUS.md) 为准。

@@ -9,7 +9,7 @@ data class UsageWindow(val usedPercent:Double,val minutes:Int,val resetsAt:Long)
 }
 data class UsageLimit(val id:String,val capturedAt:Long,val windows:List<UsageWindow>,val planType:String?=null)
 internal fun quotaPlan(value:String?):String? = value?.lowercase()?.takeIf { it in setOf("free","go","plus","pro","team","business","enterprise","edu") }
-data class UsageSnapshot(val limits:List<UsageLimit>,val supported:Boolean=true)
+data class UsageSnapshot(val limits:List<UsageLimit>,val supported:Boolean=true,val accountKey:String?=null)
 internal fun parseUsageSnapshot(value:JSONObject?):UsageSnapshot? {
     if(value==null) return null
     val limits=value.optJSONArray("limits") ?: return UsageSnapshot(emptyList())
@@ -25,7 +25,8 @@ internal fun parseUsageSnapshot(value:JSONObject?):UsageSnapshot? {
         }
         if(valid.isEmpty()) null else UsageLimit(id,at,valid,quotaPlan(row.optString("planType")))
     }
-    return UsageSnapshot(parsed)
+    val key=value.optString("accountKey").takeIf { it.matches(Regex("[a-f0-9]{64}")) }
+    return UsageSnapshot(parsed,accountKey=key)
 }
 internal fun usageStale(limit:UsageLimit,now:Long):Boolean =
     now<limit.capturedAt-60000 || now-limit.capturedAt>10*60*1000 || limit.windows.any { it.resetsAt*1000<=now }

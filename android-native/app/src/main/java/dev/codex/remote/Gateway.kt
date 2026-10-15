@@ -73,6 +73,7 @@ data class Conversation(
     val controlNotice: String? = null,
     val capabilities: ConversationCapabilities = ConversationCapabilities(),
     val usage: UsageSnapshot? = null,
+    val readRevision: String = "", val readKey: String = "",
 )
 data class TaskHistoryPage(val items: List<MessageItem>, val nextBefore: String?, val total: Int)
 
@@ -310,7 +311,7 @@ class Gateway(private val baseUrl: String, private val token: String, val target
             result.optJSONObject("capabilities")?.let { caps -> ConversationCapabilities(caps.optBoolean("questions"),
                 caps.optBoolean("approvals"), caps.optBoolean("mode"), caps.optBoolean("implementPlan"), caps.optBoolean("create")) }
                 ?: ConversationCapabilities(),
-            parseUsageSnapshot(result.optJSONObject("usage")))
+            parseUsageSnapshot(result.optJSONObject("usage")), result.string("readRevision"), result.string("readKey"))
         val order = result.optJSONArray("order") ?: error("缺少消息顺序，请稍后重试")
         window.applyPage(result.string("cursor"), result.optBoolean("reset"),
             (0 until order.length()).map { order.getString(it) }, result.array("items").map { it.syncEntry() }, metadata)
@@ -341,7 +342,8 @@ class Gateway(private val baseUrl: String, private val token: String, val target
             val values = result.optJSONArray(key) ?: error("任务通知接口需要升级")
             return (0 until values.length()).map { values.getString(it) }.toSet()
         }
-        return SignalSnapshot(result.string("turnId").ifBlank { null }, result.optBoolean("completed"), result.optBoolean("plan"), ids("questions"), ids("approvals"))
+        return SignalSnapshot(result.string("turnId").ifBlank { null }, result.optBoolean("completed"), result.optBoolean("plan"), ids("questions"), ids("approvals"),
+            if(result.opt("running") is Boolean) result.getBoolean("running") else null, parseUsageSnapshot(result.optJSONObject("usage")), result.string("readRevision"), result.string("readKey"))
     }
 
     suspend fun create(projectId: String, title: String, mode: String): Session {

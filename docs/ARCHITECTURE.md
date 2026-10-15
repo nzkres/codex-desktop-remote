@@ -1,3 +1,7 @@
+## alpha.20 / Windows alpha.19 额度与阅读信号
+
+mobileSignals与mobile-sync共用readRevision/readKey，只返回修订及定位键，不在通知信号中携带正文。Desktop原生明确running优先于目录摘要；旧连接器无信号时未知。额度账号ID在本地受限读取后做域分离SHA256，线上只有哈希，不带邮箱、账号原文或令牌；登录文件晚于额度采样时不关联。手机前台轮转只读signals，最多3并发，不传open=1。每账号一个LiveQuotaScene，切设备不重建；断线/过期不推断完成。阅读水位本机加密按服务/账号/设备/线程隔离。
+
 ## alpha.19 本地预览解码
 
 WebViewClient.shouldInterceptRequest也收到loadDataWithBaseURL生成的data请求。统一403会误拦主文档；现在仅data方案返回null走本地解码，所有其他资源仍返回403，网络/文件/内容/导航与CSP限制不变。onPageCommitVisible之后才记已显示，主框架渲染错误单独报告并用原生层覆盖；相同绑定仅在渲染失败后刷新重建。

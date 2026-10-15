@@ -10,7 +10,7 @@ import org.json.JSONObject
 
 internal data class DeviceQuota(val thread: String, val snapshot: UsageSnapshot?, val unavailable: Boolean = false)
 internal fun quotaLimit(value: DeviceQuota?): UsageLimit? = value?.snapshot?.limits?.let { rows -> rows.firstOrNull { it.id == "codex" } ?: rows.firstOrNull() }
-internal fun quotaJson(snapshot: UsageSnapshot?): Any = snapshot?.let { JSONObject().put("limits", JSONArray(it.limits.map { limit ->
+internal fun quotaJson(snapshot: UsageSnapshot?): Any = snapshot?.let { JSONObject().put("accountKey",it.accountKey ?: JSONObject.NULL).put("limits", JSONArray(it.limits.map { limit ->
     JSONObject().put("id",limit.id).put("capturedAt",limit.capturedAt).put("planType",limit.planType ?: JSONObject.NULL).put("windows", JSONArray(limit.windows.map { window ->
         JSONObject().put("usedPercent",window.usedPercent).put("windowDurationMins",window.minutes).put("resetsAt",window.resetsAt)
     }))
@@ -32,7 +32,8 @@ internal class DeviceQuotaStore(private val prefs: SharedPreferences) {
         val previous = old?.snapshot?.limits?.maxOfOrNull { it.capturedAt } ?: 0L
         if(incoming > System.currentTimeMillis()+60000L) { failed(device); return }
         // A late response from an older task cannot overwrite a newer quota observation.
-        if (incoming > 0 && incoming < previous) return
+        if (snapshot!=null && incoming < previous) return
+        if(incoming==previous && snapshot==old?.snapshot && old?.unavailable==false)return
         val next = values + (device to DeviceQuota(thread, snapshot ?: old?.snapshot, snapshot == null))
         if(next == values) return
         require(next.size <= 100)

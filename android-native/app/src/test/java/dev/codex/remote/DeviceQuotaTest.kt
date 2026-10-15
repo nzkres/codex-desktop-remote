@@ -35,4 +35,10 @@ class DeviceQuotaTest {
         assertEquals(store.values[a]!!.snapshot,restored.values[a]!!.snapshot)
         store.update(a,"a",null);assertTrue(store.values[a]!!.unavailable)
     }
+    @Test fun oldTasksWithoutQuotaCannotEraseNewerDeviceSnapshot() {
+        val store=DeviceQuotaStore(prefs());store.update(a,"current",snapshot(2000,20.0))
+        store.update(a,"old",UsageSnapshot(emptyList()))
+        assertEquals(80,quotaLimit(store.values[a])!!.windows[0].remaining)
+        assertEquals("current",store.values[a]!!.thread)
+    }
 }

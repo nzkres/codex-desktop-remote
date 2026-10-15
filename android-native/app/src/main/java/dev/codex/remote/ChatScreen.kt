@@ -1,5 +1,6 @@
 package dev.codex.remote
 
+import androidx.lifecycle.repeatOnLifecycle
 import android.widget.TextView
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
@@ -111,6 +112,8 @@ fun ChatScreen(
     terminalName: String = "",
     focusPendingQuestion: Boolean = false,
     desktopOpening: Boolean = false,
+    quotaRuntime: LiveQuotaRuntime? = null,
+    onRead: (String) -> Unit = {},
 ) {
     val activity = LocalActivity.current as ComponentActivity
     val scope = remember(activity) { activity.lifecycleScope }
@@ -202,6 +205,24 @@ fun ChatScreen(
             ?.let { rows[it].items.single() }
     } }
     var recallOpen by remember(threadId) { mutableStateOf(false) }
+    val owner=androidx.lifecycle.compose.LocalLifecycleOwner.current
+    val readRevision=conversation?.readRevision.orEmpty()
+    val readKey=conversation?.readKey.orEmpty()
+    val latestRead by rememberUpdatedState(onRead)
+    LaunchedEffect(owner,readRevision,readKey,rows,composerHeight,recallOpen,presentation.reveals) {
+        if(readRevision.isBlank() || readKey.isBlank() || recallOpen || readKey in presentation.reveals) return@LaunchedEffect
+        owner.lifecycle.repeatOnLifecycle(androidx.lifecycle.Lifecycle.State.RESUMED) {
+            snapshotFlow {
+                val layout=listState.layoutInfo
+                val row=rows.firstOrNull { row -> row.items.any { it.id==readKey } }
+                val item=layout.visibleItemsInfo.firstOrNull { it.key==(row?.key ?: readKey) }
+                val top=layout.viewportStartOffset+with(density){(headerInset+recallInset).toPx()}
+                val bottom=(layout.viewportEndOffset-composerHeight).toFloat()
+                item!=null && item.size>0 && bottom>top && item.offset+item.size<=bottom+1 &&
+                    (minOf((item.offset+item.size).toFloat(),bottom)-maxOf(item.offset.toFloat(),top))>=minOf(item.size.toFloat(),bottom-top)*.65f
+            }.collect { visible -> if(visible) latestRead(readRevision) }
+        }
+    }
     var recallSelection by remember(threadId) { mutableStateOf<TaskReference?>(null) }
     var recallPrevious by remember(threadId) { mutableStateOf(emptyList<MessageItem>()) }
     var taskSearchMessage by remember(threadId) { mutableStateOf("") }
@@ -396,7 +417,7 @@ fun ChatScreen(
             backdrop.record { this@drawWithContent.drawContent() }
             drawLayer(backdrop)
         }.background(pageSurface)) {
-        TerminalGrid(headerActivity(session, conversation).running, Modifier.matchParentSize(),DeviceQuota(threadId,conversation?.usage,conversation==null))
+        TerminalGrid(headerActivity(session, conversation).running, Modifier.matchParentSize(),DeviceQuota(threadId,conversation?.usage,conversation==null), live = quotaRuntime)
         LazyColumn(state = listState, modifier = Modifier.fillMaxSize().testTag("transcript").nestedScroll(historyScroll)
             .graphicsLayer { translationY = pullOffset * .5f }
             .semantics { customActions = if (conversation?.hasOlder == true && !loadingHistory)
