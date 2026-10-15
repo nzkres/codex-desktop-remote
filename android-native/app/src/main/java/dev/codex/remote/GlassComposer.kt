@@ -45,6 +45,7 @@ fun GlassComposer(
     draft: String, onDraft: (String) -> Unit,
     mode: String, busy: Boolean, running: Boolean, sending: Boolean,
     modeEnabled: Boolean = true,
+    working: Boolean = running, startedAt: Long? = null,
     expanded: Boolean, onExpanded: (Boolean) -> Unit,
     dockRight: Boolean, onDockRight: (Boolean) -> Unit,
     hasAttention: Boolean, error: String,
@@ -53,6 +54,7 @@ fun GlassComposer(
     onHeight: (Int) -> Unit,
     onMode: (String) -> Unit, onSend: () -> Unit,
     onStop: () -> Unit = {},
+    usage: UsageSnapshot? = null,
     modifier: Modifier = Modifier,
 ) {
     val palette = LocalAppPalette.current
@@ -73,6 +75,20 @@ fun GlassComposer(
         focus.clearFocus(); keyboard?.hide(); modeOpen = false
         onDockRight(right); onExpanded(false)
     }
+    if (modeOpen) AlertDialog(onDismissRequest = { modeOpen = false },
+        title = { Text("模式与模型") }, containerColor = palette.card.copy(alpha = .86f),
+        text = { Column {
+            Text("执行模式", color = palette.muted, fontSize = 12.sp)
+            listOf("default" to "执行模式", "plan" to "计划模式").forEach { (value, label) ->
+                TextButton(enabled = modeEnabled && !busy && !running && !sending,
+                    onClick = { modeOpen = false; onMode(value) }) { Text(label + if (mode == value) " ✓" else "") }
+            }
+            if (!modeEnabled) Text("当前连接器不支持手机切换，请在电脑修改。", color = palette.muted, fontSize = 12.sp)
+            HorizontalDivider(Modifier.padding(vertical = 12.dp))
+            Text("模型", color = palette.muted, fontSize = 12.sp)
+            Text("由 Desktop 管理", color = palette.ink)
+            Text("当前接口尚未提供模型读取与修改能力。", color = palette.muted, fontSize = 12.sp)
+        } }, confirmButton = { TextButton(onClick = { modeOpen = false }) { Text("关闭") } })
     BoxWithConstraints(modifier.fillMaxWidth()) {
         val fullWidth = maxWidth
         val editorDp = with(density) { editorHeight.toDp() }.coerceAtLeast(132.dp)
@@ -97,7 +113,7 @@ fun GlassComposer(
                 ) {
                     CompositionLocalProvider(LocalMinimumInteractiveComponentSize provides 32.dp) {
                     Row(Modifier.fillMaxWidth().testTag("composer-meta"), verticalAlignment = Alignment.CenterVertically) {
-                        Text("消息", color = palette.muted, fontSize = 11.sp, fontWeight = FontWeight.Medium, modifier = Modifier.weight(1f).padding(start = 8.dp))
+                        ComposerWorking(working, hasAttention, startedAt, Modifier.weight(1f).padding(start = 8.dp))
                         // Keep a real 48dp clipped/clickable IconButton, centered in a 32dp
                         // layout slot. Automatic hit expansion cannot escape its small clip.
                         IconButton(onClick = { collapse(false) }, enabled = expanded, modifier = Modifier.padding(horizontal = 8.dp).size(32.dp).wrapContentSize(unbounded = true).requiredSize(48.dp).semantics { contentDescription = "收起到左侧" }) {
@@ -108,22 +124,18 @@ fun GlassComposer(
                         }
                     }
                     }
+                    ComposerUsage(usage)
                     ComposerEditor(draft, onDraft, enabled = expanded && !sending, expanded = expanded,
                         running = running, focusRequester = focusRequester, accent = accent)
                     if (error.isNotBlank()) Text(error, color = palette.errorInk, fontSize = 12.sp, modifier = Modifier.padding(horizontal = 8.dp, vertical = 5.dp))
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Box {
-                            GlassActionButton(if (mode == "plan") "Plan · 规划" else "Agent · 执行", { modeOpen = true },
-                                Modifier.testTag("composer-mode"), icon = if (mode == "plan") "plan" else "agent",
-                                enabled = modeEnabled && expanded && !busy && !running && !sending, selected = mode == "plan", chevron = true,
-                                menuOpen = modeOpen, backdrop = backdrop, backdropOrigin = backdropOrigin, compact = true)
-                            DropdownMenu(expanded = modeEnabled && modeOpen && expanded && !busy && !running && !sending, onDismissRequest = { modeOpen = false },
-                                shape = RoundedCornerShape(20.dp), containerColor = palette.card, tonalElevation = 0.dp) {
-                                DropdownMenuItem(text = { Text("Agent · 直接分析和执行") }, onClick = { modeOpen = false; onMode("default") })
-                                DropdownMenuItem(text = { Text("Plan · 先规划再实施") }, onClick = { modeOpen = false; onMode("plan") })
-                            }
+                        Row(Modifier.heightIn(min = 48.dp).testTag("composer-mode")
+                            .clickable(enabled = expanded, role = Role.Button) { modeOpen = true }
+                            .padding(horizontal = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+                            Text(if (mode == "plan") "计划模式" else "执行模式", color = palette.ink, fontSize = 12.sp)
+                            Box(Modifier.testTag("mode-model-divider").padding(horizontal = 10.dp).width(1.dp).height(14.dp).background(palette.muted.copy(alpha = .5f)))
+                            Text("模型 · Desktop", color = palette.muted, fontSize = 12.sp)
                         }
-                        if (!modeEnabled) Text("切换模式请在电脑处理", color = palette.muted, fontSize = 11.sp)
                         Spacer(Modifier.weight(1f))
                         FilledIconButton(onClick = if (running) onStop else onSend,
                             enabled = expanded && !busy && !sending && (running || draft.isNotBlank()),
@@ -178,12 +190,13 @@ private fun SendingOrbit(color: Color, motion: Boolean) {
 }
 
 @Composable
-private fun ComposerGlyph(kind: String, color: Color, modifier: Modifier) {
+internal fun ComposerGlyph(kind: String, color: Color, modifier: Modifier) {
     Canvas(modifier) {
         val w = size.width; val h = size.height; val line = 1.7.dp.toPx()
         fun segment(x1: Float, y1: Float, x2: Float, y2: Float) = drawLine(color, Offset(w * x1, h * y1), Offset(w * x2, h * y2), line, StrokeCap.Round)
         when (kind) {
             "stop" -> drawRoundRect(color, Offset(w * .23f, h * .23f), Size(w * .54f, h * .54f), CornerRadius(2.dp.toPx()))
+            "down" -> { segment(.5f, .18f, .5f, .82f); segment(.22f, .54f, .5f, .82f); segment(.78f, .54f, .5f, .82f) }
             "send" -> { segment(.5f, .82f, .5f, .18f); segment(.22f, .46f, .5f, .18f); segment(.78f, .46f, .5f, .18f) }
             "left", "right" -> {
                 val direction = if (kind == "left") -1 else 1

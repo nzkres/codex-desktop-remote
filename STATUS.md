@@ -461,7 +461,101 @@ Linux CI的Windows包已逐43文件核对Git；与实际已签alpha.6相比仅GU
 
 ## alpha.5 受控构建与发布基线（发布时历史快照）
 
-以下记录 alpha.5 发布时的授权和构件证据，不代表当前部署状态；最新隔离服务、公网验收与实机待测项以本页顶部为准。当时用户已明确批准：合并PR #1，固定测试origin `https://106.53.126.69:9443`，创建本项目专用RSA/APK测试签名并加密保存，配置本私有仓库六项Android Secrets，构建并验证alpha.5首装包。**当时授权不包含隔离服务器部署、停止现用服务、真实身份迁移或手机安装；隔离部署后来另获批准并已完成。** PR #1已合并为`1e405ad`；受控构件输入为`1a4b4c0ced91d1a384e723374a6141d84e43de9e`，经分支CI通过后main非强制快进到同一提交。
+以下记录 alpha.5 发布时的授权和构件证据，不代表当前部署状态；最新隔离服务、公网验收与实机待测项以本页顶部为准。当时用户已明确批准：合并PR #1，固定测试origin `https://106.53.126.69:9443`，创建本项目专用RSA/APK测试签名并加密保存，配置本私有仓库六项Android Secrets，构建并验证alpha.5首装包。**当时授权不包含隔离服务器部署、停止现用服务、真实身份迁移或手机安装；隔离部署后来另获批准并已完成## 2026-10-15 Android alpha.11 候选
+
+实现输入框额度快照（含采样与过期状态）和可配置核心网格流光。Windows 连接器需同步升级提供额度字段；当前手机源仍alpha.10。本轮编译/测试/实机与发布分别记录，未宣称实机通过。
+
+## 2026-10-15 Android alpha.10 已发布
+
+Android alpha.10/versionCode 10/sequence 4 已发布；原证书、实际 Manifest、内置 trust 与实际 HTTPS 完整下载核验通过。手机可检查更新，覆盖安装待用户确认。
+
+更新错误按暂停、离线、任务忙、权限、网络与两端未知回执分别提示。原身份、回执、任务保护保留。GitHub runner 因账户额度未启动，改用固定合并提交本机构建及原签名；本机单元/Lint 通过，55 项模拟器回归覆盖相同运行源码。完整证据见 [发布记录](docs/ANDROID-ALPHA10-PUBLICATION.md)。
+
+## 2026-10-15 更新状态诊断修复（alpha.10，已通过构建验证，未发布）
+
+终端最初为 active / offline，用户点击连接后心跳在线，但更新状态接口仍返回 503 terminal_credential_unavailable。本机 runtimeNeedsReview=true，本地任务接口拒绝连接。电脑配置对应的 10 条回执全部 accepted 且具备 turnId；没有手机调试通道，手机本地回执未核验。没有清除保护、重发或清除回执。更新源 HTTP 200，仍为 alpha.9 / sequence 3。
+
+修复提交 a225ca4；Android CI 38663853142 的编译、单元测试、lint、APK 说明校验与 55 项模拟器回归通过。Node 36/36；Python 139 项中 132 通过、7 平台跳过；Core CI Windows/Linux 测试步骤通过，但构件上传失败。修复未签名发布或安装，连接器现场仍需按 RECOVERY.md 复核，不能把心跳在线当作恢复完成。
+
+## 2026-10-15 — Desktop Remote Lite alpha.9 已发布（手机待安装）
+
+alpha.9/versionCode 9/sequence 3 已发布，原证书、实际 Manifest、内置 trust、服务器回执和实际 HTTPS 完整下载均独立校验通过。APK 40121564 字节，SHA256 `271e994290e7dc5664da856769601c98935a4191faf2b004045aab4dc27ecc8c`。源码 `648527d2cf00eae5fe06bdd50630bf60d3f91a3e`，受控构建 38612698531，55/55 模拟器回归通过；手机实际安装待用户确认。
+
+已落地封存预览的终端玻璃皮肤、离线字体、随机网格、吸顶与输入框状态。模型修改与异步答题仍需电脑。较大字体包的上传期限已修复；权限、配额、旧包、其他组件源和现用服务保持。完整证据及安装步骤见 [alpha.9 发布记录](docs/ANDROID-ALPHA9-PUBLICATION.md)。
+
+## 2026-10-14 — Android alpha.8 私有 OTA 已发布（手机待安装）
+
+用户明确批准签名并发布Android alpha.8。北京时间17:36:03在独占Android发布锁内核对旧索引摘要后原子切换到alpha.8/versionCode8/sequence2；17:36:38完成本机经正常TLS、账号鉴权的索引读取及完整APK下载复验。匿名索引和APK均401；临时验收会话单独注销，不影响手机登录。原索引备份、旧APK、Windows/relay更新源、服务PID/启动时间及运行版本均保持。
+
+构建38540921047的原证书APK，11806944字节，SHA256 `02de6dddf6d36cf75bf658711d0731ab8b6dd0d48aa3fd8233095748449e6ee9`；新签名索引SHA256 `fe29a7e43ea82f282af887f9979c08d47d008abad95c4d18ff406fe6e024e29f`，有效至北京时间2026-10-21 17:30:30。原RSA信任验签、错误签名拒绝、旧序号拒绝、alpha.5/6/7升级候选验证均通过。此次无业务代码改动，沿用上一轮自动化结果并完成真实发布验收，不重建同版本APK。
+
+手机现在可在原APP“我的→版本与更新说明”检查并安装alpha.8，登录原:9443、选择原电脑，不卸载或重新配对。手机实际安装、身份/草稿保留、原任务与普通问答验收尚未完成；普通问答需Windows alpha.15，异步问题仍在Desktop回答。完整路径、备份、核验和恢复边界见[发布实录](docs/ANDROID-ALPHA8-PUBLICATION.md)。
+
+## 2026-10-14 — Android alpha.8 已直传自有服务器并独立验包（未发布到手机）
+
+用户批准的专用账号、CI配置、合并和原证书构建已完成。PR #11合并348fb2d，上传换行修复d41466a；[受控构建38540921047](https://github.com/nzkres/codex-desktop-remote/actions/runs/38540921047)成功，直接保存到106.53.126.69的`/srv/codex-desktop-remote-incoming/android/38540921047-1/`。本轮Android APK不存GitHub Actions artifacts或Release；源码/CI仍在GitHub，Core源码ZIP流程未改。
+
+从服务器管理员SSH取回后独立验收：APK **0.1.0-alpha.8 / versionCode 8**，**11806944字节**，SHA256 **02de6dddf6d36cf75bf658711d0731ab8b6dd0d48aa3fd8233095748449e6ee9**；真实Manifest包名dev.codex.desktopremote.lite、minSdk26，单签名者及原APK证书、包内版本记录和原trust逐字节匹配，服务器收据全部文件大小/SHA一致。APK仍为现有debuggable受控测试构建，不伪称生产稳定版。
+
+上传账号真实合成验收及修复后Node36/36、Python132通过7跳过已经记录；CI签名构建通过编译/单元/lint/签名/trust/服务器上传，模拟器测试在先前PR Android CI完成，签名构建按设计不重跑模拟器。原签名/身份未更换，服务和Android旧索引保持。**此次批准明确不切换正式Android feed、不安装手机**，手机检查更新尚不能看到alpha.8；下一步准备并审查新的签名元数据、原子发布和私有下载，再经批准切换。详见[部署实录](docs/SERVER-OTA-DEPLOYMENT-20261014.md)与[Android发布审查](docs/ANDROID-ALPHA8-OTA-REVIEW.md)。
+
+## 2026-10-14 — 自有服务器上传入口已部署，修复 CI 私钥文本格式
+
+用户明确批准专用账号、两项CI配置、PR #11合并及原证书构建。服务器cdr-ota-upload已部署并通过真实SSH合成上传、重复/任意命令/错误主机键拒绝和权限核验，现用服务及Android feed不变。两项Secret实际配置；PR #11已合并main 348fb2d。Android PR CI38537322078整轮成功，Core两平台检查通过、仅旧源码构件上传受GitHub配额阻止。
+
+首轮受控构建38539346508的APK编译/单元/lint/原证书/trust检查通过，SSH上传失败且服务器未接收。定位到gh secret set去掉末尾换行；Linux合成密钥复现缺LF导致libcrypto错误，补LF恢复。上传脚本补规范LF及回归测试，保持原密钥/账号/证书。GPT-6 Sol medium只读复核无阻断。源码交付范围仍仅Android，未改Core构件保存；尚未发布新版Android源或安装手机。详细证据和维护步骤见docs/SERVER-OTA-DEPLOYMENT-20261014.md。
+
+## 2026-10-14 — Android签名构件改存自有服务器（实现待部署）
+
+用户要求不再依赖GitHub存储，使用现有服务器做OTA。新增固定SSH命令接收器及main受控签名构建的直接上传脚本，替换Android upload-artifact；普通PR/debug不存GitHub或服务器。正式私有HTTPS下载源、原APK证书/公钥、手机身份保持，应用版本仍alpha.8。暂存与正式feed分权，不增加公网端口。
+
+本机接收协议9通过1权限跳过，服务器Linux临时目录10/10通过；GPT-6 Sol复核无阻断并建议补接收总字节核对，已落实。本机Node36/36；Python完整134项中127通过、7平台跳过，之后新增发送边界4/4通过。服务器接收器Linux10/10通过。服务器真实SSH集成和受控签名包尚未执行。
+
+已生成仓库外DPAPI加密的专用上传密钥；创建服务器cdr-ota-upload账号/授权文件/私有目录被自动审批拒绝，原因是新增持久SSH权限须用户明确批准。拒绝后未换路径执行，服务器和CI Secrets未改变。完整配置、测试及撤回清单见docs/SERVER-OTA-DELIVERY.md。既有PR #10合并与原证书构建授权继续有效，不再以恢复GitHub存储作为这条新交付路径的前提。
+
+## 2026-10-14 — Android PR #10已获批合并；受控构建等待构件保存恢复
+
+用户明确批准合并PR #10，并在构件保存恢复后沿用原证书受控签名构建alpha.8；本次不包含Android私有源发布或手机安装。北京时间16:26:18按精确head 4371604af9f8171a2e0fa781dc61c304ff2902a7合并，main提交e66f710660b58d35da67db4ceab41c6d6dd01114。合并后android-native及.github/workflows/android.yml与批准分支完全一致；相较已完整测试的b7a5245，head只增补4份审查文档，没有业务代码变化。
+
+最新Core CI38534848945于16:25:22（Linux）、16:26:23（Windows）上传均仍报Artifact storage quota has been hit，其余适用步骤通过。当前仓库仍只有保留的4份旧最新构件，未获得alpha.8新APK。合并自动触发普通main Android CI38535101592及Core CI38535101712；它们不是受控签名构建，不能用于手机覆盖安装。没有把清理成功当额度恢复，也未反复触发签名构建。
+
+后续签名授权已具备，不重复询问：确认构件保存实际恢复、main Android源码/签名工作流没有未经审查变化后，执行gh workflow run android.yml --repo nzkres/codex-desktop-remote --ref main -f signed_ota=true。必须保留run ID并下载复验证书、包名/versionCode8、包内trust与版本说明、大小/SHA；取回后才准备RSA元数据签名和私有源审查。若main业务代码变化，先复核范围。此刻受控签名构建尚未触发、APK不可下载、Android feed仍未切换，手机未安装。不能声称后续任务已被自动调度。
+
+命令证据：gh pr merge 10 --merge --match-head-commit 4371604af9f8171a2e0fa781dc61c304ff2902a7；gh pr view 10确认MERGED与合并提交；git diff origin/main HEAD --exit-code -- android-native .github/workflows/android.yml通过；最新CI日志仅提取固定配额错误，不保存私密日志。
+
+## 2026-10-14 — Android alpha.8独立PR #10验收完成，待批准合并/签名
+
+PR https://github.com/nzkres/codex-desktop-remote/pull/10，业务提交b7a524554fbd5f0240fa26ef67834d5e6cfc8d2d。109份Android文件及Android CI工作流与已测试源码0dbf345的Git对象完全一致（tree b40aa270b71bd5124de60ad4f18246c2365057ec，workflow blob 5f1d29989955cc5707a5d91a6845ddc8994e506a）。更新器、应用Manifest、构建签名配置与main无差异；未改Windows/relay业务代码。本机Node36/36，Python118通过6平台跳过；版本历史与git diff --check通过。GPT-6 Sol medium只读复核未发现阻断，强调须配套已发布Windows alpha.15及完整版本文档，均已记录。
+
+PR Android CI38533382850：编译、JVM、lint、包内版本说明及37项模拟器全部通过。CI端debug APK alpha.8/versionCode8，11806368字节，SHA256 3a46fd9a2295db0f5104abe65a48da6c3fc6468626930ebd1ca06ef9db14b3d7；这不是原证书包，也未本地下载复验。北京时间16:22:01构件上传仍报Artifact storage quota has been hit，API artifacts.total_count=0，整轮failure。Core CI38533382485 Windows/Linux适用检查全通过，仅构件上传同样受阻。重复push Android构建已取消，保留完整PR CI；重复Core取消时已完成，无额外重跑。
+
+尚未合并PR #10、受控签名或发布Android源。线上仍alpha.5，手机不能取得尚未发布的alpha.8。下一步请求批准只合并此独立PR并沿用原证书进行受控签名构建；额度未恢复不循环重建或修改付费。取回APK验签后另请批准私有源切换，不包含手机自动安装。证据artifacts/android-alpha8/pre-merge-review.json仅本机，完整交接见docs/ANDROID-ALPHA8-OTA-REVIEW.md。
+
+## 2026-10-14 — Android alpha.8独立发布准备
+
+用户要求继续解决手机无法OTA。线上Android源仍alpha.5/sequence1，APK大小11772524、签名元数据及SHA通过；旧metadata于北京时间2026-10-15 14:33:03过期。Windows alpha.15已发布不代表Android发布。最新核验Android run38530732869仍因GitHub构件配额上传失败，暂无alpha.8可交付包。
+
+独立分支基于main 7f4d80d，提取已测试0dbf345的Android源码/测试/工作流，保留现有main-only签名、原证书及权限；不携带Windows/relay业务改动。准备审查、独立CI和提取完整性验证，尚未合并、签名或发布Android源。后续步骤和恢复边界见docs/ANDROID-ALPHA8-OTA-REVIEW.md。
+
+## 2026-10-14 — Actions构件默认只保留同类最新一份
+
+用户授权清理当前仓库旧Actions构件，并明确不扩展到其他仓库。独立main维护变更新增Keep latest Actions artifacts：Android/Core self-test完成后以及手动触发时，按构件名分别保留最新已完成运行的未过期构件，删除更旧同名构件；按created_at而非ID判断新旧。签名Android、debug Android、Windows和Linux分开保留。运行中的构件和未知名称不清理；保留件失效时立即停止。没有checkout或执行触发分支的代码，不访问Release、缓存、源码、签名Secrets或其他仓库。
+
+独立维护提交cfb6240已进入main并启用规则；首次手动运行38526457237成功。清理前95个构件，实际删除91个旧Windows/Linux构件，释放15,097,027字节（约14.4 MiB）；剩余4个，共23,284,628字节。独立API重读确认各类均为清理前created_at最新的保留件：Linux11826389040、Windows11825894898、Android debug11558639319、Android签名测试11532685397。两个APK各只有一份，均保留。Release标签与asset ID/名称/大小清单逐字一致，未修改其他仓库。这里的最新指最新已上传构件，不表示alpha.8 APK已成功上传。现有14天到期上限仍适用，最新一份不代表永久归档；长期安装包使用Release/私有更新源。GitHub存储统计通常6–12小时更新，清理不等于上传额度立刻恢复，也不保证当前账号其他仓库不占配额。
+
+本机main维护分支Node36/36通过；Python124项，118通过6平台跳过；版本目录检查通过。新增3项精确执行工作流内联程序的合成测试，覆盖时间/ID乱序、类别隔离、活动运行、未知名称、过期记录、保留件消失、删除失败和空仓库。不会在测试中调用真实删除API。维护变更不合并功能PR #8，也不生成新的软件版本。
+
+## 2026-10-14 — Android alpha.7独立发布候选（未合并、未受控签名）
+
+本分支只从已测试功能提交e75a209提取Android代码、测试、版本目录及Android CI，不合入Windows连接器或中继代码。包含此前alpha.6的明确选择电脑/通知目标隔离，以及alpha.7的手机点击标题按需加载原对话。Windows alpha.14候选与实机验证记录在PR #8；本分支的Windows/relay版本仍为main基线，不能当成当前主电脑安装版本。
+
+手机显式点标题或重试附open=1；待加载后只用普通读取等待，后台、分页和通知不导航。不发送唤醒消息，不复制对话，不改Desktop权限。需要Windows alpha.14配合；可能切换电脑Desktop页面。旧连接器忽略参数，仍须在电脑打开对话。
+
+源提交Android CI 38513358589编译、单元测试、lint、APK版本记录检查与19项模拟器测试均通过；只有artifact上传因存储额度失败，不能称整体CI成功或构件可下载。本分支提取后本机Node33/33、Python118通过/6跳过；首次沙箱运行被临时目录/回环权限拒绝，正常用户权限复跑通过。本分支仍需独立CI核对。受控签名工作流要求main，须先审查并批准合并本PR才能构建同证书APK。普通debug构件不能覆盖现用测试APP，不卸载绕过；当前未发布、未安装、未修改Secrets或私有源。
+
+# 当前验证状态：0.1.0-alpha.5 受控测试首装候选
+
+用户已明确批准：合并PR #1，固定测试origin `https://106.53.126.69:9443`，创建本项目专用RSA/APK测试签名并加密保存，配置本私有仓库六项Android Secrets，构建并验证alpha.5首装包。**不包含公网部署、停止现用服务、真实身份迁移或手机安装。** PR #1已合并为`1e405ad`；受控构件输入为`1a4b4c0ced91d1a384e723374a6141d84e43de9e`，经分支CI通过后main非强制快进到同一提交。
 
 签名工具提交`755fe14`的Core [push37734382112](https://github.com/nzkres/codex-desktop-remote/actions/runs/37734382112) / [PR37734386777](https://github.com/nzkres/codex-desktop-remote/actions/runs/37734386777) Windows/Linux，以及Android [push37734382114](https://github.com/nzkres/codex-desktop-remote/actions/runs/37734382114) / [PR37734386832](https://github.com/nzkres/codex-desktop-remote/actions/runs/37734386832)均通过。主Python119项：Windows113通过/6跳过、Linux101通过/18跳过；Android的普通PR构建未执行真实受控签名步骤。
 

@@ -43,7 +43,7 @@ class ChatPolishUiTest {
 
     @After fun cleanup() {
         compose.mainClock.autoAdvance = true
-        prefs.edit().remove("zebra_style").apply()
+        prefs.edit().remove("zebra_style").remove("skin_effect").apply()
         clipboard.clearPrimaryClip()
     }
 
@@ -71,7 +71,7 @@ class ChatPolishUiTest {
         }
         compose.onNode(hasSetTextAction()).performTextInput(raw)
         compose.onNodeWithContentDescription("发送消息").performClick()
-        compose.waitUntil(5000) { compose.onAllNodesWithContentDescription("展开输入框").fetchSemanticsNodes().isNotEmpty() }
+        compose.waitUntil(5000) { compose.onAllNodesWithTag("sent-message").fetchSemanticsNodes().isNotEmpty() }
         compose.waitForIdle()
         assertEquals(raw, submitted)
         assertRendered()
@@ -103,7 +103,7 @@ class ChatPolishUiTest {
             }
         } }
         compose.mainClock.advanceTimeBy(500)
-        compose.onNodeWithTag("header-subtitle", useUnmergedTree = true).assertTextEquals("共 1 轮 · 检查当前任务")
+        compose.onNodeWithTag("header-subtitle", useUnmergedTree = true).assertTextEquals("共 1 轮 · 点击回看")
         val spinner = compose.onNodeWithTag("header-loading", useUnmergedTree = true)
         spinner.assert(SemanticsMatcher.expectValue(SemanticsProperties.StateDescription, "转动"))
         val before = spinner.captureToImage().toPixelMap()
@@ -115,7 +115,7 @@ class ChatPolishUiTest {
         compose.runOnIdle { content.value = content.value.copy(turns = listOf(Turn("t", "running",
             listOf(request, command.copy(output = "Running tests\n12 tests passed\n"))))) }
         compose.mainClock.advanceTimeBy(50)
-        compose.onNodeWithTag("header-subtitle", useUnmergedTree = true).assertTextEquals("共 1 轮 · 检查当前任务")
+        compose.onNodeWithTag("header-subtitle", useUnmergedTree = true).assertTextEquals("共 1 轮 · 点击回看")
         captureTestScreen("39-header-live-output")
         compose.runOnIdle { reduced.value = true }
         compose.mainClock.advanceTimeBy(50)
@@ -124,7 +124,7 @@ class ChatPolishUiTest {
         compose.mainClock.advanceTimeBy(50)
         spinner.assertContentDescriptionEquals("任务未在执行")
         spinner.assert(SemanticsMatcher.expectValue(SemanticsProperties.StateDescription, "静止"))
-        compose.onNodeWithTag("header-subtitle", useUnmergedTree = true).assertTextEquals("共 1 轮 · 检查当前任务")
+        compose.onNodeWithTag("header-subtitle", useUnmergedTree = true).assertTextEquals("共 1 轮 · 点击回看")
     }
 
     @Test fun commandDetailsFitContentReachEdgesAndKeepSquareControlsAccessible() {
@@ -161,6 +161,7 @@ class ChatPolishUiTest {
     }
 
     @Test fun everyZebraPresetPersistsAndBothThemesRenderAlternatingFullWidthRows() {
+        prefs.edit().putString("skin_effect", GridEffect.Off.name).commit()
         val settings = mutableStateOf(true)
         val night = mutableStateOf(false)
         compose.setContent { HapiStyle(night.value) {

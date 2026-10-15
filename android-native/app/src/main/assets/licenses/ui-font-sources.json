@@ -1,0 +1,98 @@
+[
+  {
+    "family": "mashanzheng",
+    "source": "https://raw.githubusercontent.com/google/fonts/main/ofl/mashanzheng/MaShanZheng-Regular.ttf",
+    "file": "res\\font\\mashanzheng.ttf",
+    "sha256": "6d2546bb189c732a8ca29af9e22457b152387d158aa459e4ac2ce1e51788b7fb"
+  },
+  {
+    "family": "mashanzheng",
+    "source": "https://raw.githubusercontent.com/google/fonts/main/ofl/mashanzheng/OFL.txt",
+    "file": "assets\\licenses\\mashanzheng-OFL.txt",
+    "sha256": "d7bdb1cee215b689e23c2f95672a6084c790542170648267a55114103d756a08"
+  },
+  {
+    "family": "zcoolkuaile",
+    "source": "https://raw.githubusercontent.com/google/fonts/main/ofl/zcoolkuaile/ZCOOLKuaiLe-Regular.ttf",
+    "file": "res\\font\\zcoolkuaile.ttf",
+    "sha256": "812a6fc1fe54b6d73a419245c32dfeba8aa33104d5be90d1cf6af082007cb71d"
+  },
+  {
+    "family": "zcoolkuaile",
+    "source": "https://raw.githubusercontent.com/google/fonts/main/ofl/zcoolkuaile/OFL.txt",
+    "file": "assets\\licenses\\zcoolkuaile-OFL.txt",
+    "sha256": "538078469839b4a2e7ad22bef4ebe41681a4e53749bb2a072144024f1d6d703d"
+  },
+  {
+    "family": "zcoolqingkehuangyou",
+    "source": "https://raw.githubusercontent.com/google/fonts/main/ofl/zcoolqingkehuangyou/ZCOOLQingKeHuangYou-Regular.ttf",
+    "file": "res\\font\\zcoolqingkehuangyou.ttf",
+    "sha256": "54f0c0df4308cd74cd0f2fd3494ae054dbc4a1fd6fa7d71f4807eb4cdd8b4136"
+  },
+  {
+    "family": "zcoolqingkehuangyou",
+    "source": "https://raw.githubusercontent.com/google/fonts/main/ofl/zcoolqingkehuangyou/OFL.txt",
+    "file": "assets\\licenses\\zcoolqingkehuangyou-OFL.txt",
+    "sha256": "f1bce31b817dee01c1e4ef8bc45d8ecb95f01f4abbf0a985007cb3cd0fd8123d"
+  },
+  {
+    "family": "zcoolxiaowei",
+    "source": "https://raw.githubusercontent.com/google/fonts/main/ofl/zcoolxiaowei/ZCOOLXiaoWei-Regular.ttf",
+    "file": "res\\font\\zcoolxiaowei.ttf",
+    "sha256": "a42b620140f493db42f741351dfbf343c0936d58588ee8004b8b2a218d997ff1"
+  },
+  {
+    "family": "zcoolxiaowei",
+    "source": "https://raw.githubusercontent.com/google/fonts/main/ofl/zcoolxiaowei/OFL.txt",
+    "file": "assets\\licenses\\zcoolxiaowei-OFL.txt",
+    "sha256": "a094514ca57cf8f9c5e8d8d1adab5d8cd3a377297ff016f9df2c05b3ecd77f0a"
+  },
+  {
+    "family": "longcang",
+    "source": "https://raw.githubusercontent.com/google/fonts/main/ofl/longcang/LongCang-Regular.ttf",
+    "file": "res\\font\\longcang.ttf",
+    "sha256": "e5bf2c3f24ef2327c6f136d8f73e2f9dfdf44896fdbeb35a9515f44777bb91bc"
+  },
+  {
+    "family": "longcang",
+    "source": "https://raw.githubusercontent.com/google/fonts/main/ofl/longcang/OFL.txt",
+    "file": "assets\\licenses\\longcang-OFL.txt",
+    "sha256": "603546b7219a94bb59bf8294458194a5010119486354092b66a09a3fd61aeacc"
+  },
+  {
+    "family": "zhimangxing",
+    "source": "https://raw.githubusercontent.com/google/fonts/main/ofl/zhimangxing/ZhiMangXing-Regular.ttf",
+    "file": "res\\font\\zhimangxing.ttf",
+    "sha256": "644e0cae9b40f0b10ab729a01bd32032e3973bac22be3dccae01bf6ae7fde969"
+  },
+  {
+    "family": "zhimangxing",
+    "source": "https://raw.githubusercontent.com/google/fonts/main/ofl/zhimangxing/OFL.txt",
+    "file": "assets\\licenses\\zhimangxing-OFL.txt",
+    "sha256": "10947328199e369a3e6b4a67e8e5507ed99d5bbb264a1f156415aa9b665e4d15"
+  },
+  {
+    "family": "liujianmaocao",
+    "source": "https://raw.githubusercontent.com/google/fonts/main/ofl/liujianmaocao/LiuJianMaoCao-Regular.ttf",
+    "file": "res\\font\\liujianmaocao.ttf",
+    "sha256": "cab396b91a5b7c0b4005a35891180d06e6751f5ac261fe680aec65c1ae209033"
+  },
+  {
+    "family": "liujianmaocao",
+    "source": "https://raw.githubusercontent.com/google/fonts/main/ofl/liujianmaocao/OFL.txt",
+    "file": "assets\\licenses\\liujianmaocao-OFL.txt",
+    "sha256": "ff56684b0212481e7c3886c26d5a655de9b211c8119e5ccc756138a97b066acc"
+  },
+  {
+    "family": "lxgwwenkai",
+    "source": "https://raw.githubusercontent.com/google/fonts/main/ofl/lxgwwenkaitc/LXGWWenKaiTC-Regular.ttf",
+    "file": "res\\font\\lxgwwenkai.ttf",
+    "sha256": "4fcc5aec11cbbf737b0cfab7b63796f7f280087a7a656b2f13342cd5e5318d95"
+  },
+  {
+    "family": "lxgwwenkai",
+    "source": "https://raw.githubusercontent.com/google/fonts/main/ofl/lxgwwenkaitc/OFL.txt",
+    "file": "assets\\licenses\\lxgwwenkai-OFL.txt",
+    "sha256": "4fff27d35db0e22cd81d58da6f20e09f415cf354a3338e3cf1fc0eb9222c7174"
+  }
+]

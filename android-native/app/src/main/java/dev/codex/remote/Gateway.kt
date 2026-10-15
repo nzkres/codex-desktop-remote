@@ -72,6 +72,7 @@ data class Conversation(
     val userMessageCount: Int? = null,
     val controlNotice: String? = null,
     val capabilities: ConversationCapabilities = ConversationCapabilities(),
+    val usage: UsageSnapshot? = null,
 )
 data class TaskHistoryPage(val items: List<MessageItem>, val nextBefore: String?, val total: Int)
 
@@ -249,7 +250,7 @@ class Gateway(private val baseUrl: String, private val token: String, val target
             val json = if (payload.isBlank()) JSONObject() else try { JSONObject(payload) }
                 catch (_: Exception) { throw GatewayException("服务响应异常（HTTP $status），请核对当前电脑连接。", status) }
             if (status !in 200..299) throw GatewayException(json.optString("error", "HTTP $status"), status,
-                json.optString("code").takeIf { it.matches(Regex("[a-z_]{1,60}")) })
+                gatewayErrorCode(json))
             if (cacheable) connection.getHeaderField("ETag")?.let { summaries[path] = it to json }
             json
         } finally {
@@ -307,7 +308,8 @@ class Gateway(private val baseUrl: String, private val token: String, val target
             result.string("controlNotice").takeIf { it.isNotBlank() },
             result.optJSONObject("capabilities")?.let { caps -> ConversationCapabilities(caps.optBoolean("questions"),
                 caps.optBoolean("approvals"), caps.optBoolean("mode"), caps.optBoolean("implementPlan"), caps.optBoolean("create")) }
-                ?: ConversationCapabilities())
+                ?: ConversationCapabilities(),
+            parseUsageSnapshot(result.optJSONObject("usage")))
         val order = result.optJSONArray("order") ?: error("缺少消息顺序，请稍后重试")
         window.applyPage(result.string("cursor"), result.optBoolean("reset"),
             (0 until order.length()).map { order.getString(it) }, result.array("items").map { it.syncEntry() }, metadata)

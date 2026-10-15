@@ -13,10 +13,11 @@ internal fun userDisplayText(source: String): String = source.replace("\r\n", "\
 
 @Composable
 internal fun UserMessageText(source: String, id: String) {
-    val ink = LocalAppPalette.current.ink.toArgb()
+    val skin = LocalChatAppearance.current.skin
+    val night = LocalAppPalette.current.isNight
     AndroidView(factory = { TextView(it).apply { configureChatText(this) } },
         update = {
-            configureChatText(it); it.setTextColor(ink); it.tag = "user-text-$id"
+            configureSkinText(it, skin, night); it.tag = "user-text-$id"
             val display = userDisplayText(source)
             if (it.text.toString() != display) it.text = display
         }, modifier = Modifier.fillMaxWidth())

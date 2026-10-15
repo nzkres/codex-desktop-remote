@@ -56,7 +56,7 @@ internal fun ChatMessageBubble(item: MessageItem, receiptKey: String? = null, aw
                 if (highlighted) drawRect(colors.accent.copy(alpha = .12f))
             }.padding(horizontal = 16.dp, vertical = 8.dp)) {
             Row(Modifier.fillMaxWidth().testTag("message-meta-${item.id}"), verticalAlignment = Alignment.CenterVertically) {
-                Text(if (mine) "› 你的任务" else if (item.type == "plan") "✦ Codex · Plan" else "✦ Codex",
+                Text(if (mine) (if (item.roundNumber > 0) "› 第 ${item.roundNumber} 轮" else "› 你的任务") else if (item.type == "plan") "✦ Codex · Plan" else "✦ Codex",
                     fontSize = 10.sp, fontWeight = FontWeight.Medium, color = if (mine) colors.accent else muted)
                 ContentTime(item, processing && !item.turnCompleted)
                 Spacer(Modifier.weight(1f))

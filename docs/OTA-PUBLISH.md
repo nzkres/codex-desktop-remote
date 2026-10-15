@@ -1,3 +1,9 @@
+> 最新：Android alpha.10/versionCode 10/sequence 4 已发布；原证书、实际 Manifest、内置 trust 与实际 HTTPS 完整下载核验通过。手机可检查更新，覆盖安装待用户确认。 见 [alpha.10 发布记录](ANDROID-ALPHA10-PUBLICATION.md)。本次为原证书本机构建及管理员私有上传，来源与 CI 分开记录。
+
+> 最新：Android alpha.9/sequence 3 已发布，独立验包及实际 HTTPS 鉴权完整下载通过；手机安装待确认。见 [发布记录](ANDROID-ALPHA9-PUBLICATION.md)。
+
+> 2026-10-14新方案：[Android构件直接存自有服务器](SERVER-OTA-DELIVERY.md)，保留main原证书构建及正式源鉴权/签名。专用接收账号和CI配置已获准并部署；最新实际结果见[部署实录](SERVER-OTA-DEPLOYMENT-20261014.md)。以下GitHub artifact保存说明是历史流程，不再作为新Android受控构建的交付方式。
+
 # OTA 打包、签名与发布交接
 
 2026-10-08 当前状态：PR #1已合并，专用测试签名及六项Secrets已配置，alpha.5 main受控构建、实际包复验和隔离服务器部署已完成。手机现为alpha.5；Windows已用同一已签alpha.6包维护升级，用户确认手机原任务同步恢复。**Windows alpha.6→alpha.7普通HTTPS GUI OTA及升级后手机同任务接续已实际验收通过；Android/relay的真实N→N+1尚未完成。**Windows alpha.7私有源已获批发布sequence3，正常TLS公网账号下载/签名/哈希及匿名401通过；用户随后经原GUI完成真实alpha.6→alpha.7下载/安装，保全与新窗口通过，并明确确认手机两条新测试回复均显示，发布证据与后续边界见[alpha.7审查](WINDOWS-ALPHA7-OTA-REVIEW.md)；公开指纹与分层结果见[STATUS](../STATUS.md)。原alpha.5/alpha.6包保持不变。

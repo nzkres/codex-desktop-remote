@@ -66,7 +66,7 @@ class MainActivity : ComponentActivity() {
         TaskNotifications.createChannels(this)
         val appearance = getSharedPreferences("appearance", MODE_PRIVATE)
         setContent {
-            var night by remember { mutableStateOf(appearance.getBoolean("night", false)) }
+            var night by remember { mutableStateOf(appearance.getBoolean("night", true)) }
             SideEffect {
                 WindowCompat.getInsetsController(window, window.decorView).isAppearanceLightStatusBars = !night
                 WindowCompat.getInsetsController(window, window.decorView).isAppearanceLightNavigationBars = !night
@@ -281,11 +281,11 @@ private fun RemoteApp(night: Boolean, destination: NotificationDestination?, onD
     }
     suspend fun requireSafeUpdateHandoff(ignoreLocalBusy: Boolean = false): ConnectorUpdateProof {
         val client = gateway ?: throw UpdateFailure("update_not_connected")
-        if (client.target.id.isBlank()) throw UpdateFailure("update_activity_uncertain")
+        if (client.target.id.isBlank()) throw UpdateFailure("update_target_required")
         val proof = try { client.updateStatus() } catch (error: CancellationException) { throw error }
-            catch (_: Exception) { throw UpdateFailure("update_activity_uncertain") }
-        if (client !== gateway || !updateMayInstall(client.target.id, busy && !ignoreLocalBusy,
-                credentials.hasUnconfirmedMessages(), proof)) throw UpdateFailure("update_activity_uncertain")
+            catch (error: Exception) { throw updateStatusFailure(error) }
+        if (client !== gateway) throw UpdateFailure("update_target_changed")
+        requireLocalUpdateSafety(client.target.id, busy && !ignoreLocalBusy, credentials.hasUnconfirmedMessages())
         return proof
     }
 
@@ -427,8 +427,7 @@ private fun RemoteApp(night: Boolean, destination: NotificationDestination?, onD
                                             "ota_login_changed" -> "登录身份已变化，请重新检查更新"
                                             "ota_source_mismatch" -> "更新源与当前登录的 HTTPS 中继不一致，已拒绝请求"
                                             "update_not_newer" -> "当前已是该渠道最新版本"
-                                            "update_activity_uncertain" -> "任务或发送状态无法证明安全，稍后再检查"
-                                            else -> "检查失败：${error.code}"
+                                            else -> updateBlockReason(error.code) ?: "检查失败：${error.code}"
                                         }
                                     } catch (_: Exception) { updateStatus = "检查失败：更新源或状态不可用" }
                                     finally { updateBusy = false }
@@ -451,7 +450,7 @@ private fun RemoteApp(night: Boolean, destination: NotificationDestination?, onD
                                                 scope.launch { updateProgress = "${copied / 1024} / ${total / 1024} KiB" }
                                             }
                                             val after = requireSafeUpdateHandoff(ignoreLocalBusy = true)
-                                            if (after.version != before.version) throw UpdateFailure("update_activity_uncertain")
+                                            if (after.version != before.version) throw UpdateFailure("update_connector_changed")
                                             updater.verifyBeforeInstall(file, offer)
                                             val uri = updater.installUri(file)
                                             val install = Intent(Intent.ACTION_INSTALL_PACKAGE).apply {
@@ -472,7 +471,7 @@ private fun RemoteApp(night: Boolean, destination: NotificationDestination?, onD
                                             "ota_access_denied" -> "安装已延期：当前账号没有更新文件权限"
                                             "ota_login_changed" -> "安装已延期：登录身份已变化，请重新检查更新"
                                             "ota_source_mismatch" -> "安装已延期：更新源与登录中继不一致"
-                                            else -> "安装已延期：${error.code}"
+                                            else -> "安装已延期：${updateBlockReason(error.code) ?: error.code}"
                                         }
                                     }
                                     catch (_: Exception) { updateStatus = "安装已延期：下载或任务状态不可用" }

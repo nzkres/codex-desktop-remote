@@ -179,7 +179,15 @@ fun ChatScreen(
     val headerInset = (35.dp * density.fontScale.coerceAtLeast(1f) + 28.dp).coerceAtLeast(64.dp)
     val taskReference = latestTask(conversation, receipt)
     val legacyTask = conversation != null && !conversation.taskReferenceSupported && conversation.hasOlder
-    val recallInset = 0.dp
+    val recallInset = if (messages.count { it.type == "userMessage" } > 1) 48.dp else 0.dp
+    val stickyTask by remember(rows, listState, headerInset, recallInset) { derivedStateOf {
+        val info = listState.layoutInfo
+        val boundary = info.viewportStartOffset + with(density) { (headerInset + recallInset).roundToPx() }
+        val indices = rows.indices.filter { rows[it].items.singleOrNull()?.type == "userMessage" }
+        stickyTaskIndex(indices, listState.firstVisibleItemIndex,
+            info.visibleItemsInfo.associate { it.index to (it.offset + it.size) }, boundary)
+            ?.let { rows[it].items.single() }
+    } }
     var recallOpen by remember(threadId) { mutableStateOf(false) }
     var recallSelection by remember(threadId) { mutableStateOf<TaskReference?>(null) }
     var recallPrevious by remember(threadId) { mutableStateOf(emptyList<MessageItem>()) }
@@ -375,6 +383,7 @@ fun ChatScreen(
             backdrop.record { this@drawWithContent.drawContent() }
             drawLayer(backdrop)
         }.background(pageSurface)) {
+        TerminalGrid(headerActivity(session, conversation).running, Modifier.matchParentSize())
         LazyColumn(state = listState, modifier = Modifier.fillMaxSize().testTag("transcript").nestedScroll(historyScroll)
             .graphicsLayer { translationY = pullOffset * .5f }
             .semantics { customActions = if (conversation?.hasOlder == true && !loadingHistory)
@@ -453,12 +462,15 @@ fun ChatScreen(
         GlassChatHeader((if (terminalName.isBlank()) "" else "$terminalName · ") + (session?.title ?: "对话"), headerExpanded, night, onExpand = { revealHeader() },
             onBack = onBack, onToggleNight = { revealHeader(); onToggleNight() }, backdrop = backdrop, backdropOrigin = backdropOrigin,
             modifier = Modifier.align(Alignment.TopCenter).padding(top = 4.dp), activity = headerActivity(session, conversation),
-            taskSubtitle = taskHeaderSubtitle(conversation?.userMessageCount, taskReference),
+            taskSubtitle = conversation?.userMessageCount?.let { "共 $it 轮 · 点击回看" } ?: "点击回看任务",
             onTaskClick = {
                 recallSelection = taskReference
                 recallPrevious = messages.filter { it.type == "userMessage" }.asReversed()
                 taskSearchMessage = ""; recallOpen = true
             })
+        if (recallInset > 0.dp) stickyTask?.let { item ->
+            StickyTask(item, { jumpToTask(TaskReference(item)) }, Modifier.align(Alignment.TopStart).padding(top = headerInset))
+        }
         HistoryPullIndicator(historyPull.distance, threshold, historyPull.dragging, loadingHistory,
             conversation?.hasOlder == true, historyError, conversation?.historyReset == true, backdrop, backdropOrigin,
             Modifier.align(Alignment.TopCenter).padding(top = headerInset + recallInset))
@@ -490,7 +502,10 @@ fun ChatScreen(
             })
         GlassComposer(draft = draft, onDraft = { editDraft(it) }, mode = session?.mode ?: "default", busy = busy || conversation == null || echo != null,
             modeEnabled = conversation?.capabilities?.mode == true,
+            usage = conversation?.usage,
             running = session?.activeTurnId != null, sending = sending,
+            working = headerActivity(session, conversation).running,
+            startedAt = conversation?.turns?.find { it.id == session?.activeTurnId }?.items?.firstNotNullOfOrNull { it.turnStartedAtMs },
             expanded = composerExpanded, onExpanded = { composerExpanded = it },
             dockRight = dockRight, onDockRight = { dockRight = it; dockPrefs.edit().putBoolean("composer_dock_right", it).apply() },
             hasAttention = showPlanChoice || conversation?.needsAttention() == true,
@@ -513,7 +528,7 @@ fun ChatScreen(
                             // A fast receipt still gets one perceptible, short confirmation transition.
                             if (motion) delay((280 - (android.os.SystemClock.elapsedRealtime() - started)).coerceAtLeast(0))
                             focus.clearFocus(); keyboard?.hide()
-                            composerExpanded = false
+                            composerExpanded = true
                         }
                         catch (exception: CancellationException) { throw exception }
                         catch (exception: Exception) {
@@ -536,13 +551,14 @@ fun ChatScreen(
 @Composable
 internal fun NativeMarkdown(text: String, claimReveal: () -> String? = { null }, reveal: ReplyReveal? = null) {
     val context = LocalContext.current
-    val ink = TextInk.toArgb()
+    val skin = LocalChatAppearance.current.skin
+    val night = LocalAppPalette.current.isNight
     val density = LocalDensity.current
     val markwon = remember(context, density.density, density.fontScale) { chatMarkdown(context) }
     val motion = rememberChatMotion()
     AndroidView(
         factory = { ReplyRevealTextView(it).apply { configureChatText(this) } },
-        update = { configureChatText(it); it.setTextColor(ink); it.bind(markwon, text, motion, reveal, claimReveal) },
+        update = { configureSkinText(it, skin, night); it.bind(markwon, text, motion, reveal, claimReveal) },
         onRelease = { it.finishReveal() },
         modifier = Modifier.fillMaxWidth(),
     )
@@ -767,10 +783,9 @@ internal fun QuestionCard(request: QuestionRequest, busy: Boolean, store: Questi
                 Text("第 ${index + 1} 题 / 共 ${request.questions.size} 题 · ${question.title.ifBlank { question.text }}", color = palette.ink, fontSize = 13.sp)
                 if (question.title.isNotBlank()) Text(question.text, color = palette.ink, fontSize = 12.sp)
                 question.options.forEach { option ->
-                    DecisionOption(option.label, question.id !in draft.other && draft.answers[question.id] == option.label, canEdit) {
+                    DecisionOption(option.label, question.id !in draft.other && draft.answers[question.id] == option.label, canEdit, option.description) {
                         save(draft.copy(answers = draft.answers + (question.id to option.label), other = draft.other - question.id))
                     }
-                    if (option.description.isNotBlank()) Text(option.description, Modifier.padding(start = 16.dp), color = palette.muted, fontSize = 12.sp)
                 }
                 val otherSelected = question.id in draft.other
                 if (question.allowOther && question.options.isNotEmpty()) DecisionOption("其他答案", otherSelected, canEdit) {

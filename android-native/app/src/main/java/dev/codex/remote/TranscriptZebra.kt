@@ -31,6 +31,7 @@ internal fun zebraSurface(style: ZebraStyle, stripe: Int, night: Boolean): Color
 }
 
 internal fun messageSurface(appearance: ChatAppearance, mine: Boolean, stripe: Int, night: Boolean): Color {
+    if (appearance.skin.effect != GridEffect.Off) return if (mine) Color(if (night) 0xD0353639 else 0xD0E0E2E5) else Color.Transparent
     val colors = conversationColors(appearance.style, night)
     if (appearance.zebra == ZebraStyle.Off) return if (mine) colors.mine.copy(alpha = .72f) else Color.Transparent
     val background = zebraSurface(appearance.zebra, stripe, night)
@@ -41,7 +42,8 @@ internal fun messageSurface(appearance: ChatAppearance, mine: Boolean, stripe: I
  * Opaque zebra rows can share their final surface with the backdrop without double tinting.
  * With stripes disabled keep a neutral base beneath the translucent user-message tint. */
 internal fun transcriptPageSurface(appearance: ChatAppearance, mine: Boolean, stripe: Int, night: Boolean): Color =
-    if (appearance.zebra == ZebraStyle.Off) { if (night) Color(0xFF0E1520) else Color(0xFFF7F8FC) }
+    if (appearance.skin.effect != GridEffect.Off) { if (night) Color(appearance.skin.palette.dark) else Color(0xFFF1F2F3) }
+    else if (appearance.zebra == ZebraStyle.Off) { if (night) Color(0xFF0E1520) else Color(0xFFF7F8FC) }
     else messageSurface(appearance, mine, stripe, night)
 
 /** Keep small labels/copy controls readable on both stripes, including the user-role tint. */
