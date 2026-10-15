@@ -17,11 +17,11 @@ import androidx.compose.ui.unit.sp
 internal fun DecisionSurface(modifier: Modifier = Modifier, warning: Boolean = false, content: @Composable () -> Unit) {
     val palette = LocalAppPalette.current
     val skin = LocalChatAppearance.current.skin
-    val glassAlpha = when (skin.glass) { GlassSkin.Clear -> .58f; GlassSkin.Smoke -> .78f; GlassSkin.Frost -> .86f }
-    Surface(modifier.fillMaxWidth(), shape = RoundedCornerShape(18.dp),
+    val glassAlpha = when (skin.glass) { GlassSkin.Clear -> .16f; GlassSkin.Smoke -> .34f; GlassSkin.Frost -> .44f }
+    Surface(modifier.fillMaxWidth(), shape = RoundedCornerShape(13.dp),
         color = if (warning) palette.warningSurface.copy(alpha = .85f) else
             (if (palette.isNight) Color(skin.palette.dark) else Color.White).copy(alpha = glassAlpha), contentColor = palette.ink,
-        border = BorderStroke(.7.dp, palette.muted.copy(alpha = .45f))) { content() }
+        border = BorderStroke(.7.dp, palette.muted.copy(alpha = .24f))) { content() }
 }
 
 @Composable
@@ -37,9 +37,9 @@ internal fun decisionButtonColors(): ButtonColors {
 internal fun DecisionOption(label: String, selected: Boolean, enabled: Boolean, description: String = "", onSelect: () -> Unit) {
     val palette = LocalAppPalette.current
     val accent = conversationColors(LocalChatAppearance.current.style, palette.isNight).accent
-    Surface(Modifier.fillMaxWidth().padding(vertical = 3.dp), shape = RoundedCornerShape(12.dp),
+    Surface(Modifier.fillMaxWidth().padding(vertical = 2.dp), shape = RoundedCornerShape(8.dp),
         color = if (selected) accent.copy(alpha = .12f) else Color.Transparent, contentColor = palette.ink,
-        border = BorderStroke(if (selected) 1.dp else .5.dp, if (selected) accent else palette.muted.copy(alpha = .45f))) {
+        border = BorderStroke(if (selected) 1.dp else .5.dp, if (selected) accent else palette.muted.copy(alpha = .24f))) {
         Row(Modifier.heightIn(min = 48.dp).selectable(selected, enabled = enabled, role = Role.RadioButton, onClick = onSelect)
             .padding(horizontal = 8.dp, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
             RadioButton(selected, onClick = null, enabled = enabled,

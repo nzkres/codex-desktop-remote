@@ -25,12 +25,12 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
-enum class RootTab(val label: String) { Terminals("远程终端"), Tasks("任务"), Activity("动态"), Me("我的") }
+enum class RootTab(val label: String) { Tasks("对话"), Projects("任务仓库"), Me("我的") }
 
 @Composable
 fun RootBottomBar(selected: RootTab, onSelect: (RootTab) -> Unit) {
     HorizontalDivider(color = HapiPalette.divider, thickness = 0.5.dp)
-    Row(Modifier.fillMaxWidth().height(66.dp).background(HapiPalette.background).padding(horizontal = 18.dp), verticalAlignment = Alignment.CenterVertically) {
+    Row(Modifier.fillMaxWidth().height(66.dp).background(HapiPalette.background.copy(alpha = .12f)).padding(horizontal = 18.dp), verticalAlignment = Alignment.CenterVertically) {
         RootTab.entries.forEach { tab ->
             val active = selected == tab
             val tint = if (active) HapiPalette.green else HapiPalette.muted
@@ -56,7 +56,7 @@ private fun NavGlyph(tab: RootTab, active: Boolean, modifier: Modifier = Modifie
         val h = size.height
         val stroke = 1.8.dp.toPx()
         when (tab) {
-            RootTab.Terminals -> {
+            RootTab.Projects -> {
                 drawRect(color, topLeft = Offset(w * .12f, h * .15f), size = androidx.compose.ui.geometry.Size(w * .76f, h * .53f), style = Stroke(stroke))
                 drawLine(color, Offset(w * .5f, h * .68f), Offset(w * .5f, h * .86f), stroke)
                 drawLine(color, Offset(w * .3f, h * .86f), Offset(w * .7f, h * .86f), stroke, cap = StrokeCap.Round)
@@ -67,13 +67,6 @@ private fun NavGlyph(tab: RootTab, active: Boolean, modifier: Modifier = Modifie
                     drawLine(color, Offset(w * .34f, h * y), Offset(w * .85f, h * y), stroke, cap = StrokeCap.Round)
                 }
             }
-            RootTab.Activity -> {
-                drawLine(color, Offset(w * .10f, h * .53f), Offset(w * .30f, h * .53f), stroke, cap = StrokeCap.Round)
-                drawLine(color, Offset(w * .30f, h * .53f), Offset(w * .43f, h * .19f), stroke, cap = StrokeCap.Round)
-                drawLine(color, Offset(w * .43f, h * .19f), Offset(w * .58f, h * .82f), stroke, cap = StrokeCap.Round)
-                drawLine(color, Offset(w * .58f, h * .82f), Offset(w * .73f, h * .46f), stroke, cap = StrokeCap.Round)
-                drawLine(color, Offset(w * .73f, h * .46f), Offset(w * .90f, h * .46f), stroke, cap = StrokeCap.Round)
-            }
             RootTab.Me -> {
                 drawCircle(color, w * .16f, Offset(w * .5f, h * .32f), style = Stroke(stroke))
                 drawArc(color, 198f, 144f, false, topLeft = Offset(w * .15f, h * .39f), size = androidx.compose.ui.geometry.Size(w * .7f, h * .68f), style = Stroke(stroke, cap = StrokeCap.Round))
@@ -83,51 +76,9 @@ private fun NavGlyph(tab: RootTab, active: Boolean, modifier: Modifier = Modifie
 }
 
 @Composable
-fun ActivityScreen(entries: List<ActivityEntry>, draftStore: DraftStore? = null, terminalName: String = "", onOpen: (String) -> Unit) {
-    val sorted = entries.sortedWith(compareBy<ActivityEntry> {
-        when (it.observation.state) { "running" -> 0; "quiet" -> 1; else -> 2 }
-    }.thenByDescending { it.observation.lastActivityAt })
-    Column(Modifier.fillMaxSize().background(HapiPalette.background)) {
-        Column(Modifier.fillMaxWidth().padding(horizontal = 18.dp, vertical = 16.dp)) {
-            Text("动态", color = HapiPalette.ink, fontSize = 22.sp, fontWeight = FontWeight.SemiBold)
-            Spacer(Modifier.height(3.dp))
-            Text((if (terminalName.isBlank()) "" else "$terminalName · ") + "任务运行与最近活动", color = HapiPalette.muted, fontSize = 12.sp)
-        }
-        HorizontalDivider(color = HapiPalette.divider, thickness = 0.5.dp)
-        if (sorted.isEmpty()) {
-            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text("暂无任务动态", color = HapiPalette.muted)
-            }
-        } else LazyColumn(Modifier.fillMaxSize()) {
-            items(sorted, key = { it.session.id }) { entry ->
-                val state = when (entry.observation.state) {
-                    "running" -> "执行中"
-                    "quiet" -> "未看到结束记录"
-                    "completed" -> "已完成"
-                    "interrupted" -> "已中断"
-                    else -> "等待开始"
-                }
-                val active = sessionProcessing(entry.session, entry.observation)
-                Row(Modifier.fillMaxWidth().clickable { onOpen(entry.session.id) }.padding(horizontal = 18.dp, vertical = 16.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Box(Modifier.size(8.dp).background(if (active) HapiPalette.green else HapiPalette.faint, RoundedCornerShape(50)))
-                    Spacer(Modifier.width(13.dp))
-                    Column(Modifier.weight(1f)) {
-                        Text(entry.session.title, maxLines = 1, overflow = TextOverflow.Ellipsis, color = HapiPalette.ink, fontSize = 15.sp, fontWeight = FontWeight.Medium)
-                        Spacer(Modifier.height(4.dp))
-                        Text(state, Modifier.processingLight(active), color = if (active) HapiPalette.green else HapiPalette.muted, fontSize = 12.sp)
-                        DraftLine(draftStore?.read(entry.session.id)?.text.orEmpty(), Modifier.padding(top = 4.dp))
-                    }
-                    Text("›", color = HapiPalette.faint, fontSize = 23.sp)
-                }
-                HorizontalDivider(color = HapiPalette.divider, thickness = 0.5.dp)
-            }
-        }
-    }
-}
-
-@Composable
 fun MeScreen(
     gatewayUrl: String,
+    onManageDevices: () -> Unit = {},
     night: Boolean,
     onToggleNight: () -> Unit,
     updateStatus: String,
@@ -139,11 +90,11 @@ fun MeScreen(
     onChangeGateway: () -> Unit,
     onDisconnect: () -> Unit,
 ) {
-    Column(Modifier.fillMaxSize().background(HapiPalette.background).verticalScroll(rememberScrollState())) {
+    Column(Modifier.fillMaxSize().background(HapiPalette.background.copy(alpha = .12f)).verticalScroll(rememberScrollState())) {
         Column(Modifier.fillMaxWidth().padding(horizontal = 18.dp, vertical = 16.dp)) {
             Text("我的", color = HapiPalette.ink, fontSize = 22.sp, fontWeight = FontWeight.SemiBold)
             Spacer(Modifier.height(3.dp))
-            Text("统一账号已登录；在远程终端中选择执行电脑", color = HapiPalette.muted, fontSize = 12.sp)
+            Text("统一账号 · 在对话顶部选择电脑", color = HapiPalette.muted, fontSize = 12.sp)
         }
         HorizontalDivider(color = HapiPalette.divider, thickness = 0.5.dp)
         Column(Modifier.fillMaxWidth().padding(horizontal = 18.dp, vertical = 22.dp)) {
@@ -154,6 +105,7 @@ fun MeScreen(
             TextButton(onClick = onChangeGateway, contentPadding = PaddingValues(0.dp)) { Text("更改地址", fontSize = 12.sp) }
         }
         HorizontalDivider(color = HapiPalette.divider, thickness = 0.5.dp)
+        TextButton(onClick = onManageDevices, modifier = Modifier.padding(horizontal=10.dp)) { Text("设备与配对管理") }
         ReleaseNotesEntry(updateStatus, updateProgress, updateBusy, updateAvailable, onCheckUpdate, onInstallUpdate)
         HorizontalDivider(color = HapiPalette.divider, thickness = 0.5.dp)
         NotificationSettings()
