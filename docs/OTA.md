@@ -1,3 +1,5 @@
+> 当前交付：Android alpha.15/序号9与Windows alpha.18/序号14已发布到原私有源，原签名和鉴权HTTPS完整下载核验通过。设备安装与真机验收另核对，见[最终发布记录](ANDROID-ALPHA15-PUBLICATION.md)。以下旧版本记录按历史理解。
+
 > 最新：Android alpha.11 与 Windows alpha.17 已发布到原私有更新源，两端原签名及实际 HTTPS 完整下载通过。手机/电脑安装待确认，当前连接器仍alpha.16；额度须更新电脑后同步。 见 [安装顺序与发布证据](ANDROID-ALPHA11-PUBLICATION.md)。
 
 # 三端 OTA：当前实现边界

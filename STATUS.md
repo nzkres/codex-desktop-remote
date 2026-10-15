@@ -1,3 +1,9 @@
+## 2026-10-15 最终交付：Android alpha.15 / Windows alpha.18 已发布
+
+已发布原私有更新源并从实际HTTPS鉴权完整下载两端安装包；原APK证书/trust与发行签名、旧索引、防回退及大小/哈希均核验。Android134项单测通过、Lint错误0；Node182项通过，Python200项（7跳过）、中继77项（4跳过），Linux部署3项在Windows跳过。UI测试APK编译但未执行；手机安装和真机体验待验收。
+
+五种持久化额度皮肤均环中心光格数字；Plus实际双窗口，Pro真实周额度单环；移除实时背景预览与输入框/设备重复额度。Windows alpha.18仅提供白名单套餐事件，未替用户安装。发布保留服务、现有连接、身份、草稿与回执，未知操作不重发。详见[最终发布证据](docs/ANDROID-ALPHA15-PUBLICATION.md)；alpha.14历史包保留，最终使用alpha.15。
+
 ## 2026-10-15 alpha.15 最终套餐规则核验中
 
 alpha.14与Windows alpha.18已发布；alpha.15补齐Pro周额度单环/Plus实际双窗口，正在独立构建和发布核验，旧包不覆盖。

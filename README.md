@@ -1,10 +1,10 @@
-> Android alpha.12 已发布原私有HTTPS更新源：多电脑对话、任务仓库、轻玻璃问答与旧答案保护。手机在“我的 → 版本与更新说明”检查更新；覆盖安装与真实任务仍待验收。见[发布证据与功能边界](docs/ANDROID-ALPHA12-PUBLICATION.md)。
+> 最终更新：Android alpha.15与Windows alpha.18已发布原私有HTTPS更新源，原签名和实际鉴权完整下载核验通过。五种可保存的中心光格数字额度皮肤，Plus实际双窗口/Pro周单环；手机在“我的 → 版本与更新说明”检查更新。安装与真机效果另验收，见[最终发布记录](docs/ANDROID-ALPHA15-PUBLICATION.md)。
 
 # Codex Desktop Remote
 
 这个独立项目包含三个可迭代原型：沿用原界面的 Android 遥控 App、Windows 连接器、服务器中继。目标是让手机在**用户明确选择的一条 Codex Desktop 原生任务**中看文字、发文字，并看到 Desktop 后续在同一任务中的内容。Desktop 仍拥有任务和执行权限。源码布局及各原型边界见 [PROJECT.md](PROJECT.md) 和 [原型说明](docs/PROTOTYPES.md)；实际通过与未验收项以 [STATUS.md](STATUS.md) 为准。
 
-Android构件保存在自有服务器，手机更新走私有HTTPS；**alpha.9 已发布并完成独立验包和实际鉴权完整下载**，手机可直接 OTA，实际安装待确认。新界面与验证记录见 [alpha.9 发布记录](docs/ANDROID-ALPHA9-PUBLICATION.md)。
+Android构件保存在自有服务器，手机更新走私有HTTPS。以下alpha.9为历史交付记录：**alpha.9 已发布并完成独立验包和实际鉴权完整下载**，手机可直接 OTA，实际安装待确认。新界面与验证记录见 [alpha.9 发布记录](docs/ANDROID-ALPHA9-PUBLICATION.md)。
 
 ## 安装与开始使用
 

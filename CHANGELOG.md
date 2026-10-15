@@ -1,3 +1,7 @@
+## 2026-10-15 最终私有发布核验
+
+Android alpha.15与Windows alpha.18已在原源发布，真实HTTPS鉴权完整下载、签名、大小与哈希均通过。原签名、服务和身份/回执保护保留；本次未安装到手机或电脑。alpha.14旧包保留，最终更新请使用alpha.15；详见docs/ANDROID-ALPHA15-PUBLICATION.md。
+
 ## 2026-10-15 Android alpha.15
 
 补齐明确Plus/Pro显示策略：Plus实际短期和周窗口，Pro取消五小时后仅显示真实周额度单环；原始快照不删除，缺数据不猜测。五种皮肤、中心光格数字及移除实时预览/输入框额度均保留。官方来源与技术约定见docs/QUOTA-CORE-GLOW.md。更新递增版本/序号，不覆盖alpha.14已发布包。

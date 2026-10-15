@@ -1,3 +1,5 @@
+> 当前手机最终更新为alpha.15，配套Windows alpha.18已发布原私有源。保留现有应用数据与身份，使用正常检查更新流程；不重新首装或配对。见[交付与安装验收边界](../ANDROID-ALPHA15-PUBLICATION.md)。
+
 # 三个原型的安装起点
 
 **下载起点是已发布的 [v0.1.0-alpha.5 私有 prerelease](https://github.com/nzkres/codex-desktop-remote/releases/tag/v0.1.0-alpha.5)，七项资产已上传，服务端大小和 SHA-256 与本地一致；逐件证据见 [STATUS](../../STATUS.md)。** 可下载、解压并在全新临时目录做签名首装验证。隔离服务器 `https://106.53.126.69:9443` 已通过主电脑公网 HTTPS 鉴权下载验收，`17443` FRPS 已通过公网合成 FRPC/TLS 夹具；真实手机安装、登录和在线升级尚未验收，详见[隔离部署记录](../OTA-ISOLATED-DEPLOYMENT-20261008.md)。[alpha.4 开发预览](https://github.com/nzkres/codex-desktop-remote/releases/tag/v0.1.0-alpha.4) 保留归档，不能作为受控签名升级基线。三端 OTA 边界见 [OTA](../OTA.md)。
