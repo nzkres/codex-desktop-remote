@@ -1,3 +1,7 @@
+## alpha.19 本地预览解码
+
+WebViewClient.shouldInterceptRequest也收到loadDataWithBaseURL生成的data请求。统一403会误拦主文档；现在仅data方案返回null走本地解码，所有其他资源仍返回403，网络/文件/内容/导航与CSP限制不变。onPageCommitVisible之后才记已显示，主框架渲染错误单独报告并用原生层覆盖；相同绑定仅在渲染失败后刷新重建。
+
 ## alpha.18 预览内容与安装包分离
 
 PreviewFeedClient用现有登录原生GET同源/desktop-remote-previews/test/latest.json，客户端只发送到与安装trust相同的origin，不跟随重定向。独立用途签名封套renderer=1、sequence、有效期、HTML哈希，RSA原公钥核验及本机防回退；缓存按origin+登录哈希隔离，以AtomicFile保存，失败仅显示有效上次预览。WebView只收到已核验的HTML，无token、JS/native桥、文件/内容访问、网络、外跳或下载，CSP再限制connect/frame/worker/form/base。

@@ -1,3 +1,7 @@
+## 2026-10-15 alpha.19 本地预览显示修复核验中
+
+用户真机截图确认alpha.18获取R3成功，但WebView的data主文档被统一403拦截，出现ERR_HTTP_RESPONSE_CODE_FAILURE。修复仅放行本地data解码，其余资源、网络/文件/外跳仍阻断；获取、显示和渲染失败分别提示，失败刷新可重建视图。正在检查、构建与发布，未声称手机恢复。
+
 ## 2026-10-15 Android alpha.18 可独立刷新预览已发布
 
 原私有源sequence12已发布，原签名/trust及真实HTTPS鉴权完整APK下载、签名/大小/哈希通过。Android153项单测、Lint错误0、App/UI测试包编译；核心Node182、Python208（7跳过）、中继77（4跳过）。UI测试未执行、手机安装/WebView/缓存待验收。
