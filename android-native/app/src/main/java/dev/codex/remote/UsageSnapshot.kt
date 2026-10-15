@@ -33,5 +33,6 @@ internal fun usageSummary(snapshot:UsageSnapshot?,now:Long):String {
     if(snapshot==null) return "额度未同步"
     val core=snapshot.limits.find { it.id=="codex" } ?: snapshot.limits.firstOrNull() ?: return "额度暂不可用"
     val prefix=if(usageStale(core,now)) "上次额度 · " else "额度 · "
-    return prefix+core.windows.joinToString("  ") { "${it.label}剩余 ${it.remaining}%" }
+    val windows=quotaWindows(core)
+    return if(windows.isEmpty()) "Pro 周额度未同步" else prefix+windows.joinToString("  ") { "${it.label}剩余 ${it.remaining}%" }
 }

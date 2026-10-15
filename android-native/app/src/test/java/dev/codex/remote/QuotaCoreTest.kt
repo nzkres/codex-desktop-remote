@@ -11,10 +11,19 @@ class QuotaCoreTest {
             val original=UsageSnapshot(listOf(UsageLimit("codex",1800000000000,windows,plan)))
             val restored=parseUsageSnapshot(quotaJson(original) as JSONObject)!!
             assertEquals(original,restored)
-            assertEquals(count,quotaWindows(restored.limits.single()).size)
+            assertEquals(if(plan=="pro")count-1 else count,quotaWindows(restored.limits.single()).size)
         }
         assertNull(quotaPlan("PRIVATE_TOKEN"));assertNull(quotaPlan(null))
         assertEquals("pro",quotaPlan("PRO"));assertTrue(quotaWindows(null).isEmpty())
+    }
+    @Test fun proUsesWeeklySingleCoreWhilePlusAndUnknownKeepActualWindows() {
+        val weekly=UsageWindow(74.0,10080,1900000000);val short=UsageWindow(0.0,300,1900000000)
+        val pro=UsageLimit("codex",1800000000000,listOf(short,weekly),"pro")
+        assertEquals(listOf(weekly),quotaWindows(pro))
+        assertEquals(listOf(short,weekly),quotaWindows(pro.copy(planType="plus")))
+        assertEquals(listOf(short,weekly),quotaWindows(pro.copy(planType=null)))
+        assertTrue(quotaWindows(pro.copy(windows=listOf(short))).isEmpty())
+        assertEquals(listOf(weekly),quotaWindows(pro.copy(windows=listOf(weekly))))
     }
     @Test fun oneAndTwoCoreNumbersStayCenteredAndInsideNarrowPortraitLandscapeAndLargeFontLayouts() {
         for((width,height) in listOf(280f to 540f,390f to 840f,840f to 390f)) for(count in 1..2) {

@@ -12,9 +12,12 @@ import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.unit.dp
 import kotlin.math.*
 
-// Each window remains attached to its real account snapshot. A plan name is not
-// evidence that a returned weekly window can be discarded (Pro can return both).
-internal fun quotaWindows(limit: UsageLimit?) = limit?.windows.orEmpty().take(2)
+// Pro has no five-hour limit. Use its real weekly window, never manufacture one
+// from an obsolete short-term sample. Unknown plans keep the received windows.
+internal fun quotaWindows(limit: UsageLimit?): List<UsageWindow> {
+    val actual=limit?.windows.orEmpty()
+    return if(limit?.planType=="pro") actual.filter { it.minutes==10080 }.take(1) else actual.take(2)
+}
 internal data class QuotaCoreGeometry(val center: Offset, val radius: Float)
 internal fun quotaCoreGeometry(width: Float, height: Float, count: Int): List<QuotaCoreGeometry> {
     if(width<=0f || height<=0f) return emptyList()
