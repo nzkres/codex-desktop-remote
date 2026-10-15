@@ -1,3 +1,7 @@
+## 手机内离线界面预览（alpha.16）
+
+原私有网页在手机上打开受限，新增原生预览入口，不依赖网页或外部登录。NativeInterfacePreview仅接收关闭回调，复用TerminalGrid、GlassMaterial、ComposerEditor和矢量图标；InterfacePreviewState是纯合成状态。正式功能未接入，不把演示当作实际运行或回执。
+
 ## 已封存预览：任务仓库与多电脑对话（2026-10-15）
 
 [批准预览](prototypes/project-hub-approved-20261015.html) 仅包含合成数据。SHA-256：`d0da01cdb126d0e2b69512fd5b6e66032117322c5f20713537a88aa6c7c201ea`。用户明确授权按此版开发到Desktop Remote Lite并发布手机更新。浏览器中的模拟回执不作为产品实际收到答案或已安装的证据。

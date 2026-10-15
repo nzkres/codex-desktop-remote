@@ -13,6 +13,10 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
@@ -90,6 +94,8 @@ fun MeScreen(
     onChangeGateway: () -> Unit,
     onDisconnect: () -> Unit,
 ) {
+    var previewOpen by rememberSaveable { mutableStateOf(false) }
+    if (previewOpen) NativeInterfacePreview { previewOpen = false }
     Column(Modifier.fillMaxSize().background(HapiPalette.background.copy(alpha = .12f)).verticalScroll(rememberScrollState())) {
         Column(Modifier.fillMaxWidth().padding(horizontal = 18.dp, vertical = 16.dp)) {
             Text("我的", color = HapiPalette.ink, fontSize = 22.sp, fontWeight = FontWeight.SemiBold)
@@ -107,6 +113,9 @@ fun MeScreen(
         HorizontalDivider(color = HapiPalette.divider, thickness = 0.5.dp)
         TextButton(onClick = onManageDevices, modifier = Modifier.padding(horizontal=10.dp)) { Text("设备与配对管理") }
         ReleaseNotesEntry(updateStatus, updateProgress, updateBusy, updateAvailable, onCheckUpdate, onInstallUpdate)
+        TextButton(onClick = { previewOpen = true }, modifier = Modifier.padding(horizontal = 10.dp)) {
+            Text("界面预览 · 未读与发送按钮")
+        }
         HorizontalDivider(color = HapiPalette.divider, thickness = 0.5.dp)
         NotificationSettings()
         HorizontalDivider(color = HapiPalette.divider, thickness = 0.5.dp)

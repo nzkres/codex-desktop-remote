@@ -1,3 +1,7 @@
+## alpha.16 原生预览隔离
+
+预览为我的页内独立全屏Dialog，不持有Gateway、TaskTarget、DraftStore或正式回执存储。演示设备各自的完成版本/阅读水位只写interface-preview-only-v1；输入及模拟发送只在预览内存。前台可见才记读，后台停止动效。正式网络、连接、身份、草稿和发送/答案回执路径不改。
+
 ## Android alpha.12 项目资料归属
 
 任务仓库的ProjectRepositoryStore按中继与账号作用域使用Android加密存储，与执行电脑和Desktop线程分别保存。schemaVersion=1导入要求显式核对，repository.fullName仅为关联标识，不授予GitHub访问权限。任务清单、进度和验收由用户管理；导出是用户选择的本机文档，不自动提交到仓库。
