@@ -2,6 +2,12 @@
 
 用户保留“我的 → 预览”，但不希望每次看设计都下载APK。alpha.18新增一次安装的预览宿主，兼容内容用独立修订R更新。**UI草案、布局、颜色和动效演示可以单独发布；新增原生能力、协议或宿主修复仍需更新APP。**
 
+## alpha.19 本地显示修复
+
+用户手机已取到R3，但alpha.18统一403拦截也作用于WebView本地data主文档，导致ERR_HTTP_RESPONSE_CODE_FAILURE。alpha.19只允许data本地解码，其他资源继续403；网络、文件、导航、CSP和真实任务隔离不变。获取成功不再等同显示成功，页面可见提交/失败分别提示，失败刷新重建；此宿主修复需要一次APK升级，不更改后续内容独立刷新机制。
+
+依据：[WebViewClient.shouldInterceptRequest](https://developer.android.com/reference/android/webkit/WebViewClient#shouldInterceptRequest(android.webkit.WebView,%20android.webkit.WebResourceRequest))明确包含data等本地方案，而非仅网络请求。新增真实WebView回归用例，本机无安卓设备时只记录编译，不能以桌面浏览器替代执行。
+
 ## 手机流程
 
 我的 → 界面预览 · 可独立刷新。打开自动取最新签名内容，右上“刷新预览”只发GET、不运行安装器。页面显示预览R修订，未过期且有效的上次预览可在网络失败时保留；登录失效、未发布、过期、来源/校验异常分别提示。支持“内置示例”回看原生演示。

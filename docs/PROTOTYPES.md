@@ -1,3 +1,7 @@
+## alpha.19 本地正文修复
+
+alpha.18预览下载成功后误拦data主文档，真机截图为ERR_HTTP_RESPONSE_CODE_FAILURE。alpha.19修复宿主，不需要重发R3；预览仅合成数据，正式对话/连接/回执不改。
+
 ## alpha.18 独立更新的手机预览
 
 用户明确要求我的预览保留、避免每次APK更新。RemotePreviewDialog增加刷新与独立修订，只有兼容演示片段可更新，不扩充真实任务执行能力；旧原生预览作为内置示例。docs/prototypes/quota-live-preview.html是首个合成演示，可由scripts.preview_feed签名，服务器独立发布。预览变更不递增APP；宿主或原生能力变更仍按正常版本流程。
