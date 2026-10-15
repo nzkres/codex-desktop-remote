@@ -1,3 +1,5 @@
+> 最新发布：Android alpha.20 / Windows alpha.19，正式额度动效、运行与未读、纯Loading和紧凑首页。原私有源可更新，安装与真实任务验收另记录，见[发布证据](docs/ANDROID-ALPHA20-PUBLICATION.md)。
+
 > 2026-10-16：原手机已通过预览显示/完整播放与R3→R4独立刷新，APK版本、安装时间和哈希未变。后续兼容预览改稿只刷新R修订，见[真机验收](docs/PREVIEW-PHONE-ACCEPTANCE-20261016.md)。
 
 > Android alpha.19：修复预览本地data正文被误拦截而无法显示；宿主本次覆盖升级，后续兼容R预览仍独立刷新。发布与手机恢复分别见[STATUS](STATUS.md)。

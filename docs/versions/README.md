@@ -1,4 +1,4 @@
-## 2026-10-16 本轮候选
+## 2026-10-16 本轮已发布，安装待验收
 
 Android alpha.20与Windows alpha.19：正式动效、运行状态、阅读位置和紧凑首页。软件安装与真实任务另验收，见[STATUS](../../STATUS.md)。
 
@@ -8,6 +8,7 @@ Android alpha.20与Windows alpha.19：正式动效、运行状态、阅读位置
 
 | 仓库版本 | 日期 | 本版更新摘要 | 下载 |
 | --- | --- | --- | --- |
+| Android `0.1.0-alpha.20` / Windows `0.1.0-alpha.19`（已发布，安装待验收） | 2026-10-16 | 正式额度联动、运行/未读、纯Loading与紧凑首页 | 原私有源；[发布证据](../ANDROID-ALPHA20-PUBLICATION.md) |
 | Android `0.1.0-alpha.19`（已发布，预览真机通过） | 2026-10-15 | 修复本地预览正文误拦截，区分下载与显示 | 原私有源检查更新；[发布证据](../ANDROID-ALPHA19-PUBLICATION.md) |
 | Android `0.1.0-alpha.18`（已发布，手机待验收） | 2026-10-15 | 一次升级预览宿主，之后兼容预览独立刷新；当前R2 | 原私有源检查更新；[发布证据](../ANDROID-ALPHA18-PUBLICATION.md) |
 | Android `0.1.0-alpha.17`（已发布，手机待验收） | 2026-10-15 | 同账号额度动效离线预览，渐强呼吸、外环加速与停止渐弱 | 原私有源检查更新；[发布证据](../ANDROID-ALPHA17-PUBLICATION.md)，手机待验收 |

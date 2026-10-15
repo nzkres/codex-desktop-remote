@@ -1,3 +1,7 @@
+## 2026-10-16 Android alpha.20 / Windows alpha.19 已发布，安装待验收
+
+原私有源已发布Android alpha.20/sequence14及Windows alpha.19/sequence15，原签名、正常TLS、账号鉴权完整包下载和哈希均通过。167项Android单测、Lint0错误，Node184、Python209（7跳过）、relay77（4跳过）；UI测试包编译，USB无设备未执行。正式额度动效、运行与持久已读、纯Loading及紧凑首页已实现；需两端升级配合。未停止当前连接器，手机安装/真实任务另验收。见[发布证据](docs/ANDROID-ALPHA20-PUBLICATION.md)。
+
 ## 2026-10-16 Android alpha.20 / Windows alpha.19 开发核验中
 
 正式额度呼吸旋转、开屏100%回实际和数字斜向散光；首页持续运行状态、持久已读和头部精简；发送改为纯Loading。Windows补齐只读状态/修订与匿名账号匹配。保留连接、草稿、回执和独立R预览。发布与手机安装另记。
