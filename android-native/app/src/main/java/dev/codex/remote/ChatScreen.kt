@@ -167,7 +167,9 @@ fun ChatScreen(
             val questionIndex = rows.size + (if (echo != null) 1 else 0) + conversation.approvals.size
             followTail = false; initialPositioned = true
             snapshotFlow { listState.layoutInfo.totalItemsCount }.first { it > questionIndex }
-            listState.animateScrollToItem(questionIndex, -80)
+            val questionInset = (35.dp * density.fontScale.coerceAtLeast(1f) + 28.dp).coerceAtLeast(64.dp) +
+                (if (messages.count { it.type == "userMessage" } > 1) 48.dp else 0.dp)
+            listState.animateScrollToItem(questionIndex, -with(density) { questionInset.roundToPx() })
             questionPositioned = true
         }
     }
@@ -815,7 +817,7 @@ internal fun QuestionCard(request: QuestionRequest, busy: Boolean, store: Questi
             }
             Button(onClick = { onAnswer(request, draft.answers) }, modifier = Modifier.testTag("question-submit"), colors = decisionButtonColors(),
                 enabled = canEdit && request.questions.isNotEmpty() && request.questions.all { !draft.answers[it.id].isNullOrBlank() }) {
-                Text(if (draft.state == "submitting") "提交中…" else if(draft.state == "accepted" || request.status == "accepted") "电脑已收到" else if(draft.state == "expired" || request.status == "expired") "问题已失效" else if(request.status == "closed") "已处理" else if(draft.notice.isNotBlank()) "重试提交" else "提交答案")
+                Text(if (draft.state == "submitting") "提交中…" else if(draft.state == "unknown" || request.status == "unknown") "待核对" else if(draft.state == "accepted" || request.status == "accepted") "电脑已收到" else if(draft.state == "expired" || request.status == "expired") "问题已失效" else if(request.status == "closed") "已处理" else if(draft.notice.isNotBlank()) "重试提交" else "提交答案")
             }
         }
     }

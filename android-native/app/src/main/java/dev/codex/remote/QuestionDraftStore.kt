@@ -12,6 +12,11 @@ import org.json.JSONObject
 internal data class QuestionDraft(val answers: Map<String, String> = emptyMap(), val other: Set<String> = emptySet(),
     val state: String = "pending", val notice: String = "")
 
+// Keep the on-disk states understood by alpha.11; expiry is a closed question with a notice.
+internal fun storedQuestionState(state: String): String = if(state == "expired") "closed" else state
+internal fun restoredQuestionState(state: String, notice: String): String =
+    if(state == "submitting") "unknown" else if(state == "closed" && notice.startsWith("问题已失效：")) "expired" else state
+
 /** The scope includes the task endpoint and account. A question revision is a separate draft. */
 class QuestionDraftStore internal constructor(private val prefs: SharedPreferences) {
     private var records by mutableStateOf(prefs.all.map { (key, raw) ->
@@ -32,15 +37,16 @@ class QuestionDraftStore internal constructor(private val prefs: SharedPreferenc
             require(other.get(index) is String) { "问题草稿选项损坏，请检查手机存储。" }
             other.getString(index)
         }.toSet()
-        key to QuestionDraft(savedAnswers, savedOther, if (state == "submitting") "unknown" else state, notice)
+        key to QuestionDraft(savedAnswers, savedOther, restoredQuestionState(state,notice), notice)
     }.toMap())
 
     private fun key(threadId: String, request: QuestionRequest): String = "$threadId:${request.id}:${request.revision}"
     internal fun read(threadId: String, request: QuestionRequest): QuestionDraft = records[key(threadId, request)] ?: QuestionDraft()
     internal fun save(threadId: String, request: QuestionRequest, draft: QuestionDraft) {
         val key = key(threadId, request)
+        val notice = if(draft.state == "expired" && !draft.notice.startsWith("问题已失效：")) "问题已失效："+draft.notice else draft.notice
         val json = JSONObject().put("answers", JSONObject(draft.answers)).put("other", org.json.JSONArray(draft.other.toList()))
-            .put("state", draft.state).put("notice", draft.notice)
+            .put("state", storedQuestionState(draft.state)).put("notice", notice)
         check(prefs.edit().putString(key, json.toString()).commit()) { "无法加密保存问题答案，请稍后重试" }
         records = records + (key to draft)
     }

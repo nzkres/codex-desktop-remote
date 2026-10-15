@@ -36,4 +36,10 @@ class ProjectRepositoryTest {
         val merged=retainQuestionLifecycle(old,old.copy(questions=emptyList()),null,"thread"){"unknown"}
         assertEquals("unknown",merged.questions.single().status)
     }
+    @Test fun expiryKeepsThePreviousDraftStorageVocabulary(){
+        assertEquals("closed",storedQuestionState("expired"))
+        assertEquals("expired",restoredQuestionState("closed","问题已失效：题目已更新"))
+        assertEquals("unknown",restoredQuestionState("submitting",""))
+        assertEquals("closed",restoredQuestionState("closed","已在电脑处理"))
+    }
 }
