@@ -123,6 +123,7 @@ export class MobileSync {
             userMessageCount: all.filter(entry => entry.item.type === "userMessage").length,
             pendingQuestions: source.pendingQuestions, pendingApprovals: source.pendingApprovals,
             controlNotice: source.controlNotice ?? null, capabilities: source.capabilities ?? null,
+            usage: source.usage ?? null,
             latestTurn: latest ? { id: latest.id, status: latest.status, hasPlan: array(latest.items).some((i) => i.type === "plan") } : null };
         const next = digest([threadId, keys, revisions, meta, start > 0]);
         const checkpoint = { threadId, at: this.now(), keys, revisions };

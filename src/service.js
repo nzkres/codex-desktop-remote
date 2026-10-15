@@ -10,6 +10,7 @@ import { nativeTurns, activeTurn, assertIdle } from './vendor/desktop-state.js';
 import { MobileSync, mobileSignals } from './vendor/mobile-sync.js';
 import { VERSION } from './version.js';
 import { taskScope } from './catalog.js';
+import {readUsage} from './usage.js';
 import {nativeQuestions,publicQuestion,validateAnswer,answerProof,answerEvidence,questionProof,QUESTION_NOTICE} from './questions.js';
 
 // 把 Desktop 当前权限规范化后计算摘要；输入必须包含非空 currentPermissions。
@@ -139,6 +140,7 @@ export class Service {
         lastActivityAt: latest?.turnStartedAtMs ?? 0, lastItemType: latest?.items?.at(-1)?.type ?? '' },
       pendingQuestions: interaction.groups, pendingApprovals: [],
       controlNotice: interaction.requiresDesktop ? QUESTION_NOTICE : null,
+      usage: await readUsage(this.config),
       capabilities: {questions:this.questionProtocol,asyncQuestions:false,approvals:false,mode:false,implementPlan:false,create:false},
     };
   }
