@@ -1,3 +1,10 @@
+## Android alpha.12 项目资料归属
+
+任务仓库的ProjectRepositoryStore按中继与账号作用域使用Android加密存储，与执行电脑和Desktop线程分别保存。schemaVersion=1导入要求显式核对，repository.fullName仅为关联标识，不授予GitHub访问权限。任务清单、进度和验收由用户管理；导出是用户选择的本机文档，不自动提交到仓库。
+
+多电脑对话复用TaskTarget、Gateway与原发送/答题回执。状态筛选仅使用同目标的原只读signals和已打开快照；分批核对，过期/未知排除。问题生命周期按request id、revision隔离，旧题消失只使其不可提交；未知提交不能因此被确认为成功。
+
+
 # 原型关系与数据归属
 
 三个原型串接已有 Desktop 原生任务；身份、路由和任务数据各有权威来源。当前实测范围与待验收项见根目录 [STATUS.md](../STATUS.md)。

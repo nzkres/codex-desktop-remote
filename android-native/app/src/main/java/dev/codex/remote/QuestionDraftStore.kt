@@ -21,7 +21,7 @@ class QuestionDraftStore internal constructor(private val prefs: SharedPreferenc
         val other = value.getJSONArray("other")
         val state = value.getString("state")
         val notice = value.getString("notice")
-        require(state in setOf("pending", "submitting", "unknown", "accepted", "closed", "desktop_required")) {
+        require(state in setOf("pending", "submitting", "unknown", "accepted", "closed", "desktop_required", "expired")) {
             "问题草稿状态损坏，请检查手机存储。"
         }
         val savedAnswers = answers.keys().asSequence().associateWith { id ->
@@ -47,7 +47,7 @@ class QuestionDraftStore internal constructor(private val prefs: SharedPreferenc
     internal fun reconcile(threadId: String, requests: List<QuestionRequest>) {
         requests.forEach { request ->
             val draft = read(threadId, request)
-            if (request.status != "pending" && draft.state in setOf("submitting", "unknown"))
+            if (request.status in setOf("accepted", "closed", "expired") && draft.state != request.status)
                 save(threadId, request, draft.copy(state = request.status, notice = request.notice))
         }
     }

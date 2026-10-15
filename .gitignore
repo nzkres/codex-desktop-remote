@@ -24,3 +24,5 @@ local.properties
 dist/
 *.pem
 *.key
+
+.kotlin/

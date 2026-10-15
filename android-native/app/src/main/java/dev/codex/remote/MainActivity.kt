@@ -39,6 +39,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import androidx.core.view.WindowCompat
 import io.noties.markwon.Markwon
 import io.noties.markwon.ext.tables.TablePlugin
@@ -92,7 +94,13 @@ private fun RemoteApp(night: Boolean, destination: NotificationDestination?, onD
     var projects by remember { mutableStateOf<List<Project>>(emptyList()) }
     var sessions by remember { mutableStateOf<List<Session>>(emptyList()) }
     var activityEntries by remember { mutableStateOf<List<ActivityEntry>>(emptyList()) }
-    var rootTab by rememberSaveable { mutableStateOf(RootTab.Tasks) }
+    var rootTab by rememberSaveable(key = "hub-navigation-v12") { mutableStateOf(RootTab.Tasks) }
+    var terminalManagerOpen by remember { mutableStateOf(false) }
+    var focusPendingQuestion by remember { mutableStateOf(false) }
+    val hubStatuses = remember(gateway) { mutableStateMapOf<String, HubStatus>() }
+    val repositoryScope = remember(credentials.url, credentials.account, credentials.token) { draftScope(credentials.url, credentials.account, credentials.token) }
+    val repositoryStore = remember(repositoryScope) { runCatching { ProjectRepositoryStore.open(context, repositoryScope) }.getOrNull() }
+    val targetSummaries = remember(repositoryScope) { mutableMapOf<String, Triple<List<Session>, List<Project>, Long>>() }
     var selectedId by rememberSaveable { mutableStateOf<String?>(null) }
     // Only a direct tap may request Desktop navigation. Consume before the network call;
     // lifecycle restarts, polling and automatic retries must never replay it.
@@ -122,7 +130,8 @@ private fun RemoteApp(night: Boolean, destination: NotificationDestination?, onD
     var syncError by remember { mutableStateOf("") }
     var lastMetadataAt by remember { mutableLongStateOf(0L) }
     var lastMetadataClient by remember { mutableStateOf<Gateway?>(null) }
-    fun openSelected(id: String) {
+    fun openSelected(id: String, question: Boolean = false) {
+        focusPendingQuestion = question
         val client = gateway ?: return
         if (!client.target.isSelected) return
         desktopOpenIntent.request(client, id)
@@ -141,8 +150,10 @@ private fun RemoteApp(night: Boolean, destination: NotificationDestination?, onD
             selectedId = null
             conversation = null
             conversationError = ""
-            sessions = emptyList()
-            projects = emptyList()
+            val cached = targetSummaries[target.id]
+            sessions = cached?.first.orEmpty()
+            projects = cached?.second.orEmpty()
+            lastMetadataAt = cached?.third ?: 0L
             activityEntries = emptyList()
             error = ""
             syncError = ""
@@ -175,8 +186,11 @@ private fun RemoteApp(night: Boolean, destination: NotificationDestination?, onD
                 } ?: throw GatewayException("电脑仍在打开这条对话，请稍后点击重试。", 503, "desktop_open_pending")
             }
             if (client === gateway && id == selectedId) {
-                questionDraftStore?.reconcile(id, fresh.questions)
-                conversation = fresh
+                val resolved = retainQuestionLifecycle(conversation, fresh, questionDraftStore, id)
+                questionDraftStore?.reconcile(id, resolved.questions)
+                hubStatuses[id] = HubStatus(resolved.questions.any { it.status in setOf("pending", "desktop_required") },
+                    resolved.observation.state == "running" && resolved.questions.none { it.status in setOf("pending", "desktop_required") }, System.currentTimeMillis())
+                conversation = resolved
                 conversationError = ""
                 fresh.session?.let { current -> sessions = sessions.filterNot { it.id == current.id } + current }
             }
@@ -193,6 +207,7 @@ private fun RemoteApp(night: Boolean, destination: NotificationDestination?, onD
             if (nextActivity != null) activityEntries = nextActivity
             lastMetadataClient = client
             lastMetadataAt = System.currentTimeMillis()
+            targetSummaries[client.target.id] = Triple(sessions, projects, lastMetadataAt)
         }
         if (client === gateway) syncError = ""
     }
@@ -317,7 +332,9 @@ private fun RemoteApp(night: Boolean, destination: NotificationDestination?, onD
     }
 
     val palette = LocalAppPalette.current
-    Column(Modifier.fillMaxSize().background(palette.background).windowInsetsPadding(WindowInsets.safeDrawing)) {
+    Box(Modifier.fillMaxSize().background(if(palette.isNight) Color(LocalChatAppearance.current.skin.palette.dark) else palette.background)) {
+    if (selectedId == null) TerminalGrid(sessions.any { hubStatuses[it.id]?.running == true }, Modifier.matchParentSize())
+    Column(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing)) {
         if (gateway != null && draftStorage.isFailure) Text("本机草稿存储暂不可用，请复制输入内容后再离开对话。",
             color = palette.errorInk, fontSize = 12.sp, modifier = Modifier.padding(12.dp))
         if (error.isNotBlank() || syncError.isNotBlank()) {
@@ -356,7 +373,7 @@ private fun RemoteApp(night: Boolean, destination: NotificationDestination?, onD
                             sessions = emptyList()
                             projects = emptyList()
                             activityEntries = emptyList()
-                            rootTab = RootTab.Terminals
+                            rootTab = RootTab.Tasks
                             TaskNotifications.start(context)
                         } catch (exception: CancellationException) {
                             throw exception
@@ -369,35 +386,12 @@ private fun RemoteApp(night: Boolean, destination: NotificationDestination?, onD
             selectedId == null || !gateway!!.target.isSelected -> Column(Modifier.fillMaxSize()) {
                 Box(Modifier.weight(1f)) {
                     when (rootTab) {
-                        RootTab.Terminals -> {
-                            val terminalClient = remember(gateway) { gateway!!.terminalControl() }
-                            val terminalGateway = gateway!!
-                            TerminalScreen(terminalClient, terminalGateway.target, busy, ::selectTarget, onUnauthorized = {
-                                if (gateway === terminalGateway) {
-                                    credentials.token = ""
-                                    TaskNotifications.stop(context, clear = true)
-                                    gateway = null
-                                    selectedId = null
-                                    conversation = null
-                                    error = "登录已过期，请重新登录"
-                                }
-                            })
-                        }
-                        RootTab.Tasks -> if (gateway!!.target.isSelected) SessionList(
-                            sessions = sessions,
-                            activityEntries = activityEntries,
-                            projects = projects,
-                            onOpen = { openSelected(it) },
-                            onCreate = { createOpen = true },
-                            draftStore = draftStore,
-                            targetName = gateway!!.target.name,
-                            onChooseTarget = { rootTab = RootTab.Terminals },
-                        ) else TargetSelectionRequired { rootTab = RootTab.Terminals }
-                        RootTab.Activity -> if (gateway!!.target.isSelected) ActivityScreen(activityEntries, draftStore, gateway!!.target.name) {
-                            openSelected(it)
-                        } else TargetSelectionRequired { rootTab = RootTab.Terminals }
+                        RootTab.Tasks -> ConversationHub(gateway!!, sessions, projects, activityEntries, busy, hubStatuses, lastMetadataAt, draftStore,
+                            onSelect = ::selectTarget, onOpen = { id, question -> openSelected(id, question) }, onManage = { terminalManagerOpen = true })
+                        RootTab.Projects -> ProjectRepositoryScreen(repositoryStore)
                         RootTab.Me -> MeScreen(
                             gatewayUrl = credentials.url,
+                            onManageDevices = { terminalManagerOpen = true },
                             night = night,
                             onToggleNight = onToggleNight,
                             updateStatus = updateStatus,
@@ -508,6 +502,7 @@ private fun RemoteApp(night: Boolean, destination: NotificationDestination?, onD
                 key(gateway, id) { ChatScreen(
                     threadId = id,
                     terminalName = gateway!!.target.name,
+                    focusPendingQuestion = focusPendingQuestion,
                     session = session,
                     projectName = "${gateway!!.target.name} · " + projects.firstOrNull { it.id == session?.projectId }?.name.orEmpty(),
                     conversation = conversation,
@@ -590,7 +585,7 @@ private fun RemoteApp(night: Boolean, destination: NotificationDestination?, onD
                                             } catch (failure: GatewayException) {
                                                 val rejected = questionAnswerRejectedBeforeSend(failure)
                                                 if (runCatching { store.save(id, request, store.read(id, request).copy(
-                                                    state = if (rejected) "pending" else "unknown",
+                                                    state = if (failure.code == "question_changed") "expired" else if (rejected) "pending" else "unknown",
                                                     notice = if (rejected) failure.message.orEmpty().ifBlank { "回答未发送，请刷新核对。" }
                                                         else "提交结果待核对；请刷新确认，不要重复提交。")) }.isFailure)
                                                     error = "回答状态无法保存，请刷新任务核对；不要重复提交。"
@@ -605,6 +600,13 @@ private fun RemoteApp(night: Boolean, destination: NotificationDestination?, onD
                                                 state = receipt.status, notice = receipt.notice)) }.isFailure) {
                                                 error = "电脑已返回回答回执，但本机无法保存状态；请刷新核对，不要重复提交。"
                                                 return@launch
+                                            }
+                                            if (client === gateway && selectedId == id && receipt.status in setOf("accepted", "closed")) {
+                                                conversation = conversation?.let { currentConversation -> currentConversation.copy(questions = currentConversation.questions.map {
+                                                    if(it.id == request.id && it.revision == request.revision) it.copy(status=receipt.status, notice=receipt.notice) else it
+                                                }) }
+                                                hubStatuses[id] = HubStatus(conversation?.questions?.any { it.status in setOf("pending", "desktop_required") } == true,
+                                                    false, System.currentTimeMillis())
                                             }
                                             if (client === gateway && selectedId == id) try { refresh(client, id) }
                                             catch (cancel: CancellationException) { throw cancel }
@@ -643,6 +645,16 @@ private fun RemoteApp(night: Boolean, destination: NotificationDestination?, onD
         }
     }
 
+    }
+    if (terminalManagerOpen && gateway != null) Dialog(onDismissRequest = { if(!busy) terminalManagerOpen = false }, properties = DialogProperties(usePlatformDefaultWidth = false)) {
+        Surface(color = palette.background.copy(alpha = .94f)) { Column(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing)) {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) { TextButton(onClick = { terminalManagerOpen = false }, enabled = !busy) { Text("返回") } }
+            val client = gateway!!
+            TerminalScreen(remember(client) { client.terminalControl() }, client.target, busy, { target -> if(!busy) { selectTarget(target); terminalManagerOpen=false } }, onUnauthorized = {
+                if(gateway === client) { credentials.token=""; TaskNotifications.stop(context, clear=true); gateway=null;terminalManagerOpen=false }
+            })
+        } }
+    }
     if (gateway != null) NotificationSettings(showIntroduction = true)
 
     if (createOpen && gateway != null) {

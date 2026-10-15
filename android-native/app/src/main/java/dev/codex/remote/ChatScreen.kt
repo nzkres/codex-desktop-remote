@@ -109,11 +109,13 @@ fun ChatScreen(
     onLoadTask: suspend (MessageItem) -> MessageItem = onLoadFull,
     onLoadTaskPage: suspend (String?) -> TaskHistoryPage? = { null },
     terminalName: String = "",
+    focusPendingQuestion: Boolean = false,
     desktopOpening: Boolean = false,
 ) {
     val activity = LocalActivity.current as ComponentActivity
     val scope = remember(activity) { activity.lifecycleScope }
     val listState = remember(threadId) { LazyListState() }
+    var questionPositioned by remember(threadId) { mutableStateOf(false) }
     val planFocus = remember { FocusRequester() }
     val composerFocus = remember { FocusRequester() }
     val messages = remember(conversation) { conversation?.turns?.flatMap { turn ->
@@ -159,6 +161,15 @@ fun ChatScreen(
     val presentation = rememberSequentialTranscript(threadId, conversation, followTail && motion && !loadingHistory, loadingFull)
     val rows = remember(presentation.items, conversation?.turns) {
         toolProjector.project(presentation.items, conversation?.turns.orEmpty())
+    }
+    LaunchedEffect(focusPendingQuestion, conversation?.questions?.map { it.id to it.revision }, rows.size) {
+        if (focusPendingQuestion && !questionPositioned && conversation?.questions?.isNotEmpty() == true) {
+            val questionIndex = rows.size + (if (echo != null) 1 else 0) + conversation.approvals.size
+            followTail = false; initialPositioned = true
+            snapshotFlow { listState.layoutInfo.totalItemsCount }.first { it > questionIndex }
+            listState.animateScrollToItem(questionIndex, -80)
+            questionPositioned = true
+        }
     }
     val rowKeys = rows.map { if (!it.tools && it.key == confirmedId) receipt?.key ?: it.key else it.key } + listOfNotNull(echo?.key)
     val stripes = remember(rowKeys) { stripeLedger.assign(rowKeys) }
@@ -432,7 +443,7 @@ fun ChatScreen(
             conversation?.approvals?.forEach { approval -> item(key = "approval-${approval.id}") {
                 ApprovalCard(approval, session?.activeTurnId, busy, conversation.capabilities.approvals, onApproval)
             } }
-            conversation?.questions?.forEach { request -> item(key = "question-${request.id}") {
+            conversation?.questions?.forEach { request -> item(key = "question-${request.id}-${request.revision}") {
                 QuestionCard(request, busy, questionDraftStore, threadId, conversation.capabilities.questions,
                     questionStorageAvailable, onRefreshQuestions, onAnswer)
             } }
@@ -713,7 +724,7 @@ internal fun ApprovalCard(approval: Approval, activeTurnId: String?, busy: Boole
     onDecision: (Approval, Boolean) -> Unit) {
     var showDetails by remember { mutableStateOf(false) }
     DecisionSurface(warning = true) {
-        Column(Modifier.padding(14.dp)) {
+        Column(Modifier.padding(12.dp)) {
             Text("等待批准 · ${approval.kind}", fontWeight = FontWeight.SemiBold, color = TextInk)
             TextButton(onClick = { showDetails = true }) { Text("查看请求详情", color = TextInk) }
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -747,21 +758,24 @@ internal fun QuestionCard(request: QuestionRequest, busy: Boolean, store: Questi
     val needsDesktop = request.status == "desktop_required" || !capable || request.questions.any { it.secret }
     val canEdit = pending && !needsDesktop && storageAvailable && !saveError && !busy
     val heading = when {
-        request.status == "accepted" -> "Desktop已记录答案"
-        request.status == "closed" -> "已处理或失效"
+        request.status == "accepted" -> "电脑已收到"
+        request.status == "closed" -> if(request.notice.startsWith("已在电脑")) "已在电脑回答" else "已处理或失效"
+        request.status == "expired" || draft.state == "expired" -> "问题已失效"
         request.status == "desktop_required" -> "需要在电脑回答"
         request.status == "unknown" -> "提交结果待核对"
-        draft.state == "accepted" -> "Desktop已记录答案"
+        draft.state == "accepted" -> "电脑已收到"
         draft.state == "closed" -> "已处理或失效"
         draft.state == "unknown" -> "提交结果待核对"
         draft.state == "submitting" -> "正在提交"
         needsDesktop -> "需要在电脑回答"
-        else -> "需要你回答"
+        draft.notice.isNotBlank() -> "提交失败 · 答案已保留"
+        else -> "等你回答"
     }
     DecisionSurface {
-        Column(Modifier.padding(14.dp)) {
+        Column(Modifier.padding(12.dp)) {
             Text(heading, fontWeight = FontWeight.SemiBold, color = palette.ink)
             val notice = when {
+                request.status == "expired" || draft.state == "expired" -> "原问题已不再有效，旧答案保留但不能提交；请核对最新对话。"
                 saveError -> "答案未能加密保存，仅保留在当前页面；请检查手机存储，勿提交。"
                 request.status == "desktop_required" -> request.notice.ifBlank { "请在电脑处理此问题。" }
                 request.status == "accepted" || request.status == "closed" -> request.notice.ifBlank { "问题已处理或失效。" }
@@ -801,7 +815,7 @@ internal fun QuestionCard(request: QuestionRequest, busy: Boolean, store: Questi
             }
             Button(onClick = { onAnswer(request, draft.answers) }, modifier = Modifier.testTag("question-submit"), colors = decisionButtonColors(),
                 enabled = canEdit && request.questions.isNotEmpty() && request.questions.all { !draft.answers[it.id].isNullOrBlank() }) {
-                Text(if (busy || draft.state == "submitting") "正在提交" else "提交")
+                Text(if (draft.state == "submitting") "提交中…" else if(draft.state == "accepted" || request.status == "accepted") "电脑已收到" else if(draft.state == "expired" || request.status == "expired") "问题已失效" else if(request.status == "closed") "已处理" else if(draft.notice.isNotBlank()) "重试提交" else "提交答案")
             }
         }
     }
