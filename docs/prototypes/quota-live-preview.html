@@ -1,0 +1,175 @@
+<div id="quota-motion-foldout">
+  <style>
+    #quota-motion-foldout{font-family:system-ui,sans-serif}
+    #quota-motion-foldout details{background:transparent}
+    #quota-motion-foldout summary{color:var(--foreground);min-height:44px;display:list-item;align-content:center;font-size:var(--font-size-base);font-weight:500;list-style-position:inside}
+    #quota-motion-foldout .qm-phone{color-scheme:dark;--qm-bg:#151516;--qm-ink:#e1e8f0;--qm-muted:#9ba8aa;--qm-line:#ffffff15;--qm-light:#a7dfcc;max-width:420px;margin:8px auto 0;background:var(--qm-bg);color:var(--qm-ink);border-radius:22px;border:1px solid #ffffff24;overflow:hidden;position:relative}
+    #quota-motion-foldout .qm-header{display:flex;align-items:center;justify-content:space-between;padding:6px 14px;font-size:13px;gap:8px}
+    #quota-motion-foldout .qm-header small{font-size:11px;color:var(--qm-muted)}
+    #quota-motion-foldout .qm-close{border:0;background:transparent;color:var(--qm-muted);min-height:44px;padding:0 8px;font:inherit}
+    #quota-motion-foldout .qm-devices{display:flex;gap:20px;padding:0 16px}
+    #quota-motion-foldout .qm-device{border:0;border-bottom:1px solid transparent;background:transparent;color:var(--qm-muted);font:inherit;font-size:13px;min-height:44px;padding:0 0 7px}
+    #quota-motion-foldout .qm-device[aria-pressed=true]{color:var(--qm-ink);border-bottom-color:var(--qm-light)}
+    #quota-motion-foldout .qm-meta{padding:8px 16px 0;color:var(--qm-muted);font-size:11px;min-height:18px}
+    #quota-motion-foldout .qm-field{background-image:linear-gradient(to right,var(--qm-line) 1px,transparent 1px),linear-gradient(to bottom,var(--qm-line) 1px,transparent 1px);background-size:24px 24px}
+    #quota-motion-foldout canvas{display:block;width:100%;aspect-ratio:390/185}
+    #quota-motion-foldout .qm-chat{padding:11px 16px;background:#ffffff05;font-size:13px;line-height:1.55}
+    #quota-motion-foldout .qm-chat small{display:block;color:var(--qm-muted);font-size:11px;margin-top:4px}
+    #quota-motion-foldout .qm-glass{margin:10px;padding:5px 12px 11px;border-radius:20px;background:linear-gradient(125deg,#ffffff12,#ffffff04);border:1px solid #ffffff23;backdrop-filter:blur(16px)}
+    #quota-motion-foldout .qm-tools{display:flex;gap:8px;justify-content:space-between;align-items:center;min-height:44px;font-size:12px}
+    #quota-motion-foldout select{font-family:inherit;font-size:12px;color:var(--qm-ink);background:#252827;border:1px solid #ffffff24;border-radius:8px;min-height:40px;max-width:142px;padding:0 8px}
+    #quota-motion-foldout .qm-task{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:12px;min-height:44px}
+    #quota-motion-foldout .qm-task input{width:20px;height:20px;accent-color:#8cd6bb;margin:12px 0 12px 12px}
+    #quota-motion-foldout .qm-note{font-size:11px;line-height:1.5;color:var(--qm-muted);padding-top:5px}
+    @media(max-width:360px){#quota-motion-foldout .qm-devices{gap:16px}#quota-motion-foldout .qm-header{padding:8px 10px}}
+  </style>
+  <details open>
+    <summary class="cursor-interaction">点击展开 · 额度呼吸与渐进光环预览</summary>
+    <section class="qm-phone" role="dialog" aria-label="额度动效预览" aria-modal="false">
+      <div class="qm-header"><span>额度动效 <small>预览 R1 · 演示</small></span><button class="qm-close cursor-interaction" type="button">收起预览</button></div>
+      <div class="qm-devices" aria-label="演示电脑">
+        <button class="qm-device cursor-interaction" data-device="work" aria-pressed="true" type="button">工作电脑</button>
+        <button class="qm-device cursor-interaction" data-device="home" aria-pressed="false" type="button">家用电脑</button>
+        <button class="qm-device cursor-interaction" data-device="other" aria-pressed="false" type="button">另一账号</button>
+      </div>
+      <div class="qm-meta" data-account>账号 A · Plus · 两台电脑</div>
+      <div class="qm-meta" data-status aria-live="polite">空闲 · 静止</div>
+      <div class="qm-field"><canvas role="img" aria-label="演示额度：账号A剩余68%与43%，账号B剩余76%；任务启动后额度逐渐呼吸、外环逐渐加速"></canvas></div>
+      <div class="qm-chat">帮我检查接口文档与项目计划。<small data-chat-status>同账号电脑均已停止</small></div>
+      <div class="qm-glass">
+        <div class="qm-tools"><span>任务演示</span><select aria-label="额度样式"><option value="digits">光格数字</option><option value="ring">环形光格</option><option value="matrix">圆内矩阵</option><option value="dual">双额度环</option><option value="radial">星核扩散</option></select></div>
+        <label class="qm-task"><span>工作电脑 · 账号 A</span><input type="checkbox" data-task="work" aria-label="工作电脑任务运行"></label>
+        <label class="qm-task"><span>家用电脑 · 账号 A</span><input type="checkbox" data-task="home" aria-label="家用电脑任务运行"></label>
+        <label class="qm-task"><span>另一台电脑 · 账号 B</span><input type="checkbox" data-task="other" aria-label="另一账号任务运行"></label>
+        <div class="qm-note">启动约 5 秒渐强，全部停止后渐弱。数字固定，仅演示。</div>
+      </div>
+    </section>
+  </details>
+  <script>
+  (()=>{
+    const root=document.getElementById('quota-motion-foldout');
+    const fold=root.querySelector('details'),canvas=root.querySelector('canvas'),ctx=canvas.getContext('2d');
+    const status=root.querySelector('[data-status]'),accountLabel=root.querySelector('[data-account]'),chatLabel=root.querySelector('[data-chat-status]');
+    const picker=root.querySelector('select'),deviceButtons=[...root.querySelectorAll('[data-device]')],tasks=[...root.querySelectorAll('[data-task]')];
+    const reduced=matchMedia('(prefers-reduced-motion: reduce)');
+    const state={device:'work',style:'digits',work:false,home:false,other:false};
+    const models={a:{energy:0,angle:0,phase:0},b:{energy:0,angle:0,phase:0}};
+    const glyphs={'0':'01110/11011/11011/11011/11011/11011/01110','1':'00100/01100/00100/00100/00100/00100/01110','2':'01110/11011/00011/00110/01100/11000/11111','3':'11110/00011/00011/01110/00011/00011/11110','4':'00011/00111/01111/11011/11111/00011/00011','5':'11111/11000/11000/11110/00011/00011/11110','6':'01110/11000/11000/11110/11011/11011/01110','7':'11111/00011/00110/00110/01100/01100/01100','8':'01110/11011/11011/01110/11011/11011/01110','9':'01110/11011/11011/01111/00011/00011/01110','%':'11001/11011/00010/00100/01000/11011/10011'};
+    let raf=0,last=0,w=390,h=185;
+    const running=id=>id==='a'?(state.work||state.home):state.other;
+    const account=()=>state.device==='other'?'b':'a';
+    function restore(saved){
+      const s=saved?.privateContent;
+      if(!s)return;
+      if(['work','home','other'].includes(s.device))state.device=s.device;
+      if(['digits','ring','matrix','dual','radial'].includes(s.style))state.style=s.style;
+      sync();draw();
+    }
+    function save(){
+      return;
+    }
+    function sync(){
+      picker.value=state.style;
+      deviceButtons.forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.device===state.device)));
+      tasks.forEach(t=>t.checked=state[t.dataset.task]);
+      accountLabel.textContent=account()==='a'?'账号 A · Plus · 两台电脑':'账号 B · Pro · 单台电脑';
+    }
+    function arc(x,y,r,start,sweep,alpha,width,glow=0){
+      ctx.save();ctx.strokeStyle=`rgba(183,238,216,${alpha})`;ctx.lineWidth=width;ctx.lineCap='round';
+      ctx.shadowColor=`rgba(135,236,201,${alpha})`;ctx.shadowBlur=glow;
+      ctx.beginPath();ctx.arc(x,y,r,start,start+sweep);ctx.stroke();ctx.restore();
+    }
+    function digits(text,x,y,r,alpha){
+      const unit=Math.min(r*.073,r*1.38/(text.length*6-1)),left=x-(text.length*6-1)*unit/2,top=y-3.5*unit;
+      text.split('').forEach((ch,k)=>glyphs[ch].split('/').forEach((row,j)=>row.split('').forEach((on,i)=>{
+        if(on!=='1')return;
+        ctx.fillStyle=`rgba(207,248,232,${alpha*.15})`;ctx.fillRect(left+(k*6+i)*unit-unit*.3,top+j*unit-unit*.3,unit*1.45,unit*1.45);
+        ctx.fillStyle=`rgba(207,248,232,${alpha})`;ctx.fillRect(left+(k*6+i)*unit,top+j*unit,unit*.78,unit*.78);
+      })));
+    }
+    function core(x,y,r,value,label,m,secondary=null){
+      const breath=(Math.sin(m.phase)+1)/2,e=m.energy,alpha=.32+(.68-.32)*e*(.35+.65*breath),frac=value/100;
+      arc(x,y,r,0,Math.PI*2,alpha*.17,r*.06);
+      arc(x,y,r*.91,0,Math.PI*2,alpha*.1,r*.14);
+      if(state.style==='digits'||state.style==='dual'){
+        arc(x,y,r*.96,0,Math.PI*2,alpha*.4,r*.009);
+        arc(x,y,r*.96,-Math.PI/2,Math.PI*2*frac,alpha,r*.022);
+        if(state.style==='dual'&&secondary!==null)arc(x,y,r*.82,-Math.PI/2,Math.PI*2*secondary/100,alpha*.6,r*.018);
+      }else if(state.style==='ring'){
+        for(let i=0;i<80;i++){
+          const a=i/80*Math.PI*2-Math.PI/2,s=r*.045;
+          ctx.fillStyle=`rgba(207,248,232,${alpha*(i<80*frac ? .9 : .12)})`;
+          ctx.fillRect(x+Math.cos(a)*r*.94-s/2,y+Math.sin(a)*r*.94-s/2,s,s);
+        }
+      }else if(state.style==='matrix'){
+        const cells=[];for(let j=10;j>=-10;j--)for(let i=-10;i<=10;i++)if(i*i+j*j<=100&&(Math.abs(j)>4||Math.abs(i)>8))cells.push([i,j]);
+        cells.forEach(([i,j],k)=>{ctx.fillStyle=`rgba(207,248,232,${alpha*(k<cells.length*frac ? .55 : .08)})`;ctx.fillRect(x+i*r*.09-r*.041,y+j*r*.09-r*.041,r*.082,r*.082)});
+      }else{
+        for(let i=0;i<64;i++){
+          const a=i/64*Math.PI*2,l=i%4===0?1.07:.98;
+          ctx.strokeStyle=`rgba(207,248,232,${alpha*(i<64*frac ? .58 : .08)})`;ctx.lineWidth=r*.018;
+          ctx.beginPath();ctx.moveTo(x+Math.cos(a)*r*.76,y+Math.sin(a)*r*.76);ctx.lineTo(x+Math.cos(a)*r*l,y+Math.sin(a)*r*l);ctx.stroke();
+        }
+      }
+      if(e>0){
+        const halo=ctx.createRadialGradient(x,y,r*.88,x,y,r*1.24);
+        halo.addColorStop(0,'rgba(150,239,207,0)');halo.addColorStop(.5,`rgba(150,239,207,${e*(.04+.075*breath)})`);halo.addColorStop(1,'rgba(150,239,207,0)');
+        ctx.fillStyle=halo;ctx.beginPath();ctx.arc(x,y,r*1.24,0,Math.PI*2);ctx.fill();
+        for(let s=0;s<2;s++){
+          const a=m.angle/180*Math.PI+s*Math.PI;
+          arc(x,y,r*1.075,a,Math.PI*65/180,e*(.2+.2*breath),r*.018,12*e);
+          arc(x,y,r*1.075,a+55*Math.PI/180,9*Math.PI/180,e*(.3+.3*breath),r*.024,7*e);
+        }
+      }
+      ctx.fillStyle='#b8ccc4';ctx.font='11px system-ui';ctx.textAlign='center';
+      if(secondary!==null){
+        digits(value+'%',x,y-r*.27,r*.66,alpha);digits(secondary+'%',x,y+r*.27,r*.66,alpha);
+        ctx.fillStyle='#b8ccc4';ctx.fillText('5小时',x,y);ctx.fillText('7天',x,y+r*.54);ctx.fillText(label,x,y-r*.68);
+      }else{
+        digits(value+'%',x,y,r,alpha);ctx.fillStyle='#b8ccc4';ctx.fillText(label,x,y+r*.5);
+      }
+    }
+    function draw(){
+      ctx.clearRect(0,0,w,h);
+      const id=account(),run=running(id),m=reduced.matches?{energy:run ? .65 : 0,angle:0,phase:0}:models[id];
+      if(id==='a'&&state.style==='dual'){
+        core(w*.5,h*.48,Math.min(w*.31,h*.4),68,'PLUS',m,43);
+      }else if(id==='a'){
+        const r=Math.min(w*.215,h*.36);core(w*.265,h*.48,r,68,'5小时 · PLUS',m);core(w*.735,h*.48,r,43,'7天 · PLUS',m);
+      }else core(w*.5,h*.48,Math.min(w*.31,h*.4),76,'7天 · PRO',m);
+      const next=reduced.matches?(run?'减少动画 · 静态高亮':'空闲 · 静止'):run?(m.energy<.95?'启动过渡 · 逐渐提亮与加速':'运行中 · 呼吸与旋转'):m.energy>.01?'停止过渡 · 逐渐减速与淡出':'空闲 · 静止';
+      if(status.textContent!==next)status.textContent=next;
+      chatLabel.textContent=run?'同账号至少一台电脑正在运行':'同账号电脑均已停止';
+    }
+    function tick(now){
+      raf=0;if(!fold.open||document.hidden)return;
+      const dt=last?Math.min((now-last)/1000,.1):0;last=now;
+      for(const id of ['a','b']){
+        const m=models[id],run=running(id),oldSpeed=105*m.energy*m.energy;
+        m.energy+=(Number(run)-m.energy)*(1-Math.exp(-dt/(run?1.6:1.8)));
+        if(!run&&m.energy<.001)m.energy=0;
+        m.angle=(m.angle+(oldSpeed+105*m.energy*m.energy)*.5*dt)%360;
+        m.phase=(m.phase+(1.1+1.7*m.energy)*dt)%(Math.PI*2);
+      }
+      draw();
+      if(!reduced.matches&&(['a','b'].some(id=>running(id)||models[id].energy>0)))raf=requestAnimationFrame(tick);
+    }
+    function start(){last=0;if(!raf&&fold.open&&!document.hidden&&!reduced.matches)raf=requestAnimationFrame(tick);draw()}
+    function size(){
+      if(!fold.open)return;w=Math.max(canvas.getBoundingClientRect().width,1);h=w*185/390;
+      const d=Math.min(devicePixelRatio||1,2);canvas.width=Math.round(w*d);canvas.height=Math.round(h*d);ctx.setTransform(d,0,0,d,0,0);draw();
+    }
+    root.querySelector('.qm-close').onclick=()=>{fold.open=false};
+    fold.addEventListener('toggle',()=>{if(fold.open){size();start()}else{cancelAnimationFrame(raf);raf=0;last=0}});
+    tasks.forEach(input=>input.addEventListener('change',()=>{state[input.dataset.task]=input.checked;start()}));
+    deviceButtons.forEach(button=>button.addEventListener('click',()=>{state.device=button.dataset.device;sync();draw();save()}));
+    picker.addEventListener('change',()=>{state.style=picker.value;draw();save()});
+    new ResizeObserver(size).observe(canvas);
+    document.addEventListener('visibilitychange',()=>{if(document.hidden){cancelAnimationFrame(raf);raf=0;last=0}else start()});
+    reduced.addEventListener('change',()=>{cancelAnimationFrame(raf);raf=0;start()});
+    sync();
+  })();
+  </script>
+</div>
+
+<style>#quota-motion-foldout summary,#quota-motion-foldout .qm-close{display:none}#quota-motion-foldout .qm-phone{max-width:none;margin:0;border:0;border-radius:0}#quota-motion-foldout{min-width:0}</style>

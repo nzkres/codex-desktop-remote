@@ -393,6 +393,7 @@ private fun RemoteApp(night: Boolean, destination: NotificationDestination?, onD
                         RootTab.Projects -> ProjectRepositoryScreen(repositoryStore)
                         RootTab.Me -> MeScreen(
                             gatewayUrl = credentials.url,
+                            previewClient = remember(gateway) { gateway!!.previewFeed(context) },
                             onManageDevices = { terminalManagerOpen = true },
                             night = night,
                             onToggleNight = onToggleNight,

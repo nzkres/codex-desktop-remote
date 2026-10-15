@@ -19,6 +19,25 @@ https://106.53.126.69:9443 {
 		}
 	}
 
+	# Independent signed demo feed; no APKs, directory listing or task operations.
+	@ui_preview {
+		method GET
+		path /desktop-remote-previews/test/latest.json
+	}
+	handle @ui_preview {
+		route {
+			forward_auth 127.0.0.1:28191 {
+				uri /control-api/version
+			}
+			header Cache-Control "private, no-store"
+			header X-Content-Type-Options nosniff
+			rewrite * /latest.json
+			file_server {
+				root /config/ui-preview-test
+			}
+		}
+	}
+
 	@relay path /control-api/* /connector-api/* /terminal-api/* /desktop-remote-updates/*
 	handle @relay {
 		reverse_proxy 127.0.0.1:28191

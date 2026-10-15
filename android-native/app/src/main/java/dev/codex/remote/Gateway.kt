@@ -180,6 +180,7 @@ class Credentials(context: Context) {
 }
 
 class Gateway(private val baseUrl: String, private val token: String, val target: TaskTarget = TaskTarget()) {
+    internal fun previewFeed(context: Context) = PreviewFeedClient(context, baseUrl, token)
     val taskEndpoint: String get() = target.endpoint(baseUrl)
     fun forTarget(target: TaskTarget): Gateway = Gateway(baseUrl, token, target)
     private val conversationLock = Mutex()
