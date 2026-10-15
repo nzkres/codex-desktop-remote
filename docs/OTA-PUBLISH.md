@@ -1,3 +1,5 @@
+> 最新：Android alpha.11 与 Windows alpha.17 已发布到原私有更新源，两端原签名及实际 HTTPS 完整下载通过。手机/电脑安装待确认，当前连接器仍alpha.16；额度须更新电脑后同步。 见 [安装顺序与发布证据](ANDROID-ALPHA11-PUBLICATION.md)。
+
 > 最新：Android alpha.10/versionCode 10/sequence 4 已发布；原证书、实际 Manifest、内置 trust 与实际 HTTPS 完整下载核验通过。手机可检查更新，覆盖安装待用户确认。 见 [alpha.10 发布记录](ANDROID-ALPHA10-PUBLICATION.md)。本次为原证书本机构建及管理员私有上传，来源与 CI 分开记录。
 
 > 最新：Android alpha.9/sequence 3 已发布，独立验包及实际 HTTPS 鉴权完整下载通过；手机安装待确认。见 [发布记录](ANDROID-ALPHA9-PUBLICATION.md)。

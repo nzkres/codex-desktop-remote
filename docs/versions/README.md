@@ -4,7 +4,7 @@
 
 | 仓库版本 | 日期 | 本版更新摘要 | 下载 |
 | --- | --- | --- | --- |
-| Android `0.1.0-alpha.11` / Windows `0.1.0-alpha.17`（候选） | 2026-10-15 | 输入框额度快照；独立网格亮度与核心外散流光 | 构建、发布和安装分别见 [STATUS](../../STATUS.md) |
+| Android `0.1.0-alpha.11` / Windows `0.1.0-alpha.17`（已发布，待安装） | 2026-10-15 | 输入框额度快照；独立网格亮度与核心外散流光 | 构建、发布和安装分别见 [STATUS](../../STATUS.md) |
 | Windows `0.1.0-alpha.15` / Android `0.1.0-alpha.8`（候选） | 2026-10-14 | 普通问答原题提交、加密草稿与回执核对；异步题显示但仍需电脑回答 | 构建、下载与实机状态见 [STATUS](../../STATUS.md)，[特殊交互说明](../MOBILE-SPECIAL-INTERACTIONS.md) |
 | Windows `0.1.0-alpha.14` / Android `0.1.0-alpha.7`（候选） | 2026-10-14 | 手机主动点标题请求Desktop加载原对话，等待同一任务历史；可能切换电脑页面 | Windows本机已签名验签；Android已合入main并通过原证书构建/校验，但上传受存储额度阻止，无可下载APK，未发布/安装，见 [按需打开](../DESKTOP-ON-DEMAND-OPEN.md) |
 | Windows `0.1.0-alpha.13`（现用实机已安装） | 2026-10-14 | 可点击错误清单与源码定位；保留alpha.12全部对话标题目录 | 原Windows私有源已发布，签名/安装保全核验通过；按需自动打开不包含于本版，见 [STATUS](../../STATUS.md) |

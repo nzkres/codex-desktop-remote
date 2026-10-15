@@ -1,3 +1,5 @@
+> 最新：Android alpha.11 与 Windows alpha.17 已发布到原私有更新源，两端原签名及实际 HTTPS 完整下载通过。手机/电脑安装待确认，当前连接器仍alpha.16；额度须更新电脑后同步。 见 [安装顺序与发布证据](../ANDROID-ALPHA11-PUBLICATION.md)。
+
 > 2026-10-15：本机已维护安装并实际连接alpha.16；Windows私有源sequence12。异常运行恢复入口与边界见[核验恢复](../WINDOWS-RUNTIME-RECOVERY.md)，具体证据见根STATUS。本次不是新配对或重装身份。
 
 > 2026-10-14发布结果：Windows私有测试更新源已发布alpha.15/sequence11，现装alpha.13已完成正常TLS鉴权下载、签名和51文件校验；尚未安装alpha.15。详见[发布验收](../WINDOWS-ALPHA15-OTA-REVIEW.md)。不用重新配对。

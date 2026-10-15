@@ -180,4 +180,3 @@ keyId为`cdr-ota-test-20261008-v1`，公开SPKI/APK证书指纹见STATUS。首�
 已签名本地alpha.8 sequence4候选与当前安装审计在忽略目录artifacts/desktop1007，精确哈希见STATUS。真实配置仍指旧Desktop目录，runtimeNeedsReview仍true。当前任务可读，但最新权限快照profile=null且仅一条runtime root，一次性review以review_scope_changed停止，未生成新配置；用户已被要求在原任务发送REMOTE_RECONNECT_READY，等待其完成后再只读复查。**没有允许拿历史值覆盖实时权限，也没有执行换绑或清guard。** 原身份和2条accepted回执保留。
 
 下一步：收到标记后核对新鲜权限/空闲/回执；准备限于此安装的一次性、可审查维护步骤，复用现有签名与进程管理工具，完整绑定原数据和待安装候选。完成准备后才通知用户关闭窗口/重启。原Job未命名且句柄丢失，端口/PID不能补退出证明。升级失败保留诊断现场，不盲目回退至已不兼容旧版；成功后验证真实通道，再请用户安卓读取原任务。不要把本地签名、探针或构建当作实机升级/安卓验收。
-

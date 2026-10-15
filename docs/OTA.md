@@ -1,3 +1,5 @@
+> 最新：Android alpha.11 与 Windows alpha.17 已发布到原私有更新源，两端原签名及实际 HTTPS 完整下载通过。手机/电脑安装待确认，当前连接器仍alpha.16；额度须更新电脑后同步。 见 [安装顺序与发布证据](ANDROID-ALPHA11-PUBLICATION.md)。
+
 # 三端 OTA：当前实现边界
 
 Android、Windows连接器和Linux中继都有更新实现。alpha.5已建立专用测试RSA/APK签名与固定test信任，受控构建、下载复核和Windows/WSL临时首装通过；隔离服务器已安装测试 HTTPS 私有源、relay 与 FRPS，并完成服务器内及主电脑公网的合成验收。主电脑从公网完成三组件账号下载、正常TLS/RSA/大小/哈希校验及FRPC/FRPS夹具连接；**真实手机、Desktop任务、三端N→N+1和生产渠道仍未验收。**代码、CI、构件、隔离部署和真实设备结果分别以[STATUS](../STATUS.md)及[部署记录](OTA-ISOLATED-DEPLOYMENT-20261008.md)为准。合成公网下载不等于 App 内在线> 当前 Android：alpha.10/sequence4 已发布，实际 HTTPS 完整下载通过；手机安装待确认。见 [发布记录](ANDROID-ALPHA10-PUBLICATION.md)。

@@ -1,3 +1,9 @@
+## 2026-10-15 Android alpha.11 / Windows alpha.17 已发布
+
+Android alpha.11 与 Windows alpha.17 已发布到原私有更新源，两端原签名及实际 HTTPS 完整下载通过。手机/电脑安装待确认，当前连接器仍alpha.16；额度须更新电脑后同步。
+
+输入框额度快照与重置时间、三种独立亮度、核心沿网格外散光效及本地记忆已开发。Android110单元/Lint与UI测试包编译、Node182回归、Python199项中192通过7跳过；模拟器/手机视觉及配套连接器安装后的额度链路待确认。见 [发布记录](docs/ANDROID-ALPHA11-PUBLICATION.md)。
+
 ## 2026-10-15 Windows alpha.17 额度同步
 
 对话同步新增当前任务最近额度快照，仅转发额度窗口、重置时间和采样时间，原始日志不出电脑；配合手机alpha.11。
