@@ -19,3 +19,7 @@ python -B windows/runtime_recovery.py --home '<安装目录>' --desktop-root '<�
 旧周期的 Job 为匿名对象，恢复没有重建历史 Job 句柄。依据是已核验的 kill-on-close 实现、保存的崩溃收容标志、独占运行锁、当前完整进程/端口核验与新鲜任务证据。任一项不足均保持阻断，不声称“端口空闲就证明旧树安全退出”。
 
 本次核验 Desktop 26.1007.9446.0：asar SHA256 `356c13dc715816436fa1cf31e9f77863f62ea7b7cacc465b397313246eb29325`，CLI SHA256 `e98c516f1c8935789aabe9122ee7e05ec4c3efd1ba6acf179242e031c495b99e`。原生入口 SHA256 `ee785aec9ff3058afb01069a8b455fb17e46f3c33611a867efd3db37de1f05f3`，Authenticode Valid，发布者 OpenAI OpCo, LLC。包内协议表 owner discovery 1、state changed 11、submit user input 1；未以此开放新的控制 API。
+
+## 现场记录
+
+2026-10-15：用户关闭原窗口后，原身份/回执保全的alpha.16维护安装与恢复已完成。服务器和手机同一路径实际核验通过，当前仅本轮任务运行拦截更新。管理员维护的新增/原子改写文件还须核验原账户owner及DACL，不能只看文件内容；本次仅对明确列出的69项复制旧槽规则，普通账户访问与启动通过。详见根STATUS。
