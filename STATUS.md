@@ -1,6 +1,8 @@
-## 2026-10-15 更新状态诊断修复（alpha.10，待构建验证）
+## 2026-10-15 更新状态诊断修复（alpha.10，已通过构建验证，未发布）
 
-当前实测终端访问 active，但在线状态 false，更新状态接口 503 terminal_offline。电脑配置对应的 10 条回执全部 accepted 且具备 turnId；没有手机调试通道，手机本地回执未核验。没有重发或清除回执。更新提示已按错误码分类，待测试；尚未签名发布或安装。
+终端最初为 active / offline，用户点击连接后心跳在线，但更新状态接口仍返回 503 terminal_credential_unavailable。本机 runtimeNeedsReview=true，本地任务接口拒绝连接。电脑配置对应的 10 条回执全部 accepted 且具备 turnId；没有手机调试通道，手机本地回执未核验。没有清除保护、重发或清除回执。更新源 HTTP 200，仍为 alpha.9 / sequence 3。
+
+修复提交 a225ca4；Android CI 38663853142 的编译、单元测试、lint、APK 说明校验与 55 项模拟器回归通过。Node 36/36；Python 139 项中 132 通过、7 平台跳过；Core CI Windows/Linux 测试步骤通过，但构件上传失败。修复未签名发布或安装，连接器现场仍需按 RECOVERY.md 复核，不能把心跳在线当作恢复完成。
 
 ## 2026-10-15 — Desktop Remote Lite alpha.9 已发布（手机待安装）
 
