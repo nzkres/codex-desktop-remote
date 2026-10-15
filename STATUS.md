@@ -1,6 +1,6 @@
 # 2026-10-15 Android alpha.13 当前迭代
 
-已实现GitHub只读关联及按电脑隔离额度背景光，待最终构建、签名与私有发布核验。此前alpha.12交付证据保留。手机安装、私有GitHub授权与真机视觉未验收；本轮未触碰连接器身份或发送回执存储。
+alpha.13 / versionCode13 / 私有序号7已实际发布并完成鉴权HTTPS完整下载复验。Android 131项单元测试通过、Lint错误0，Node182项与Python199项（7跳过）通过。详情见[发布证据](docs/ANDROID-ALPHA13-PUBLICATION.md)。手机安装、私有GitHub授权与真机视觉仍未验收；本轮未触碰连接器身份或发送回执存储。
 
 ## 2026-10-15 — Android alpha.12 已发布，手机安装待验收
 
