@@ -10,6 +10,20 @@ from pathlib import Path
 import re
 
 _DECLARED_CODES = frozenset({
+    'recovery_containment_unverified',
+    'recovery_desktop_unverified',
+    'recovery_failed',
+    'recovery_identity_unverified',
+    'recovery_interrupted',
+    'recovery_inventory_incomplete',
+    'recovery_not_required',
+    'recovery_owned_process_alive',
+    'recovery_port_in_use',
+    'recovery_preservation_changed',
+    'recovery_state_changed',
+    'recovery_task_unverified',
+    'windows_recovery_required',
+
     'activation_outcome_requires_review',
     'active_or_unverified_desktop_task',
     'already_enrolled_or_pending',
@@ -216,6 +230,7 @@ _EXTRA_CODES = frozenset({
 })
 
 _SOURCE_FILES = (
+    'windows/runtime_recovery.py',
     'windows/vendor/connector_core.py', 'windows/controller.py', 'windows/update_driver.py',
     'windows/update_ui.py', 'windows/gui.py', 'windows/vendor/frp_config.py',
     'windows/vendor/runtime_core.py', 'windows/vendor/windows_job.py',
@@ -229,6 +244,19 @@ _SOURCE_FILES = (
 _CODE_SHAPE = re.compile(r'[a-z][a-z0-9_]{0,79}\Z')
 
 _COMMON = {
+    'recovery_failed': ('恢复', '恢复检查未能取得完整可用的核验结果。', '保留现场与核验记录，处理具体原因后重新核验；不清空身份或回执。'),
+    'windows_recovery_required': ('恢复', '恢复流程需要原 Windows 账户与本机核验。', '保留现场与核验记录，处理具体原因后重新核验；不清空身份或回执。'),
+    'recovery_state_changed': ('恢复', '恢复期间身份、配置、回执或安装版本发生了变化。', '保留现场与核验记录，处理具体原因后重新核验；不清空身份或回执。'),
+    'recovery_preservation_changed': ('恢复', '恢复期间任务数据或配置发生了变化。', '保留现场与核验记录，处理具体原因后重新核验；不清空身份或回执。'),
+    'recovery_port_in_use': ('恢复', '本机任务端口仍有监听者。', '保留现场与核验记录，处理具体原因后重新核验；不清空身份或回执。'),
+    'recovery_not_required': ('恢复', '当前没有异常运行保护，不需要执行冷恢复。', '保留现场与核验记录，处理具体原因后重新核验；不清空身份或回执。'),
+    'recovery_identity_unverified': ('恢复', '现有设备身份或运行绑定无法核对。', '保留现场与核验记录，处理具体原因后重新核验；不清空身份或回执。'),
+    'recovery_desktop_unverified': ('恢复', '当前 Desktop 安装位置无法唯一核对。', '保留现场与核验记录，处理具体原因后重新核验；不清空身份或回执。'),
+    'recovery_containment_unverified': ('恢复', '旧运行周期缺少已验证的进程树容器证据。', '保留现场与核验记录，处理具体原因后重新核验；不清空身份或回执。'),
+    'recovery_owned_process_alive': ('恢复', '发现本连接器的旧运行进程仍在。', '保留现场，先让原实例正常断开；不会按进程名强杀。'),
+    'recovery_inventory_incomplete': ('恢复', '无法完整核验相关进程。', '使用原 Windows 账户检查进程访问权限后重试核验。'),
+    'recovery_interrupted': ('恢复', '恢复事务曾中断，尚未确认保全结果。', '保留 runtime-recovery.json 与身份、回执，由维护者核对事务。'),
+    'recovery_task_unverified': ('恢复', '原任务空闲、权限或回执尚未完整核验。', '查看分项诊断，处理原任务后重新核验；不要清除保护。'),
     'question_changed': ('手机答题', '题目版本或答案与原提交不一致。', '刷新核对原题；不要重复提交或更换编号重发。'),
     'question_unsupported': ('手机答题', '当前原生接口不能安全处理这类提问。', '在电脑回答原题；手机仍可查看题目和同步处理状态。'),
     'invalid_answer': ('手机答题', '回答缺项、格式无效或不属于当前问题的允许选项。', '核对本轮题目，补全非私密答案后提交；私密输入留在电脑处理。'),
@@ -246,7 +274,7 @@ _COMMON = {
     'task_channel_unavailable': ('通道', '服务器未授权本次任务通道或暂不可用。', '核对手机上的设备状态和原服务器，不要接管其他服务。'),
     'gateway_failed': ('通道', '本机适配器已报告失败或二进制校验无效。', '保留连接现场，核对受管安装和本机健康检查。'),
     'transport_failed': ('通道', '受管传输进程已报告失败或二进制校验无效。', '保留现场，核对受管传输配置和服务器状态。'),
-    'previous_runtime_requires_review': ('保护', '前次运行没有完整安全退出证据。', '保留身份、回执和保护标志，请维护者核对原进程树及任务。'),
+    'previous_runtime_requires_review': ('保护', '前次运行没有完整安全退出证据。', '点击“核验并恢复”，核对旧通道进程、原任务与回执；通过后保留身份恢复连接。'),
     'runtime_cleanup_requires_review': ('保护', '断开时未能证明操作和两棵自有进程树均已清理。', '保留现场，先核对 Desktop 任务和进程清理证据。'),
     'identity_changed': ('保护', '连接期间身份内容与预期不一致。', '停止写操作并保留现场，由维护者核对身份变化。'),
     'credential_decryption_failed': ('身份', '本机 DPAPI 身份无法解密。', '使用原 Windows 账户核对身份文件和系统状态，不要重建或复制身份。'),

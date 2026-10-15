@@ -151,6 +151,8 @@ class _Window:
         self.connect_button.pack(side="left", padx=4)
         self.disconnect_button = ttk.Button(actions, text="断开", command=self.disconnect)
         self.disconnect_button.pack(side="left", padx=4)
+        self.recover_button = ttk.Button(actions, text="核验并恢复", command=self.recover)
+        self.recover_button.pack(side="left", padx=4)
 
         ttk.Label(frame, textvariable=self.status_text, wraplength=600).grid(
             row=4, column=0, columnspan=2, sticky="w", pady=(2, 8)
@@ -351,6 +353,8 @@ class _Window:
     # 统一计算按钮能否点击，避免多处回调各自定义不同的可操作条件。
     # 当前连接时 busy=True，因此检查/安装更新也会被禁用；不是后台自动更新。
     def _buttons(self):
+        if hasattr(self,'recover_button'):
+            self.recover_button.configure(state='normal' if getattr(self.controller,'update_home',None) and not self.busy and not self.connecting and not self.closing and not self.update_blocked else 'disabled')
         self.pair_button.configure(state="disabled" if self.busy or self.closing or self.update_blocked else "normal")
         self.connect_button.configure(
             state="disabled" if self.busy or self.connecting or self.closing or self.update_blocked else "normal",
@@ -400,6 +404,14 @@ class _Window:
         self._buttons()
         self.status_text.set("正在连接…")
         self.commands.put(("connect",))
+
+    def recover(self):
+        if self.busy or self.connecting or self.closing or self.update_blocked or not getattr(self.controller,'update_home',None):
+            return
+        self.busy=True
+        self._buttons()
+        self.status_text.set('正在核验旧通道进程、原任务、权限和回执，不发送消息…')
+        self.commands.put(('recover',))
 
     # 设置 stop_event，通知工作线程自行退出；不直接强杀进程或关闭 Desktop。
     def disconnect(self):
@@ -451,7 +463,15 @@ class _Window:
                         self.stop_event, lambda report: self.events.put(("status", report))
                     )
                     self.events.put(("disconnected", result))
+                elif kind == 'recover':
+                    from runtime_recovery import recover,current_desktop_root
+                    result=recover(self.controller,self.controller.update_home,current_desktop_root(),apply=True)
+                    self.events.put(('recovered',result))
             except Exception as error:
+                if kind == 'recover':
+                    from updates.security import UpdateError
+                    self.events.put(('failed',safe_code(error.code) if isinstance(error,UpdateError) else 'recovery_failed'))
+                    continue
                 if kind in ('updatecheck', 'updateinstall'):
                     from updates.security import UpdateError
                     self.events.put(('updatefailed', safe_code(error.code) if isinstance(error, UpdateError) else 'update_operation_failed'))
@@ -508,6 +528,10 @@ class _Window:
             elif kind == "paired":
                 self.busy = False
                 self.status_text.set(status_message(value, paired=True, connecting=self.connecting))
+            elif kind == 'recovered':
+                self.busy=False
+                self.status_text.set('恢复核验通过，身份和回执已保留。请点击连接。')
+                self._record_errors('连接',[])
             elif kind == "disconnected":
                 self.busy = False
                 self.connecting = False

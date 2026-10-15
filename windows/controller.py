@@ -165,6 +165,8 @@ class Controller:
     # 先拒绝待复核/旧框架状态，再请求服务端分配的连接参数；只使用当前设备身份。
     # 返回 LiteRuntime 对象；真正的进程启动由后续 tick 驱动。
     def _runtime(self, store):
+        from runtime_recovery import assert_recovery_complete
+        assert_recovery_complete(self)
         with store.lock():
             state = store.read()
         if state.get('runtimeNeedsReview'):

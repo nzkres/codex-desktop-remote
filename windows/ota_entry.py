@@ -63,7 +63,7 @@ def health(controller):
 
 # 普通启动需通过事务可启动检查；隔离启动先健康验证并等待助手激活。
 # 窗口最初隐藏，取得应用锁后再开放；退出时释放锁并销毁本窗口。
-def run(home, quarantine=False):
+def run(home, quarantine=False, connect=False):
     import tkinter as tk
     config, pointer, root = installed(home)
     if not same_running_slot(root) or config['component'] != 'windows':
@@ -88,7 +88,9 @@ def run(home, quarantine=False):
         lease.__enter__()
         controller.quarantine = False
         controller.update_home = Path(home)
-        _Window(window, controller)
+        gui = _Window(window, controller)
+        if connect and not quarantine:
+            window.after(0, gui.connect)
         if quarantine:
             print(json.dumps({'schema':1, 'active':True}), flush=True)
         window.deiconify()
@@ -106,9 +108,10 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--home', required=True, type=Path)
     parser.add_argument('--quarantine', action='store_true')
+    parser.add_argument('--connect', action='store_true', help='Explicitly connect the existing identity after opening')
     args = parser.parse_args()
     try:
-        run(args.home, args.quarantine)
+        run(args.home, args.quarantine, args.connect)
     except Exception:
         if args.quarantine:
             print(json.dumps({'schema':1,'ready':False}), flush=True)
