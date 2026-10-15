@@ -10,14 +10,17 @@ import {ControlError} from './vendor/desktop-ipc.js';
 
 // 26.1007 安装清单中 codex:// 的主入口是 ChatGPT.exe，不是同目录 Codex.exe。
 const LAUNCHER_SHA256='13d7ee588d7ae20f04f7aa25a65ae82917ada81501304ac8f5e679d0b3306601';
+const LAUNCHERS=Object.freeze({'26.1007.2314.0':LAUNCHER_SHA256,
+  '26.1007.9446.0':'ee785aec9ff3058afb01069a8b455fb17e46f3c33611a867efd3db37de1f05f3'});
 export async function openNativeConversation(config,id,beforeLaunch=()=>{}) {
   const fail=()=>{throw new ControlError('launcher_unverified','当前 Desktop 启动入口尚未通过核对，请在电脑打开这条对话。',503);};
   if(process.platform!=='win32'||!taskId(id)) fail();
+  const compatibility=await verifyCompatibility(config);
   const binary=join(config.desktopRoot,'app','ChatGPT.exe');
   for(const p of [config.desktopRoot,join(config.desktopRoot,'app'),binary])
     if((await lstat(p)).isSymbolicLink()) fail();
   if(!(await lstat(binary)).isFile()) fail();
-  if(createHash('sha256').update(await readFile(binary)).digest('hex')!==LAUNCHER_SHA256) fail();
+  if(createHash('sha256').update(await readFile(binary)).digest('hex')!==LAUNCHERS[compatibility.desktopVersion]) fail();
   // 最后一次检查断开/更新栅栏，之后同步调用spawn，避免哈希读取期间发生晚到打开。
   beforeLaunch();
   await new Promise((accept,reject)=>{

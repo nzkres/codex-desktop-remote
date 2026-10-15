@@ -16,6 +16,12 @@ export const COMPATIBILITY_PINS = Object.freeze([
   COMPATIBILITY_PIN,
   Object.freeze({
     platform: 'win32',
+    desktopVersion: '26.1007.9446.0',
+    appAsarSha256: '356c13dc715816436fa1cf31e9f77863f62ea7b7cacc465b397313246eb29325',
+    codexExeSha256: 'e98c516f1c8935789aabe9122ee7e05ec4c3efd1ba6acf179242e031c495b99e',
+  }),
+  Object.freeze({
+    platform: 'win32',
     desktopVersion: '26.1007.2314.0',
     appAsarSha256: 'c5fdef328cfa2ad9095786f9c3a7aaa447e68834d31299d6ef2592da02029038',
     codexExeSha256: 'd13914ced6c7af174d8d638db938284231227312104b06a25e9608c632a7daec',

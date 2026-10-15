@@ -59,9 +59,9 @@ def signed(base, version, sequence, key, good):
     entry = source / 'windows/ota_entry.py'
     code = entry.read_text(encoding='utf-8')
     assert code.count('    if paired:\n') == 1
-    assert code.count('        _Window(window, controller)\n') == 1
+    assert code.count('        gui = _Window(window, controller)\n') == 1
     code = code.replace('    if paired:\n', '    if paired and False:  # SYNTHETIC: no transport/network\n')
-    code = code.replace('        _Window(window, controller)\n', TEST_CLOSE)
+    code = code.replace('        gui = _Window(window, controller)\n', TEST_CLOSE)
     entry.write_text(code, encoding='utf-8')
     archive, metadata = base / f'package-{sequence}.zip', base / f'metadata-{sequence}.json'
     publish.pack('windows', archive, root=source)

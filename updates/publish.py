@@ -34,8 +34,8 @@ KEY_ID = re.compile(r"[A-Za-z0-9._-]{1,64}\Z")
 WINDOWS_REQUIRED = (
     "windows/controller.py", "windows/gui.py", "windows/error_catalog.py", "windows/demo.py", "windows/release_notes.py",
     "windows/releases.json", "windows/ota_entry.py", "windows/update_driver.py",
-    "windows/update_helper.py", "windows/update_ui.py",
-    "scripts/configure.py", "scripts/probe.mjs", "scripts/update_probe.mjs", "scripts/diagnose_desktop.mjs",
+    "windows/update_helper.py", "windows/update_ui.py", "windows/runtime_recovery.py",
+    "scripts/configure.py", "scripts/probe.mjs", "scripts/update_probe.mjs", "scripts/diagnose_desktop.mjs", "scripts/recovery_probe.mjs",
     "src/package.json", "src/compatibility.js", "src/follower.js", "src/main.js",
     "src/activity.js", "src/catalog.js", "src/desktop-open.js", "scripts/desktop_catalog.py", "src/receipts.js", "src/questions.js", "src/service.js", "src/tasks.js", "src/version.js",
     "src/vendor/conversation-timing.js", "src/vendor/desktop-ipc.js",
