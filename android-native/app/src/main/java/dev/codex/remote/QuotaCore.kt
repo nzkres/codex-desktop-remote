@@ -5,6 +5,8 @@ import android.graphics.Typeface
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.nativeCanvas
@@ -36,13 +38,18 @@ internal fun quotaDigitCells(text: String): List<Pair<Int,Int>> = text.take(4).f
     quotaGlyphs[ch].orEmpty().split('/').flatMapIndexed { y,row -> row.mapIndexedNotNull { x,c -> if(c=='1') (index*6+x) to y else null } }
 }
 
-internal fun DrawScope.drawQuotaCore(value: DeviceQuota?, now: Long, time: Float, skin: TerminalSkin, night: Boolean) {
+internal fun DrawScope.drawQuotaCore(value: DeviceQuota?, now: Long, time: Float, skin: TerminalSkin, night: Boolean,
+    activity: QuotaActivityFrame? = null) {
     val limit=quotaLimit(value); val windows=quotaWindows(limit)
     val stale=value?.unavailable==true || limit?.let { usageStale(it,now) }!=false
     val power=boundedLight(skin.flowBrightness)
     if(power==0f) return
     val tint=if(night) Color(0xFFD5F7EB) else Color(0xFF285A4C)
-    val alpha=(power*(if(stale).16f else .32f)).coerceAtMost(if(night).48f else .4f)
+    val baseAlpha=(power*(if(stale).16f else .32f)).coerceAtMost(if(night).48f else .4f)
+    // Bound the base before breathing so a bright skin cannot clip the whole pulse flat.
+    val alpha=if(activity==null) baseAlpha else baseAlpha +
+        ((baseAlpha*2.15f).coerceAtMost(if(night).68f else .5f)-baseAlpha)*
+        activity.energy*(.35f+.65f*activity.breath)
     val paint=Paint(Paint.ANTI_ALIAS_FLAG).apply { textAlign=Paint.Align.CENTER;typeface=Typeface.MONOSPACE }
     val combined=skin.quotaStyle==QuotaStyle.Dual && windows.size==2
     val geometry=quotaCoreGeometry(size.width,size.height,if(combined)1 else windows.size)
@@ -51,6 +58,27 @@ internal fun DrawScope.drawQuotaCore(value: DeviceQuota?, now: Long, time: Float
         val fraction=(amount ?: 0)/100f
         val c=g.center;val r=g.radius
         val ink=tint.copy(alpha=alpha)
+        if (activity != null && activity.energy > 0f) {
+            // Broad soft halo stays behind the ring, not over the conversation text.
+            val glow = activity.energy * (.05f + .09f * activity.breath) * (power / (1f + power))
+            val ringAlpha = activity.energy * (.55f + .45f * activity.breath) * (power / (1f + power))
+            drawCircle(Brush.radialGradient(0f to Color.Transparent, .72f to Color.Transparent,
+                .85f to tint.copy(alpha = glow.coerceAtMost(.2f)), 1f to Color.Transparent,
+                center = c, radius = r * 1.24f), r * 1.24f, c)
+            repeat(2) { segment ->
+                val start = activity.angle + segment * 180f
+                val radius = r * 1.075f
+                val origin = c - Offset(radius, radius)
+                val dimensions = Size(radius * 2, radius * 2)
+                for ((width, opacity) in listOf(.1f to .05f, .05f to .13f, .016f to .75f)) {
+                    drawArc(tint.copy(alpha = (ringAlpha * opacity).coerceAtMost(.8f)), start, 65f, false,
+                        origin, dimensions, style = Stroke(r * width, cap = StrokeCap.Round))
+                }
+                // A short luminous head and a softer tail make the direction readable.
+                drawArc(tint.copy(alpha = (ringAlpha * .9f).coerceAtMost(.9f)), start + 55f, 9f, false,
+                    origin, dimensions, style = Stroke(r * .021f, cap = StrokeCap.Round))
+            }
+        }
         drawCircle(ink.copy(alpha=alpha*.17f),r,c,style=Stroke(r*.06f))
         drawCircle(ink.copy(alpha=alpha*.1f),r*.91f,c,style=Stroke(r*.14f))
         when(skin.quotaStyle) {

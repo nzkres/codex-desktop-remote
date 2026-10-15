@@ -65,7 +65,8 @@ internal class GridSimulation(private val random: Random = Random.Default) {
     }
 }
 
-@Composable internal fun TerminalGrid(running: Boolean, modifier: Modifier = Modifier, quota: DeviceQuota? = null) {
+@Composable internal fun TerminalGrid(running: Boolean, modifier: Modifier = Modifier, quota: DeviceQuota? = null,
+    showQuota: Boolean = true) {
     val skin=LocalChatAppearance.current.skin
     val motion=rememberChatMotion()
     val pace=gridPace(running,skin.idleStill,motion,skin.speed)
@@ -97,6 +98,6 @@ internal class GridSimulation(private val random: Random = Random.Default) {
             val color=Color.hsv(hue,.55f,if(night) 1f else .65f, (cell.strength*.25f*boundedLight(skin.brightness)).coerceIn(0f,.48f))
             drawRect(color,Offset(cell.x*unit+1,cell.y*unit+1),Size(unit-2,unit-2))
         }
-        drawQuotaCore(quota,observedNow,clock.floatValue,skin,night)
+        if (showQuota) drawQuotaCore(quota,observedNow,clock.floatValue,skin,night)
     }
 }

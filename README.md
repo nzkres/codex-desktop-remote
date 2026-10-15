@@ -1,3 +1,5 @@
+> Android alpha.17：我的 → 界面预览 · 额度与交互，新增同账号任务运行时额度渐强呼吸与加速光环。仅离线演示，正式任务/额度未接入；发布和手机验证见[STATUS](STATUS.md)。
+
 > Android alpha.16：新增“我的 → 界面预览 · 未读与发送按钮”，直接在手机内看离线交互。当前构建/发布/安装层级见 [STATUS](STATUS.md)。正式连接和回执协议不变。
 
 > 最终更新：Android alpha.15与Windows alpha.18已发布原私有HTTPS更新源，原签名和实际鉴权完整下载核验通过。五种可保存的中心光格数字额度皮肤，Plus实际双窗口/Pro周单环；手机在“我的 → 版本与更新说明”检查更新。安装与真机效果另验收，见[最终发布记录](docs/ANDROID-ALPHA15-PUBLICATION.md)。

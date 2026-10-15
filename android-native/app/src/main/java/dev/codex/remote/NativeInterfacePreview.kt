@@ -54,6 +54,11 @@ import kotlin.math.min
 internal fun NativeInterfacePreview(onClose: () -> Unit) {
     Dialog(onDismissRequest = onClose, properties = DialogProperties(
         usePlatformDefaultWidth = false, decorFitsSystemWindows = false)) {
+        var quotaPreview by rememberSaveable { mutableStateOf(true) }
+        if (quotaPreview) {
+            QuotaActivityPreview(onClose = onClose, onInteractions = { quotaPreview = false })
+            return@Dialog
+        }
         val palette = LocalAppPalette.current
         val prefs = LocalContext.current.getSharedPreferences("interface-preview-only-v1", Context.MODE_PRIVATE)
         var device by rememberSaveable { mutableStateOf("work") }
@@ -96,6 +101,7 @@ internal fun NativeInterfacePreview(onClose: () -> Unit) {
                 Row(Modifier.fillMaxWidth().padding(horizontal = 8.dp), verticalAlignment = Alignment.CenterVertically) {
                     TextButton(onClick = { if (chat) chat = false else onClose() }) { Text(if (chat) "返回列表" else "关闭") }
                     Text("界面预览", Modifier.weight(1f), color = palette.ink, fontSize = 15.sp)
+                    TextButton(onClick = { quotaPreview = true }) { Text("额度动效", fontSize = 11.sp) }
                     Text("离线演示", color = palette.muted, fontSize = 11.sp)
                 }
                 Text("仅演示 · 不发送真实消息 · 不改变正式对话", Modifier.padding(horizontal = 16.dp), color = palette.muted, fontSize = 11.sp)
