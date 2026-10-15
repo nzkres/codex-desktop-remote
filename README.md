@@ -1,3 +1,5 @@
+> Android alpha.12 已发布原私有HTTPS更新源：多电脑对话、任务仓库、轻玻璃问答与旧答案保护。手机在“我的 → 版本与更新说明”检查更新；覆盖安装与真实任务仍待验收。见[发布证据与功能边界](docs/ANDROID-ALPHA12-PUBLICATION.md)。
+
 # Codex Desktop Remote
 
 这个独立项目包含三个可迭代原型：沿用原界面的 Android 遥控 App、Windows 连接器、服务器中继。目标是让手机在**用户明确选择的一条 Codex Desktop 原生任务**中看文字、发文字，并看到 Desktop 后续在同一任务中的内容。Desktop 仍拥有任务和执行权限。源码布局及各原型边界见 [PROJECT.md](PROJECT.md) 和 [原型说明](docs/PROTOTYPES.md)；实际通过与未验收项以 [STATUS.md](STATUS.md) 为准。

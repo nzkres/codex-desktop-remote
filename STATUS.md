@@ -1,3 +1,10 @@
+## 2026-10-15 — Android alpha.12 已发布，手机安装待验收
+
+原私有更新源现为alpha.12/versionCode12/sequence6。原证书、实际Manifest/trust/版本资产、118项单测、Lint、APP/UI测试APK编译、实际HTTPS鉴权完整下载及匿名401均通过。仅Android更新；连接、发送回执、Windows、中继与配对身份保持。新页面与限制见[发布记录](docs/ANDROID-ALPHA12-PUBLICATION.md)。
+
+当前只确认已发布可下载，未自动安装手机；真实UI与原任务答题/发送接续仍待用户更新后验收。
+
+
 ## 2026-10-15 — alpha.12 页面开发与发布验证进行中
 
 已封存用户批准预览并接入原生新导航、多电脑对话及任务仓库。正在运行Android、Node与Python检查，尚未签发或更新私有源；当前已发布手机版本仍alpha.11。本次只迭代Android，不切换运行中的Windows连接器、中继服务或配对身份。
