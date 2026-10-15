@@ -1,3 +1,7 @@
+## 2026-10-15 更新状态诊断修复（alpha.10，待构建验证）
+
+当前实测终端访问 active，但在线状态 false，更新状态接口 503 terminal_offline。电脑配置对应的 10 条回执全部 accepted 且具备 turnId；没有手机调试通道，手机本地回执未核验。没有重发或清除回执。更新提示已按错误码分类，待测试；尚未签名发布或安装。
+
 ## 2026-10-15 — Desktop Remote Lite alpha.9 已发布（手机待安装）
 
 alpha.9/versionCode 9/sequence 3 已发布，原证书、实际 Manifest、内置 trust、服务器回执和实际 HTTPS 完整下载均独立校验通过。APK 40121564 字节，SHA256 `271e994290e7dc5664da856769601c98935a4191faf2b004045aab4dc27ecc8c`。源码 `648527d2cf00eae5fe06bdd50630bf60d3f91a3e`，受控构建 38612698531，55/55 模拟器回归通过；手机实际安装待用户确认。

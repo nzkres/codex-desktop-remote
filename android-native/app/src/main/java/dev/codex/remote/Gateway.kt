@@ -249,7 +249,7 @@ class Gateway(private val baseUrl: String, private val token: String, val target
             val json = if (payload.isBlank()) JSONObject() else try { JSONObject(payload) }
                 catch (_: Exception) { throw GatewayException("服务响应异常（HTTP $status），请核对当前电脑连接。", status) }
             if (status !in 200..299) throw GatewayException(json.optString("error", "HTTP $status"), status,
-                json.optString("code").takeIf { it.matches(Regex("[a-z_]{1,60}")) })
+                gatewayErrorCode(json))
             if (cacheable) connection.getHeaderField("ETag")?.let { summaries[path] = it to json }
             json
         } finally {
