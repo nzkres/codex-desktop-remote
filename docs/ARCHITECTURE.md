@@ -65,3 +65,7 @@ alpha.11 候选保持同一电脑连接，只在本机加入显式 `additionalTa
 ## alpha.12 自动目录与按需接续
 
 `desktop_catalog.py` 以 SQLite 正常只读WAL视图读取标题/ID/目录，`catalog.js` 交给 `TaskService`；列表请求不创建 Follower。点开时按 ID 找本机目录，再经原 Follower 获取 Desktop 快照；Service 继承原任务权限，手机不提供目录、权限或执行端参数。`activity.js` 只记录实际手机交互任务的交接范围，用于跨进程更新检查；它不是另一份对话数据库。
+
+### alpha.13 GitHub项目和设备额度
+
+GitHubProjects仅在Android向api.github.com发起只读REST；使用本机加密凭据、固定默认分支commit、有限文档解析和最后成功缓存。任务仓库不经中继转发GitHub token。DeviceQuotaStore使用现有mobile-sync授权读，在账号内按deviceId隔离来源；既有身份/发送/问答回执路径不变。详见PROJECT-REPOSITORY.md和QUOTA-CORE-GLOW.md。

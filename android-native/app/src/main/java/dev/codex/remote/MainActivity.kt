@@ -100,6 +100,7 @@ private fun RemoteApp(night: Boolean, destination: NotificationDestination?, onD
     val hubStatuses = remember(gateway) { mutableStateMapOf<String, HubStatus>() }
     val repositoryScope = remember(credentials.url, credentials.account, credentials.token) { draftScope(credentials.url, credentials.account, credentials.token) }
     val repositoryStore = remember(repositoryScope) { runCatching { ProjectRepositoryStore.open(context, repositoryScope) }.getOrNull() }
+    val quotaStore = remember(repositoryScope) { runCatching { DeviceQuotaStore.open(context, repositoryScope) }.getOrNull() }
     val targetSummaries = remember(repositoryScope) { mutableMapOf<String, Triple<List<Session>, List<Project>, Long>>() }
     var selectedId by rememberSaveable { mutableStateOf<String?>(null) }
     // Only a direct tap may request Desktop navigation. Consume before the network call;
@@ -190,6 +191,7 @@ private fun RemoteApp(night: Boolean, destination: NotificationDestination?, onD
                 questionDraftStore?.reconcile(id, resolved.questions)
                 hubStatuses[id] = HubStatus(resolved.questions.any { it.status in setOf("pending", "desktop_required") },
                     resolved.observation.state == "running" && resolved.questions.none { it.status in setOf("pending", "desktop_required") }, System.currentTimeMillis())
+                runCatching { quotaStore?.update(client.target.id, id, resolved.usage) }
                 conversation = resolved
                 conversationError = ""
                 fresh.session?.let { current -> sessions = sessions.filterNot { it.id == current.id } + current }
@@ -386,7 +388,7 @@ private fun RemoteApp(night: Boolean, destination: NotificationDestination?, onD
             selectedId == null || !gateway!!.target.isSelected -> Column(Modifier.fillMaxSize()) {
                 Box(Modifier.weight(1f)) {
                     when (rootTab) {
-                        RootTab.Tasks -> ConversationHub(gateway!!, sessions, projects, activityEntries, busy, hubStatuses, lastMetadataAt, draftStore,
+                        RootTab.Tasks -> ConversationHub(gateway!!, sessions, projects, activityEntries, busy, hubStatuses, lastMetadataAt, draftStore, quotaStore,
                             onSelect = ::selectTarget, onOpen = { id, question -> openSelected(id, question) }, onManage = { terminalManagerOpen = true })
                         RootTab.Projects -> ProjectRepositoryScreen(repositoryStore)
                         RootTab.Me -> MeScreen(
