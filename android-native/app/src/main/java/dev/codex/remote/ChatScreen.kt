@@ -396,7 +396,7 @@ fun ChatScreen(
             backdrop.record { this@drawWithContent.drawContent() }
             drawLayer(backdrop)
         }.background(pageSurface)) {
-        TerminalGrid(headerActivity(session, conversation).running, Modifier.matchParentSize())
+        TerminalGrid(headerActivity(session, conversation).running, Modifier.matchParentSize(),DeviceQuota(threadId,conversation?.usage,conversation==null))
         LazyColumn(state = listState, modifier = Modifier.fillMaxSize().testTag("transcript").nestedScroll(historyScroll)
             .graphicsLayer { translationY = pullOffset * .5f }
             .semantics { customActions = if (conversation?.hasOlder == true && !loadingHistory)
@@ -515,7 +515,6 @@ fun ChatScreen(
             })
         GlassComposer(draft = draft, onDraft = { editDraft(it) }, mode = session?.mode ?: "default", busy = busy || conversation == null || echo != null,
             modeEnabled = conversation?.capabilities?.mode == true,
-            usage = conversation?.usage,
             running = session?.activeTurnId != null, sending = sending,
             working = headerActivity(session, conversation).running,
             startedAt = conversation?.turns?.find { it.id == session?.activeTurnId }?.items?.firstNotNullOfOrNull { it.turnStartedAtMs },

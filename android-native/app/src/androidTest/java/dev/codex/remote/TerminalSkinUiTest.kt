@@ -39,12 +39,17 @@ class TerminalSkinUiTest {
                 .putString("skin_palette","Warm").putString("skin_effect","Snake")
                 .putFloat("skin_speed",1.75f).putFloat("skin_brightness",.5f)
                 .putBoolean("skin_shadow",false).putBoolean("skin_idle_still",true)
-                .putFloat("skin_line_brightness",3.5f).putFloat("skin_flow_brightness",2.5f).putBoolean("skin_core_flow",false).commit()
+                .putFloat("skin_line_brightness",3.5f).putFloat("skin_flow_brightness",2.5f).putBoolean("skin_core_flow",false).putString("skin_quota_style","Radial").commit()
             val skin=readChatAppearance(context.getSharedPreferences(name,Context.MODE_PRIVATE)).skin
             assertEquals(GlassSkin.Frost,skin.glass); assertEquals(GridEffect.Snake,skin.effect)
             assertEquals(GridPalette.Warm,skin.palette); assertEquals(1.75f,skin.speed)
             assertEquals(.5f,skin.brightness); assertFalse(skin.textShadow); assertTrue(skin.idleStill)
             assertEquals(3.5f,skin.lineBrightness);assertEquals(2.5f,skin.flowBrightness);assertFalse(skin.coreFlow)
+            assertEquals(QuotaStyle.Radial,skin.quotaStyle)
+            QuotaStyle.entries.forEach { style ->
+                prefs.edit().putString("skin_quota_style",style.name).commit()
+                assertEquals(style,readTerminalSkin(context.getSharedPreferences(name,Context.MODE_PRIVATE)).quotaStyle)
+            }
             BodyFont.entries.forEach { font -> font.resource?.let { assertNotNull(androidx.core.content.res.ResourcesCompat.getFont(context,it)) } }
         } finally { context.deleteSharedPreferences(name) }
     }

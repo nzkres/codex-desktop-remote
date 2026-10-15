@@ -94,7 +94,6 @@ internal fun hubStatus(session:Session, signal:SignalSnapshot, now:Long):HubStat
                 val active=terminal.id==target.id
                 Column(Modifier.width(IntrinsicSize.Min).heightIn(min=48.dp).clickable(enabled=!busy&&terminal.state=="active"){onSelect(TaskTarget(terminal.id,terminal.name))},verticalArrangement=Arrangement.Center){
                     Text(terminal.name,Modifier.processingLight(terminal.state=="active"&&!terminal.online&&loading),color=if(terminal.online&&terminal.state=="active")palette.green else palette.muted,fontSize=12.sp,maxLines=1)
-                    key(terminal.id) { DeviceQuotaLight(quotas?.values?.get(terminal.id)?.let { if(!terminal.online || terminal.state!="active") it.copy(unavailable=true) else it },now,compact=true) }
                     Spacer(Modifier.height(4.dp));Box(Modifier.fillMaxWidth().height(1.dp).background(if(active)palette.muted else Color.Transparent))
                 }
             }
@@ -108,7 +107,7 @@ internal fun hubStatus(session:Session, signal:SignalSnapshot, now:Long):HubStat
             TextButton(onClick=onManage,enabled=!busy){Text("设备",color=palette.muted,fontSize=11.sp)}
         }
         key(target.id) { Column(Modifier.fillMaxWidth().padding(horizontal=16.dp,vertical=3.dp)) {
-            DeviceQuotaLight(quotas?.values?.get(target.id)?.let { if(!online) it.copy(unavailable=true) else it },now)
+            DeviceQuotaLight(quotas?.values?.get(target.id)?.let { if(!online) it.copy(unavailable=true) else it })
             if(quotas==null) Text("额度加密缓存不可用",color=palette.errorInk,fontSize=10.sp)
         } }
         Row(Modifier.fillMaxWidth().padding(horizontal=12.dp),verticalAlignment=Alignment.CenterVertically){

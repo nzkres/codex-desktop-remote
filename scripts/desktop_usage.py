@@ -55,7 +55,11 @@ def read_usage(home,thread_id):
         try: captured=int(datetime.datetime.fromisoformat(event['timestamp'].replace('Z','+00:00')).timestamp()*1000)
         except (ValueError,TypeError,KeyError,OverflowError): continue
         windows=[w for w in (window(rate.get('primary')),window(rate.get('secondary'))) if w]
-        if windows: found[limit_id]={'id':limit_id,'capturedAt':captured,'windows':windows}
+        if windows:
+            found[limit_id]={'id':limit_id,'capturedAt':captured,'windows':windows}
+            plan=rate.get('plan_type')
+            if isinstance(plan,str) and plan.lower() in ('free','go','plus','pro','team','business','enterprise','edu'):
+                found[limit_id]['planType']=plan.lower()
         if len(found)>=8: break
     return {'status':'snapshot' if found else 'unavailable','source':'desktop-task-snapshot','limits':list(found.values())}
 

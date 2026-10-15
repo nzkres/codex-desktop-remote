@@ -15,16 +15,17 @@ import kotlinx.coroutines.delay
 import java.text.DateFormat
 import java.util.Date
 
-@Composable internal fun ComposerUsage(snapshot:UsageSnapshot?) {
+@Composable internal fun QuotaUsageDetails(snapshot:UsageSnapshot?, unavailable:Boolean=false) {
     val palette=LocalAppPalette.current
     var open by remember { mutableStateOf(false) }
     var now by remember { mutableLongStateOf(System.currentTimeMillis()) }
     LaunchedEffect(snapshot) { while(true) { now=System.currentTimeMillis();delay(30000) } }
     val core=snapshot?.limits?.find { it.id=="codex" } ?: snapshot?.limits?.firstOrNull()
     val warning=core!=null && !usageStale(core,now) && core.windows.any { it.remaining<=10 }
-    Text(usageSummary(snapshot,now),color=if(warning)palette.errorInk else palette.muted,fontSize=11.sp,
+    val summary=if(core==null) "额度未同步" else (if(unavailable||usageStale(core,now))"上次 · "else "剩余 · ")+core.windows.joinToString("  │  ") { "${it.label} ${it.remaining}%" }
+    Text(summary,color=if(warning&&!unavailable)palette.errorInk else palette.muted,fontSize=11.sp,
         maxLines=1,overflow=TextOverflow.Ellipsis,
-        modifier=Modifier.fillMaxWidth().testTag("composer-usage").clickable {open=true}.padding(horizontal=8.dp,vertical=8.dp))
+        modifier=Modifier.fillMaxWidth().testTag("device-quota-details").clickable {open=true}.padding(vertical=10.dp))
     if(open) AlertDialog(onDismissRequest={open=false},title={Text("我的额度")},
         containerColor=palette.card.copy(alpha=.94f),
         text={Column(Modifier.verticalScroll(rememberScrollState())) {
@@ -32,14 +33,14 @@ import java.util.Date
             if(snapshot==null) Text("当前连接器尚未同步额度，请更新电脑连接器后刷新对话。",modifier=Modifier.padding(top=12.dp),color=palette.ink)
             else if(snapshot.limits.isEmpty()) Text("尚未读到有效额度；请保持 Desktop 登录。任务产生新的额度记录后会随对话同步。",modifier=Modifier.padding(top=12.dp),color=palette.ink)
             snapshot?.limits?.forEach { limit ->
-                Text(if(limit.id=="codex") "Codex" else limit.id,color=palette.ink,modifier=Modifier.padding(top=16.dp))
+                Text((if(limit.id=="codex") "Codex" else limit.id)+" · "+(limit.planType?.uppercase() ?: "套餐未同步"),color=palette.ink,modifier=Modifier.padding(top=16.dp))
                 limit.windows.forEach { window ->
                     Text("${window.label} · 剩余 ${window.remaining}%",color=palette.ink,fontSize=14.sp)
                     LinearProgressIndicator(progress={window.remaining/100f},modifier=Modifier.fillMaxWidth().padding(vertical=8.dp))
                     Text("重置：${DateFormat.getDateTimeInstance(DateFormat.SHORT,DateFormat.SHORT).format(Date(window.resetsAt*1000))}",color=palette.muted,fontSize=12.sp)
                 }
                 Text("采样：${DateFormat.getDateTimeInstance(DateFormat.SHORT,DateFormat.SHORT).format(Date(limit.capturedAt))}"+
-                    if(usageStale(limit,now)) "\n快照已过期，等待电脑更新；不会推算为满额。" else "",color=palette.muted,fontSize=12.sp)
+                    if(unavailable||usageStale(limit,now)) "\n上次快照待核对，等待电脑更新；不会推算为满额。" else "",color=palette.muted,fontSize=12.sp)
             }
         }},confirmButton={TextButton(onClick={open=false}) { Text("关闭") }})
 }
