@@ -82,6 +82,7 @@ private fun NavGlyph(tab: RootTab, active: Boolean, modifier: Modifier = Modifie
 @Composable
 fun MeScreen(
     gatewayUrl: String,
+    previewClient: PreviewFeedClient? = null,
     onManageDevices: () -> Unit = {},
     night: Boolean,
     onToggleNight: () -> Unit,
@@ -95,7 +96,11 @@ fun MeScreen(
     onDisconnect: () -> Unit,
 ) {
     var previewOpen by rememberSaveable { mutableStateOf(false) }
-    if (previewOpen) NativeInterfacePreview { previewOpen = false }
+    var builtInPreview by rememberSaveable { mutableStateOf(false) }
+    if (previewOpen) {
+        if (builtInPreview) NativeInterfacePreview { previewOpen = false }
+        else RemotePreviewDialog(previewClient, onClose = { previewOpen = false }, onBuiltIn = { builtInPreview = true })
+    }
     Column(Modifier.fillMaxSize().background(HapiPalette.background.copy(alpha = .12f)).verticalScroll(rememberScrollState())) {
         Column(Modifier.fillMaxWidth().padding(horizontal = 18.dp, vertical = 16.dp)) {
             Text("我的", color = HapiPalette.ink, fontSize = 22.sp, fontWeight = FontWeight.SemiBold)
@@ -113,8 +118,8 @@ fun MeScreen(
         HorizontalDivider(color = HapiPalette.divider, thickness = 0.5.dp)
         TextButton(onClick = onManageDevices, modifier = Modifier.padding(horizontal=10.dp)) { Text("设备与配对管理") }
         ReleaseNotesEntry(updateStatus, updateProgress, updateBusy, updateAvailable, onCheckUpdate, onInstallUpdate)
-        TextButton(onClick = { previewOpen = true }, modifier = Modifier.padding(horizontal = 10.dp)) {
-            Text("界面预览 · 额度与交互")
+        TextButton(onClick = { builtInPreview = false; previewOpen = true }, modifier = Modifier.padding(horizontal = 10.dp)) {
+            Text("界面预览 · 可独立刷新")
         }
         HorizontalDivider(color = HapiPalette.divider, thickness = 0.5.dp)
         NotificationSettings()

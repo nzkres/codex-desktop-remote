@@ -1,3 +1,9 @@
+## alpha.18 预览内容与安装包分离
+
+PreviewFeedClient用现有登录原生GET同源/desktop-remote-previews/test/latest.json，客户端只发送到与安装trust相同的origin，不跟随重定向。独立用途签名封套renderer=1、sequence、有效期、HTML哈希，RSA原公钥核验及本机防回退；缓存按origin+登录哈希隔离，以AtomicFile保存，失败仅显示有效上次预览。WebView只收到已核验的HTML，无token、JS/native桥、文件/内容访问、网络、外跳或下载，CSP再限制connect/frame/worker/form/base。
+
+既有:9443 Caddy只增加一个GET JSON路由，forward_auth复用账号只读/control-api/version，不重启relay、不新增端口；静态根仅/config/ui-preview-test/latest.json，原APK鉴权路由不变。只首次验证并热加载配置，以后预览发布只原子替换独立JSON，APP/Windows/relay版本及服务进程不必变。手机安装与真实缓存/WebView体验仍须验收。
+
 ## alpha.17 账号额度动效演示隔离
 
 QuotaActivityPreview持有合成A/Plus和B/Pro设备、任务开关及独立动画模型，不读取Gateway、账号令牌或真实任务。QuotaActivityMotion用指数渐入/渐出积分转角，账号A两设备共用一个模型、账号B独立；减少动画与后台无循环。drawQuotaCore仅增加可选activity参数，默认null；TerminalGrid默认showQuota=true，正式调用点不变。真实联动尚需授权数据源提供可信账号标识和新鲜运行信号，不能用套餐名推断账号或以连接在线推断任务运行。
