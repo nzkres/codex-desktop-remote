@@ -1,3 +1,7 @@
+## 2026-10-15 Android alpha.11 候选
+
+实现输入框额度快照（含采样与过期状态）和可配置核心网格流光。Windows 连接器需同步升级提供额度字段；当前手机源仍alpha.10。本轮编译/测试/实机与发布分别记录，未宣称实机通过。
+
 ## 2026-10-15 Android alpha.10 已发布
 
 Android alpha.10/versionCode 10/sequence 4 已发布；原证书、实际 Manifest、内置 trust 与实际 HTTPS 完整下载核验通过。手机可检查更新，覆盖安装待用户确认。

@@ -502,6 +502,7 @@ fun ChatScreen(
             })
         GlassComposer(draft = draft, onDraft = { editDraft(it) }, mode = session?.mode ?: "default", busy = busy || conversation == null || echo != null,
             modeEnabled = conversation?.capabilities?.mode == true,
+            usage = conversation?.usage,
             running = session?.activeTurnId != null, sending = sending,
             working = headerActivity(session, conversation).running,
             startedAt = conversation?.turns?.find { it.id == session?.activeTurnId }?.items?.firstNotNullOfOrNull { it.turnStartedAtMs },

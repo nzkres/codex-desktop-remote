@@ -72,6 +72,7 @@ data class Conversation(
     val userMessageCount: Int? = null,
     val controlNotice: String? = null,
     val capabilities: ConversationCapabilities = ConversationCapabilities(),
+    val usage: UsageSnapshot? = null,
 )
 data class TaskHistoryPage(val items: List<MessageItem>, val nextBefore: String?, val total: Int)
 
@@ -307,7 +308,8 @@ class Gateway(private val baseUrl: String, private val token: String, val target
             result.string("controlNotice").takeIf { it.isNotBlank() },
             result.optJSONObject("capabilities")?.let { caps -> ConversationCapabilities(caps.optBoolean("questions"),
                 caps.optBoolean("approvals"), caps.optBoolean("mode"), caps.optBoolean("implementPlan"), caps.optBoolean("create")) }
-                ?: ConversationCapabilities())
+                ?: ConversationCapabilities(),
+            parseUsageSnapshot(result.optJSONObject("usage")))
         val order = result.optJSONArray("order") ?: error("缺少消息顺序，请稍后重试")
         window.applyPage(result.string("cursor"), result.optBoolean("reset"),
             (0 until order.length()).map { order.getString(it) }, result.array("items").map { it.syncEntry() }, metadata)
