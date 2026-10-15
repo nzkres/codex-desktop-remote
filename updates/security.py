@@ -1,3 +1,6 @@
+# OTA 信任边界：校验发布者签名、产品/平台/渠道/序号、下载大小与哈希、解包文件清单。
+# HTTPS 保护传输，发布公钥证明发布者；两者作用不同，不能用同站点 SHA 文件替代签名。
+
 """Authenticated OTA metadata and inert package staging; never switches or executes code."""
 
 import base64
@@ -20,6 +23,7 @@ from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import padding, rsa
 
 
+# 限制下载、解压和元数据大小，阻断超大包或高压缩率压缩包耗尽磁盘。
 LIMIT = 600 * 1024 * 1024
 UNPACK_LIMIT = 1500 * 1024 * 1024
 METADATA_LIMIT = 64 * 1024
@@ -46,10 +50,12 @@ class UpdateError(Exception):
 
 
 def _fail(code):
+    # 安全检查统一抛固定错误码，不把网络响应或本地路径带给调用方。
     raise UpdateError(code)
 
 
 def _unique(pairs):
+    # JSON 中重复字段可能造成“验签所见”和“业务所见”不同，直接拒绝。
     result = {}
     for key, value in pairs:
         if key in result:
@@ -59,6 +65,7 @@ def _unique(pairs):
 
 
 def _json(raw):
+    # 解析 JSON 并拒绝重复键、NaN 等非标准值；返回解析后的对象。
     try:
         return json.loads(raw, object_pairs_hook=_unique,
                           parse_constant=lambda value: _fail("invalid_json"))
@@ -69,6 +76,7 @@ def _json(raw):
 
 
 def _version(value):
+    # 把受限格式的版本号转换成可比较元组；正式版排序在同版本 alpha 之后。
     if not isinstance(value, str) or len(value) > 64:
         _fail("invalid_release_metadata")
     match = VERSION.fullmatch(value)
@@ -81,10 +89,13 @@ def _version(value):
 
 
 def _sha(value):
+    # 校验完整的小写 SHA-256 十六进制文本。
     return isinstance(value, str) and HEX.fullmatch(value) is not None
 
 
 def _url(value, source=None):
+    # 更新地址必须是无用户信息、查询和片段的 HTTPS URL。
+    # 提供 source 时，下载地址还必须留在该订阅目录下；返回原 URL。
     try:
         parsed = urlsplit(value)
         if (not isinstance(value, str) or len(value) > 2048 or parsed.scheme != "https" or not parsed.hostname
@@ -108,6 +119,7 @@ def _url(value, source=None):
 
 
 def _b64(value):
+    # 严格解码签名信封中的 Base64 字段，拒绝夹杂无效字符。
     if not isinstance(value, str):
         _fail("invalid_release_envelope")
     try:
@@ -117,6 +129,7 @@ def _b64(value):
 
 
 def _ledger(value):
+    # 将空账本初始化，并校验既有序号、签名字节绑定和版本摘要的结构。
     if value is None or value == {}:
         return {"sequence": 0, "binding": None, "versions": {}}
     if (not isinstance(value, dict) or set(value) != {"sequence", "binding", "versions"}
@@ -130,6 +143,8 @@ def _ledger(value):
 
 def verify(envelope, trust, component, platform, compatibility, installed_version, ledger=None, now=None):
     """Verify raw signed bytes, strict target and monotonic transition."""
+    # envelope 是签名信封，trust 是预置公钥/频道/源；返回发布内容及新防回放账本。
+    # 先验证原始 payload 字节的签名，再解释 JSON，防止未认证数据影响更新决策。
     if (not isinstance(trust, dict) or set(trust) != {"schema", "product", "channel", "keys", "sources"}
             or type(trust.get("schema")) is not int or trust["schema"] != 1
             or trust.get("product") != "codex-desktop-remote"
@@ -197,6 +212,7 @@ def verify(envelope, trust, component, platform, compatibility, installed_versio
         _fail("wrong_release_target")
     _url(payload["url"], source)
     old = _ledger(ledger)
+    # 序号不能倒退；同一序号、同一版本也不能静默换包。
     binding = hashlib.sha256(raw).hexdigest()
     if payload["sequence"] < old["sequence"]:
         _fail("release_replay_rejected")
@@ -217,10 +233,12 @@ def verify(envelope, trust, component, platform, compatibility, installed_versio
 
 class _NoRedirect(urllib.request.HTTPRedirectHandler):
     def redirect_request(self, *args, **kwargs):
+        # 不跟随跳转，避免认证头被带往未经授权的目标。
         _fail("update_redirect_rejected")
 
 
 def _opener(context):
+    # 可注入 TLS 上下文供测试/部署使用，但证书验证和主机名验证不可关闭。
     if context is not None and (not isinstance(context, ssl.SSLContext)
                                 or context.verify_mode != ssl.CERT_REQUIRED or not context.check_hostname):
         _fail("invalid_tls_context")
@@ -228,6 +246,7 @@ def _opener(context):
 
 
 def _authorization_headers(authorization, url):
+    # 由受约束的授权对象决定能否携带 bearer，不能直接传任意头部字典。
     if authorization is None:
         return {}
     from updates.authorization import UpdateAuthorization
@@ -237,6 +256,7 @@ def _authorization_headers(authorization, url):
 
 
 def _http_error(error, fallback):
+    # 将 HTTP 状态映射为稳定错误码，关闭响应并隐藏服务端私有错误正文。
     status = error.code
     try:
         error.close()
@@ -250,6 +270,7 @@ def _http_error(error, fallback):
 
 
 def fetch(source, context=None, authorization=None):
+    # 只抓取受大小限制的发布信封，不在此处信任其内容；签名由 verify 校验。
     _url(source)
     headers = {"Accept": "application/json", **_authorization_headers(authorization, source)}
     try:
@@ -270,6 +291,7 @@ def fetch(source, context=None, authorization=None):
 
 
 def _safe_local(path):
+    # 对本地路径进行绝对化并拒绝链接，避免写入或读取安装范围外的文件。
     try:
         path = Path(path).absolute()
         for part in (path, *path.parents):
@@ -283,6 +305,7 @@ def _safe_local(path):
 
 
 def _file_sha(path):
+    # 分块计算文件 SHA-256，避免大安装包一次读入内存。
     result = hashlib.sha256()
     with Path(path).open("rb") as stream:
         while chunk := stream.read(128 * 1024):
@@ -291,6 +314,8 @@ def _file_sha(path):
 
 
 def download(payload, destination, progress=None, context=None, authorization=None):
+    # 将已选发布的包下载到全新路径；用字节数和 SHA-256 验证后返回路径。
+    # progress 接收(已写入字节, 总字节)，提前检查空间并拒绝响应大小不符。
     _url(payload.get("url") if isinstance(payload, dict) else None)
     headers = _authorization_headers(authorization, payload["url"])
     count = payload.get("bytes")
@@ -330,6 +355,7 @@ def download(payload, destination, progress=None, context=None, authorization=No
 
 
 def _parts(name):
+    # 验证压缩包内相对路径，拒绝穿越、Windows 保留名及凭据/运行数据文件。
     if (not isinstance(name, str) or not name or name.startswith("/") or name.endswith("//") or "\\" in name
             or ":" in name or "\x00" in name or any(ord(c) < 32 for c in name)):
         _fail("unsafe_archive_path")
@@ -345,6 +371,7 @@ def _parts(name):
 
 
 def _manifest(raw, expected_component=None, expected_version=None, expected_platform=None):
+    # 解读包清单并检查目标、版本与每个文件的摘要格式；返回清单对象。
     value = _json(raw)
     if (not isinstance(value, dict) or set(value) != MANIFEST or type(value["schema"]) is not int
             or value["schema"] != 1 or value["product"] != "codex-desktop-remote"
@@ -368,6 +395,8 @@ def _manifest(raw, expected_component=None, expected_version=None, expected_plat
 
 
 def verify_tree(root, expected_component=None, expected_version=None):
+    # 遍历解包目录：文件集合、大小、路径和内容摘要必须与清单完全一致。
+    # 返回清单；拒绝链接和额外文件，避免启动时执行未列入签名包的内容。
     root = _safe_local(root)
     if not root.is_dir():
         _fail("invalid_package_tree")
@@ -414,6 +443,8 @@ def verify_tree(root, expected_component=None, expected_version=None):
 
 
 def unpack(archive, destination, payload):
+    # 校验压缩包摘要后解到全新目录，并再次验证完整文件树；返回目录路径。
+    # 先检查所有条目再落盘，避免路径穿越、链接、重复名和压缩炸弹。
     archive, target = _safe_local(archive), _safe_local(destination)
     if not archive.is_file() or target.exists() or not target.parent.is_dir():
         _fail("new_stage_required")

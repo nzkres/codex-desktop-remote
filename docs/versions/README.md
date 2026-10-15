@@ -4,8 +4,11 @@
 
 | 仓库版本 | 日期 | 本版更新摘要 | 下载 |
 | --- | --- | --- | --- |
-| Android `0.1.0-alpha.8`（私有OTA已发布） | 2026-10-14 | 含按需加载原对话、普通问答和特殊交互说明；普通问答需Windows alpha.15 | 原APP检查更新；[已验收的源与包](../ANDROID-ALPHA8-PUBLICATION.md)，手机安装待验收 |
-| Android `0.1.0-alpha.7`（历史候选，功能已并入alpha.8） | 2026-10-14 | 明确选择电脑，主动点击标题请求加载原对话；Windows alpha.14单独准备 | 未单独发布；使用已发布alpha.8，见 [STATUS](../../STATUS.md) |
+| Android `0.1.0-alpha.11` / Windows `0.1.0-alpha.17`（候选） | 2026-10-15 | 输入框额度快照；独立网格亮度与核心外散流光 | 构建、发布和安装分别见 [STATUS](../../STATUS.md) |
+| Windows `0.1.0-alpha.15` / Android `0.1.0-alpha.8`（候选） | 2026-10-14 | 普通问答原题提交、加密草稿与回执核对；异步题显示但仍需电脑回答 | 构建、下载与实机状态见 [STATUS](../../STATUS.md)，[特殊交互说明](../MOBILE-SPECIAL-INTERACTIONS.md) |
+| Windows `0.1.0-alpha.14` / Android `0.1.0-alpha.7`（候选） | 2026-10-14 | 手机主动点标题请求Desktop加载原对话，等待同一任务历史；可能切换电脑页面 | Windows本机已签名验签；Android已合入main并通过原证书构建/校验，但上传受存储额度阻止，无可下载APK，未发布/安装，见 [按需打开](../DESKTOP-ON-DEMAND-OPEN.md) |
+| Windows `0.1.0-alpha.13`（现用实机已安装） | 2026-10-14 | 可点击错误清单与源码定位；保留alpha.12全部对话标题目录 | 原Windows私有源已发布，签名/安装保全核验通过；按需自动打开不包含于本版，见 [STATUS](../../STATUS.md) |
+| Windows `0.1.0-alpha.6`（待发行） | 2026-10-08 | 修复同一审批模式名称切换引发的手机同步权限误报；Android/relay仍alpha.5 | [CI临时源码构件](https://github.com/nzkres/codex-desktop-remote/actions/runs/37758224837)已核对，未签名/安装；不是受控发行或OTA源，见 [STATUS](../../STATUS.md) |
 | `0.1.0-alpha.5` | 2026-10-08 | 三端受控测试首装包：固定发布 trust、Android 连续测试证书，Windows/relay 在全新临时目录验签引导；更新源与实机验收尚未完成 | [已发布的私有 prerelease](https://github.com/nzkres/codex-desktop-remote/releases/tag/v0.1.0-alpha.5)，七项资产及复验证据见 [STATUS](../../STATUS.md) |
 | `0.1.0-alpha.4` | 2026-10-08 | 三端私有下载鉴权；账号/配对身份复用、严格同源与组件授权；新增落地验收步骤 | [开发预览](https://github.com/nzkres/codex-desktop-remote/releases/tag/v0.1.0-alpha.4) |
 | `0.1.0-alpha.3` | 2026-10-07 | 三端签名 OTA、独立更新助手、事务和隔离升级/回退验证 | [开发预览](https://github.com/nzkres/codex-desktop-remote/releases/tag/v0.1.0-alpha.3) |

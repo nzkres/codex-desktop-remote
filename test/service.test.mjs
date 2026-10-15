@@ -1,9 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtempSync, rmSync, mkdirSync, readFileSync } from 'node:fs';
+import { mkdtempSync, rmSync, mkdirSync, readFileSync, realpathSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { randomBytes } from 'node:crypto';
+import { createHash, randomBytes } from 'node:crypto';
 import { Service, httpServer, permissionDigest } from '../src/service.js';
 import { Receipts } from '../src/receipts.js';
 
@@ -115,10 +115,106 @@ test('a covered cwd does not enlarge permission scope, but an external directory
  f.state.currentPermissions.sandboxPolicy.writableRoots=[f.dir,tmpdir()];assert.notEqual(permissionDigest(f.state),before);
  f.state.currentPermissions.sandboxPolicy.writableRoots=[f.dir];f.state.currentPermissions.sandboxPolicy.networkAccess=true;assert.notEqual(permissionDigest(f.state),before);
 });
+
+function reviewerFixture(t, baselineReviewer, liveReviewer, nestedReviewer=null) {
+ const f=fixture(t);
+ const extension=nestedReviewer===null ? {} : {approvalExtension:{approvalsReviewer:nestedReviewer}};
+ // The literal key order is the old canonical JSON order. Keep this expected
+ // hash independent of permissionsMatch and of any future digest migration.
+ const baselineCanonical={
+  activePermissionProfile:{extends:'base-profile',id:'selected-profile'},
+  ...extension,
+  approvalPolicy:'on-request',approvalsReviewer:baselineReviewer,
+  sandboxPolicy:{networkAccess:false,type:'workspaceWrite',writableRoots:[realpathSync(f.dir).toLowerCase()]},
+ };
+ const oldHash=createHash('sha256').update(JSON.stringify(baselineCanonical)).digest('hex');
+ f.state.currentPermissions={
+  activePermissionProfile:{extends:'base-profile',id:'selected-profile'},
+  ...structuredClone(extension),
+  approvalPolicy:'on-request',approvalsReviewer:baselineReviewer,
+  sandboxPolicy:{networkAccess:false,type:'workspaceWrite',writableRoots:[f.dir]},
+ };
+ const original=structuredClone(f.state);
+ assert.equal(permissionDigest(original),oldHash);
+ f.config.permissionsHash=oldHash;
+ const live=structuredClone(original);
+ live.currentPermissions.approvalsReviewer=liveReviewer;
+ f.follower.snapshot=async()=>live;
+ f.follower.completeSnapshot=async()=>live;
+ return {f,original,live,oldHash};
+}
+
+for(const [baseline,liveReviewer] of [
+ ['guardian_subagent','auto_review'],['auto_review','guardian_subagent'],
+]) test(`reviewer alias ${baseline} to ${liveReviewer} keeps all Service gates usable`,async t=>{
+ const {f,original,live,oldHash}=reviewerFixture(t,baseline,liveReviewer);
+ const configBefore=structuredClone(f.config), permissionsBefore=structuredClone(live.currentPermissions);
+ const unchanged=()=>{assert.deepEqual(f.config,configBefore);assert.deepEqual(live.currentPermissions,permissionsBefore);};
+ assert.equal((await f.service.read(f.id)).session.id,f.id);
+ unchanged();
+ assert.equal((await f.service.updateStatus()).permissionsVerified,true);
+ unchanged();
+ assert.equal((await f.service.send(f.id,message)).turnId,'next-turn');
+ unchanged();
+ live.turns.push({turnId:'running-turn',status:'inProgress',items:[]});
+ live.threadRuntimeStatus={type:'active'};
+ assert.deepEqual(await f.service.stop(f.id,{expectedTurnId:'running-turn'}),{ok:true});
+ unchanged();
+ assert.deepEqual(f.calls.map(call=>call.method),
+  ['thread-follower-start-turn','thread-follower-interrupt-turn']);
+ assert.equal(f.config.permissionsHash,oldHash);
+ assert.deepEqual(f.state,original);
+});
+
+for(const [name,alter] of [
+ ['reviewer user',p=>p.approvalsReviewer='user'],
+ ['reviewer unknown',p=>p.approvalsReviewer='unknown_reviewer'],
+ ['reviewer null',p=>p.approvalsReviewer=null],
+ ['reviewer missing',p=>delete p.approvalsReviewer],
+ ['approval policy changed',p=>p.approvalPolicy='never'],
+ ['network access added',p=>p.sandboxPolicy.networkAccess=true],
+ ['external writable root added',(p,external)=>p.sandboxPolicy.writableRoots.push(external)],
+ ['profile id changed',p=>p.activePermissionProfile.id='another-profile'],
+ ['profile extends changed',p=>p.activePermissionProfile.extends='broader-profile'],
+]) test(`reviewer alias does not hide ${name}`,async t=>{
+ const {f,original,live,oldHash}=reviewerFixture(t,'guardian_subagent','auto_review');
+ const external=mkdtempSync(join(tmpdir(),'desktop-lite-external-'));
+ t.after(()=>rmSync(external,{recursive:true,force:true}));
+ alter(live.currentPermissions,external);
+ const configBefore=structuredClone(f.config), permissionsBefore=structuredClone(live.currentPermissions);
+ const unchanged=()=>{assert.deepEqual(f.config,configBefore);assert.deepEqual(live.currentPermissions,permissionsBefore);};
+ await assert.rejects(f.service.read(f.id),{code:'permissions_changed'});
+ unchanged();
+ await assert.rejects(f.service.updateStatus(),{code:'permissions_changed'});
+ unchanged();
+ await assert.rejects(f.service.send(f.id,message),{code:'permissions_changed'});
+ unchanged();
+ live.turns.push({turnId:'running-turn',status:'inProgress',items:[]});
+ live.threadRuntimeStatus={type:'active'};
+ await assert.rejects(f.service.stop(f.id,{expectedTurnId:'running-turn'}),{code:'permissions_changed'});
+ unchanged();
+ assert.equal(f.calls.length,0);
+ assert.equal(f.config.permissionsHash,oldHash);
+ assert.deepEqual(f.state,original);
+});
+test('top-level reviewer alias cannot mask a nested approval extension change',async t=>{
+ const {f,original,live}=reviewerFixture(t,'guardian_subagent','auto_review','guardian_subagent');
+ live.currentPermissions.approvalExtension.approvalsReviewer='auto_review';
+ const configBefore=structuredClone(f.config), permissionsBefore=structuredClone(live.currentPermissions);
+ const unchanged=()=>{assert.deepEqual(f.config,configBefore);assert.deepEqual(live.currentPermissions,permissionsBefore);};
+ await assert.rejects(f.service.read(f.id),{code:'permissions_changed'});unchanged();
+ await assert.rejects(f.service.updateStatus(),{code:'permissions_changed'});unchanged();
+ await assert.rejects(f.service.send(f.id,message),{code:'permissions_changed'});unchanged();
+ live.turns.push({turnId:'running-turn',status:'inProgress',items:[]});
+ live.threadRuntimeStatus={type:'active'};
+ await assert.rejects(f.service.stop(f.id,{expectedTurnId:'running-turn'}),{code:'permissions_changed'});unchanged();
+ assert.equal(f.calls.length,0);
+ assert.deepEqual(f.state,original);
+});
 test('unknown live state and pending Desktop action never claim completion',async t=>{
  const f=fixture(t);delete f.state.threadRuntimeStatus;await assert.rejects(f.service.read(f.id),{code:'runtime_status_unknown'});
  f.state.threadRuntimeStatus={type:'idle'};f.state.requests=[{method:'item/tool/requestUserInput'}];
- await assert.rejects(f.service.read(f.id),{code:'desktop_action_required'});
+ assert.match((await f.service.read(f.id)).controlNotice,/电脑/);
 });
 test('authenticated prepare-disconnect is repeatable and permanently fences new controls',async t=>{
  const f=fixture(t),token=randomBytes(32).toString('hex'),controlToken=randomBytes(32).toString('hex'),instance='2'.repeat(32);

@@ -1,3 +1,7 @@
+# 身份与登记核心：首次配对、手机确认、心跳，以及携带运行锁的连接循环。
+# 身份使用当前 Windows 用户的 DPAPI 加密，不应复制给另一台电脑。
+# connected 在这里主要表示服务器登记/心跳正常，不等于 Desktop 已完成任何任务。
+
 """Windows connector: enrollment, with an explicit opt-in managed task runtime."""
 
 import csv
@@ -10,6 +14,8 @@ import os
 from pathlib import Path
 import re
 import secrets
+import socket
+import ssl
 import subprocess
 import tempfile
 import threading
@@ -21,14 +27,18 @@ import urllib.request
 CONNECTOR_VERSION = json.loads((Path(__file__).resolve().parents[1] / 'releases.json').read_text(encoding='utf-8'))['releases'][0]['version']
 
 
+# 对外使用固定错误码的异常类型；界面据此选择安全文案。
 class ConnectorError(Exception):
     pass
 
 
+# 与 Windows DATA_BLOB 对齐的数据结构，供 DPAPI 原生函数读写字节。
 class Blob(ctypes.Structure):
     _fields_ = [("size", wintypes.DWORD), ("data", ctypes.POINTER(ctypes.c_ubyte))]
 
 
+# data 为字节；默认加密，decrypt=True 时解密，返回 Windows 分配结果的字节副本。
+# CurrentUser 作用域要求当前用户身份；finally 释放系统分配的内存。
 def dpapi(data, decrypt=False):
     if os.name != "nt":
         raise ConnectorError("windows_required")
@@ -57,12 +67,15 @@ def dpapi(data, decrypt=False):
         kernel.LocalFree(output.data)
 
 
+# 逐级拒绝符号链接/目录联接，避免身份路径被转向其他位置。
 def no_links(path):
     for part in (path, *path.parents):
         if part.is_symlink() or (hasattr(part, "is_junction") and part.is_junction()):
             raise ConnectorError("state_path_link_rejected")
 
 
+# 仅为新建的专用身份目录设置访问权限：当前用户与 SYSTEM。
+# 不会递归修改父目录或其他已有安装的权限。
 def private_directory(path):
     if os.name != "nt":
         raise ConnectorError("windows_required")
@@ -95,8 +108,10 @@ def private_directory(path):
         kernel.LocalFree(descriptor)
 
 
+# 负责加密身份的原子读写和锁；持有目录不等于已经完成配对。
 class CredentialStore:
     """One new dedicated directory; refuse existing unrelated directories."""
+    # 新目录创建 unpaired 标记；已有目录必须带本程序的身份文件，否则拒绝接管。
     def __init__(self, directory):
         self.root = Path(directory).absolute()
         no_links(self.root)
@@ -110,6 +125,7 @@ class CredentialStore:
             raise ConnectorError("state_directory_not_owned")
         no_links(self.file)
 
+    # 解密并验证有限大小的状态；未配对返回 None，损坏状态抛错而非自动重建。
     def read(self):
         no_links(self.file)
         if not self.file.exists():
@@ -126,6 +142,8 @@ class CredentialStore:
         except (ValueError, TypeError, AttributeError):
             raise ConnectorError("invalid_credential_file") from None
 
+    # 上下文锁：operation.lock 保护短时状态操作，runtime.lock 保护整个运行周期。
+    # 使用 Windows 不共享文件句柄，finally 关闭句柄释放锁。
     @contextmanager
     def lock(self, name="operation.lock"):
         if name not in ("operation.lock", "runtime.lock"):
@@ -143,6 +161,7 @@ class CredentialStore:
         finally:
             kernel.CloseHandle(handle)
 
+    # 先加密到同目录临时文件，刷盘后原子替换身份文件；不会留下半份 JSON。
     def write(self, state):
         no_links(self.root)
         no_links(self.file)
@@ -159,6 +178,7 @@ class CredentialStore:
                 os.unlink(temporary)  # Only this function's exact owned temp file.
 
 
+# 只接受无账号、路径、查询参数的 HTTPS 服务器根地址；HTTP 仅显式回环测试允许。
 def endpoint(value, loopback_test=False):
     try:
         parsed = urllib.parse.urlsplit(value)
@@ -174,41 +194,83 @@ def endpoint(value, loopback_test=False):
     return urllib.parse.urlunsplit((parsed.scheme, parsed.netloc, "", "", ""))
 
 
+# 不跟随服务端重定向，避免携带设备令牌跳到另一个地址。
 class NoRedirect(urllib.request.HTTPRedirectHandler):
+    # 返回 None 表示拒绝创建重定向请求。
     def redirect_request(self, *args, **kwargs):
         return None
 
 
+# 只按异常类型/数值分类；绝不把异常正文、URL、响应内容或令牌放进错误记录。
+def network_error_code(error):
+    reason = getattr(error, 'reason', error)
+    if isinstance(reason, ssl.SSLCertVerificationError):
+        return 'relay_tls_certificate_expired' if getattr(reason, 'verify_code', None) == 10 else 'relay_tls_untrusted'
+    if isinstance(reason, ssl.SSLError):
+        return 'relay_tls_handshake_failed'
+    if isinstance(reason, (TimeoutError, socket.timeout)):
+        return 'relay_timeout'
+    if isinstance(reason, socket.gaierror):
+        return 'relay_dns_failed'
+    if isinstance(reason, ConnectionRefusedError):
+        return 'relay_connection_refused'
+    return 'relay_network_unavailable'
+
+
+# 有超时和响应大小限制的中继客户端；所有调用走已核对的 base 地址。
 class RelayClient:
+    # 构造 HTTPS 客户端；仅回环测试禁用代理，生产仍保留正常 TLS 校验。
     def __init__(self, base, loopback_test=False):
         self.base = endpoint(base, loopback_test)
+        self.network_error = None
         handlers = [NoRedirect()]
         if loopback_test and self.base.startswith("http://127.0.0.1:"):
             handlers.append(urllib.request.ProxyHandler({}))
         self.opener = urllib.request.build_opener(*handlers)
 
+    def failure_code(self, status):
+        if status == 0:
+            return self.network_error or 'relay_network_unavailable'
+        if status in (401, 403, 404, 429):
+            return 'relay_http_' + str(status)
+        if isinstance(status, int) and 500 <= status <= 599:
+            return 'relay_http_5xx'
+        return 'relay_http_unexpected'
+
+    # 发送 JSON，返回 (HTTP状态码, JSON对象)。网络不可达返回状态码 0；畸形响应抛错。
     def post(self, path, token, body):
+        self.network_error = None
         request = urllib.request.Request(self.base + path, data=json.dumps(body).encode(), headers={"Authorization": "Bearer " + token, "Content-Type": "application/json"}, method="POST")
         try:
             response = self.opener.open(request, timeout=10)
         except urllib.error.HTTPError as error:
             response = error
-        except (OSError, urllib.error.URLError):
-            return 0, {"error": "connection_unavailable"}
-        with response:
-            raw = response.read(65537)
-            if len(raw) > 65536:
-                raise ConnectorError("relay_response_too_large")
-            try:
-                body = json.loads(raw) if raw else {}
-                if not isinstance(body, dict):
-                    raise ValueError()
-            except (ValueError, UnicodeError):
-                raise ConnectorError("invalid_relay_response") from None
-            return response.status, body
+        except (OSError, urllib.error.URLError) as error:
+            self.network_error = network_error_code(error)
+            return 0, {"error": self.network_error}
+        try:
+            with response:
+                if response.status >= 300:
+                    return response.status, {}
+                raw = response.read(65537)
+                if len(raw) > 65536:
+                    raise ConnectorError("relay_response_too_large")
+                try:
+                    body = json.loads(raw) if raw else {}
+                    if not isinstance(body, dict):
+                        raise ValueError()
+                except (ValueError, UnicodeError):
+                    raise ConnectorError("invalid_relay_response") from None
+                return response.status, body
+        except (OSError, urllib.error.URLError) as error:
+            self.network_error = network_error_code(error)
+            return 0, {"error": self.network_error}
 
 
+
+# 登记状态机与运行循环，界面通过 Controller 间接调用。
 class Connector:
+    # 可注入已构造 runtime 或延迟构造 factory，二者不能同时指定。
     def __init__(self, store, *, loopback_test=False, runtime=None, runtime_factory=None):
         self.store, self.loopback_test = store, loopback_test
         if runtime is not None and runtime_factory is not None:
@@ -216,6 +278,8 @@ class Connector:
         self.runtime = runtime
         self.runtime_factory = runtime_factory
 
+    # 第一次配对：核对输入并先持久化设备令牌，再发送认领请求。
+    # 先保存可避免响应丢失后换身份重复认领；已有身份或申请时拒绝重新配对。
     def begin(self, relay, code, name):
         relay = endpoint(relay, self.loopback_test)
         if not isinstance(code, str) or not re.fullmatch(r"[0-9A-F]{12}", code):
@@ -230,12 +294,14 @@ class Connector:
             self.store.write(state)
         return self.tick()
 
+    # 输出不含令牌的状态投影；磁盘快照不证明实时通道健康。
     def status(self):
         state = self.store.read()
         if state is None:
             return {"state": "not_paired", "executor": "unknown"}
         return {"state": state["state"], "relay": state["relay"], "name": state["name"], "terminalId": state.get("terminalId"), "executor": "unknown", "lastError": state.get("lastError"), "dataChannel": "unverified" if state.get("gatewayBinding") else "not_configured"}
 
+    # 执行一轮状态更新；受管 runtime 只能由持有运行锁的 run 线程驱动。
     def tick(self):
         if (self.runtime is not None or self.runtime_factory is not None) and getattr(self, "_run_owner", None) != threading.get_ident():
             raise ConnectorError("managed_runtime_requires_run")
@@ -251,6 +317,7 @@ class Connector:
                 self.runtime.disconnect()
             raise
 
+    # 取得独占 runtime.lock 后才组装通道并进入循环，阻止重复实例同时启动。
     def run(self, stop=None, on_status=None):
         with self.store.lock("runtime.lock"):
             self._run_owner = threading.get_ident()
@@ -263,6 +330,8 @@ class Connector:
             finally:
                 self._run_owner = None
 
+    # 运行前写入保护标志，退出时先验证完整预期身份，再核对本机清理结果。
+    # 只有 quiescent=True 且最终状态未变化才清标志；崩溃后的旧现场不会被自动接受。
     def _owned_run(self, stop=None, on_status=None):
         # Persist before any child can be started. Never silently adopt leftover
         # processes or erase this guard after a crash.
@@ -277,10 +346,13 @@ class Connector:
                 state["transportCrashContained"] = getattr(self.runtime.transport, "crash_contained", False) is True
                 self.store.write(state)
                 protected_state = {k: v for k, v in state.items() if k not in ('state', 'lastError')}
-        normal_stop = False
+        normal_state = None
         try:
             result = self._run(stop, on_status)
-            normal_stop = stop is not None and stop.is_set() and result['state'] == 'connected'
+            # 网络中断不是进程失控。用户主动退出时仍可用原句柄和本机 drain
+            # 证明安全退出；暂停/撤销/异常返回不走这条路径。
+            if stop is not None and stop.is_set() and result['state'] in ('connected', 'reconnecting'):
+                normal_state = result['state']
             return result
         finally:
             if self.runtime is not None:
@@ -289,7 +361,8 @@ class Connector:
                 binding_matches = isinstance(expected, dict) and {
                     k: v for k, v in expected.items() if k not in ('state', 'lastError')
                 } == protected_state
-                self.runtime.disconnect(normal=normal_stop and binding_matches and expected['state'] == 'connected')
+                self.runtime.disconnect(normal=normal_state is not None and binding_matches
+                                        and expected.get('state') == normal_state)
                 if not binding_matches:
                     raise ConnectorError('identity_changed')
                 # Clearing requires the full expected state, runtime lock,
@@ -302,6 +375,8 @@ class Connector:
                         state.pop("runtimeNeedsReview", None)
                         self.store.write(state)
 
+    # 长期循环：连接成功每 15 秒检查，其他等待一般 3 秒，网络错误采用 1→30 秒退避。
+    # stop.wait 既可等待也能被用户断开唤醒；撤销等终态直接结束。
     def _run(self, stop=None, on_status=None):
         """Foreground loop; never creates a startup task or a background process."""
         stop = stop or threading.Event()
@@ -321,6 +396,8 @@ class Connector:
             stop.wait(wait)
         return self.status()
 
+    # 推进一次配对/确认/心跳：没有 pairingId 时认领，否则查询确认并发送心跳。
+    # 服务器暂停与撤销不是普通断网；终端 ID 变化也不能默默接受。
     def _tick(self):
         state = self.store.read()
         if state is None:
@@ -341,12 +418,13 @@ class Connector:
             elif status in (400, 401, 409):
                 state["state"] = "claim_failed"
             else:
-                state["lastError"] = "connection_unavailable"
+                state["lastError"] = client.failure_code(status)
                 self.store.write(state)
                 return self.status()
             self.store.write(state)
             return self.status()
         status, body = client.post("/connector-api/pairings/" + state["pairingId"], token, {})
+        failure_status = status
         if status == 401:
             state["state"] = "revoked"
         elif status == 200 and body.get("state") == "confirmed":
@@ -358,6 +436,7 @@ class Connector:
                 state["state"] = "paused"
             elif body.get("terminalState") == "active":
                 result, _ = client.post(f"/connector-api/terminals/{terminal_id}/heartbeat", token, {"executor": "unknown", "version": CONNECTOR_VERSION})
+                failure_status = result
                 state["state"] = "connected" if result == 204 else "reconnecting"
             else:
                 raise ConnectorError("invalid_terminal_state")
@@ -365,6 +444,6 @@ class Connector:
             state["state"] = "awaiting_confirmation" if body["state"] == "claimed" else body["state"]
         else:
             state["state"] = "reconnecting"
-        state["lastError"] = "connection_unavailable" if state["state"] == "reconnecting" else None
+        state["lastError"] = client.failure_code(failure_status) if state["state"] == "reconnecting" else None
         self.store.write(state)
         return self.status()

@@ -1,16 +1,22 @@
-# Review only: independent container, pinned to the previously reviewed image.
+# Reviewed isolated template: independent container with a pinned image.
 name: codex-desktop-remote-test
 services:
   cdrtest-caddy:
     image: caddy@sha256:4c6e91c6ed0e2fa03efd5b44747b625fec79bc9cd06ac5235a779726618e530d
     container_name: codex-desktop-remote-test-caddy
     network_mode: host
-    restart: "no"
+    # Stateless HTTPS proxy may resume after Docker/host restart.
+    # The task-owning relay host retains Restart=no and its recovery gate.
+    restart: "unless-stopped"
     read_only: true
     security_opt:
       - no-new-privileges:true
     cap_drop:
       - ALL
+    # This pinned image marks /usr/bin/caddy with cap_net_bind_service=ep.
+    # Retain that one capability so exec succeeds; all other capabilities stay dropped.
+    cap_add:
+      - NET_BIND_SERVICE
     tmpfs:
       - /tmp:rw,noexec,nosuid,size=16m
     volumes:

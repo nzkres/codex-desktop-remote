@@ -2,18 +2,26 @@
 import sys
 import time
 import tkinter as tk
+import ctypes
 from unittest.mock import patch
 from pathlib import Path
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]/'windows'))
 from gui import _Window, enable_dpi
 class Fake:
     review=False
-    def status(self):return {'state':'not_paired'}
+    def __init__(self):
+        self.report={'state':'not_paired'}
+        self.pair_calls=0
+    def status(self):return dict(self.report)
     def pair(self,relay,code,name):
-        assert code=='012345ABCDEF';return {'state':'awaiting_confirmation'}
+        assert code=='012345ABCDEF'
+        self.pair_calls+=1
+        self.report=({'state':'claim_pending','lastError':'connection_unavailable','relay':relay}
+                     if self.pair_calls==1 else {'state':'awaiting_confirmation','lastError':None,'relay':relay})
+        return dict(self.report)
     def connect(self,stop,on_status):
         on_status({'state':'connected','dataChannel':'probe_verified'})
-        stop.wait(2);return {**self.status(),'runtimeNeedsReview':self.review}
+        stop.wait();return {**self.status(),'runtimeNeedsReview':self.review}
 enable_dpi();root=tk.Tk();window=_Window(root,Fake())
 def pump(seconds=.25):
     until=time.monotonic()+seconds
@@ -22,7 +30,20 @@ try:
  pump();assert window.status_text.get()=='未配对'
  window.relay.set('https://relay.example.test')
  window.code.set('012345ABCDEF');window.pair();assert window.code.get()==''
- pump();assert '手机上确认' in window.status_text.get()
+ pump();pending=window.status_text.get()
+ assert '未确认' in pending and '服务器' in pending and '端口' in pending
+ assert '012345ABCDEF' not in pending
+ window.commands.put(('status',));pump();assert window.status_text.get()==pending
+ if len(sys.argv)>3:
+    from PIL import ImageGrab
+    root.lift();pump()
+    x,y=root.winfo_rootx(),root.winfo_rooty()
+    ImageGrab.grab(window=ctypes.windll.user32.GetParent(root.winfo_id())).save(sys.argv[3])
+ # The existing claim progresses; do not model re-pairing over a pending identity.
+ window.controller.report={'state':'awaiting_confirmation','lastError':None}
+ window.commands.put(('status',));pump()
+ assert '手机确认配对' in window.status_text.get()
+ assert window.controller.pair_calls == 1
  window.connect();pump();assert '手机任务待验证' in window.status_text.get()
  window.notes_button.invoke();pump()
  notes = window.notes_text.get('1.0', 'end')
@@ -34,13 +55,32 @@ try:
     from PIL import ImageGrab
     dialog=window.notes_window;dialog.lift();pump()
     x,y=dialog.winfo_rootx(),dialog.winfo_rooty()
-    ImageGrab.grab(bbox=(x,y,x+dialog.winfo_width(),y+dialog.winfo_height())).save(sys.argv[2])
+    ImageGrab.grab(window=ctypes.windll.user32.GetParent(dialog.winfo_id())).save(sys.argv[2])
  window.notes_window.destroy();pump();assert window.root.winfo_exists()
  if len(sys.argv)>1:
     from PIL import ImageGrab
     root.lift();root.update();pump()
     x,y=root.winfo_rootx(),root.winfo_rooty()
-    ImageGrab.grab(bbox=(x,y,x+root.winfo_width(),y+root.winfo_height())).save(sys.argv[1])
+    ImageGrab.grab(window=ctypes.windll.user32.GetParent(root.winfo_id())).save(sys.argv[1])
+ window.events.put(('status', {'state':'reconnecting','lastError':'relay_tls_certificate_expired'}));pump()
+ window.show_errors();pump()
+ window.error_filter.set('relay_tls_certificate_expired');pump()
+ tree=window.error_trees[0];rows=tree.get_children();assert len(rows)==1
+ tree.selection_set(rows[0]);pump()
+ detail=window.error_details.get('1.0','end')
+ assert 'relay_tls_certificate_expired' in detail and '重载' in detail
+ assert 'connector_core.py:' in detail and 'network_error_code' in detail
+ assert window.error_details.cget('state')=='disabled'
+ assert '012345ABCDEF' not in detail
+ if len(sys.argv)>4:
+    from PIL import ImageGrab
+    dialog=window.errors_window;dialog.lift();pump()
+    x,y=dialog.winfo_rootx(),dialog.winfo_rooty()
+    ImageGrab.grab(window=ctypes.windll.user32.GetParent(dialog.winfo_id())).save(sys.argv[4])
+ window.events.put(('status', {'state':'connected','dataChannel':'probe_verified'}));pump()
+ assert window.error_current['连接']==[]
+ assert any(entry['code']=='relay_tls_certificate_expired' for entry in window.error_history)
+ window.errors_window.destroy();pump()
  window.disconnect();pump();assert '可再次连接' in window.status_text.get()
  window.connect();pump();assert '手机任务待验证' in window.status_text.get()
  window.disconnect();pump();assert '可再次连接' in window.status_text.get()

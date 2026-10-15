@@ -54,6 +54,7 @@ fun GlassComposer(
     onHeight: (Int) -> Unit,
     onMode: (String) -> Unit, onSend: () -> Unit,
     onStop: () -> Unit = {},
+    usage: UsageSnapshot? = null,
     modifier: Modifier = Modifier,
 ) {
     val palette = LocalAppPalette.current
@@ -123,6 +124,7 @@ fun GlassComposer(
                         }
                     }
                     }
+                    ComposerUsage(usage)
                     ComposerEditor(draft, onDraft, enabled = expanded && !sending, expanded = expanded,
                         running = running, focusRequester = focusRequester, accent = accent)
                     if (error.isNotBlank()) Text(error, color = palette.errorInk, fontSize = 12.sp, modifier = Modifier.padding(horizontal = 8.dp, vertical = 5.dp))

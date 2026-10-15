@@ -1,14 +1,16 @@
 # 三端 OTA 落地与首轮验收
 
-2026-10-08最新授权：用户已批准**签名与PR #1合并，暂不部署**。PR已合并；专用RSA/APK测试签名、六项Android Secrets和alpha.5受控构建已完成，下载/签名/临时首装复验见[STATUS](../STATUS.md)。此前暂缓合并/签名已被替代；公网部署、真实身份迁移、停现用服务或手机安装仍不在已批准范围。
+**2026-10-08最新增量：** Windows已用签名本地包维护安装alpha.6，用户确认手机原任务两条回复均显示；Android/relay仍alpha.5。此次维护交接没有走普通HTTPS OTA，故下一轮Windows的实际N/N+1改为**alpha.6→alpha.7**，之后再逐端Android和relay。Windows alpha.7私有feed已发布sequence3；用户经原GUI完成真实下载和安装，实际alpha.7/ledger3/committed，身份/权限/任务保持与新窗口/探针独立验证通过；随后用户确认手机显示PHONE_ALPHA7_OK和DESKTOP_ALPHA7_CONTINUE_OK两条新回复，Windows OTA及同任务接续闭环通过。Android/relay真实N→N+1仍待测。固定发布输入与边界见[审查清单](WINDOWS-ALPHA7-OTA-REVIEW.md)和STATUS。下方alpha.5→alpha.6统一组合为历史初始计划，不应据此降级或重复首装。
+
+2026-10-08最新授权与结果：用户已批准PR #1合并、专用测试签名，以及在现有服务器部署**独立隔离**的alpha.5 relay/FRPS/HTTPS/私有OTA。服务器内安装、鉴权、合成更新/回退、受管启停均通过；主电脑公网 `9443` HTTPS 鉴权下载及 `17443` FRPS 合成夹具亦通过。现用服务和身份未接管；真实身份迁移、手机安装和真实任务N→N+1不在本次授权范围。分层证据见[STATUS](../STATUS.md)与[隔离部署记录](OTA-ISOLATED-DEPLOYMENT-20261008.md)。
 
 2026-10-08 制定。第一目标是一台 Windows 电脑、一部 Android 手机和一个隔离中继，能持续接续同一条 Codex Desktop 原生任务，并分别完成一次真实在线升级。先完成这个闭环，再分批修复 BUG；不扩大到多电脑、自动数据库迁移或新的任务执行器。
 
 ## 当前起点与完成标准
 
-alpha.3 已交付更新程序、隔离测试和归档包，alpha.4 增加三端私有下载鉴权。alpha.5受控首装构件基于`1a4b4c0`：Windows/Linux CI和main受控Android CI均成功；Windows/WSL新临时home首装通过。公网更新源、真实手机/电脑首装和真实设备N→N+1尚未验收，不能以合成首装替代它们。
+alpha.3 已交付更新程序、隔离测试和归档包，alpha.4 增加三端私有下载鉴权。alpha.5受控首装构件基于`1a4b4c0`：Windows/Linux CI和main受控Android CI均成功；Windows/WSL新临时home首装通过。隔离服务器Python3.12.3/systemd255/cgroupv2环境已完成alpha.5安装、合成0.0.2升级/坏候选回退及四棵自有树验收；主电脑公网完成三组件鉴权下载、TLS/RSA/大小/哈希核对与FRPS无任务夹具转发。真实手机/电脑首装和真实设备N→N+1尚未验收，不能以合成公网结果替代它们。
 
-alpha.4保留为私有鉴权开发预览，普通debug APK信任为空。**alpha.5作为受控首装N，alpha.6作为下一OTA候选N+1**；alpha.5已构建，alpha.6尚未构建。各端必须使用本机实际版本比较，Android versionCode递增。既有归档不换包；已签元数据过期时，以新序号重新签发相同已验证文件，不改包字节或关闭验证。以后可独立更新某个组件。
+alpha.4保留为私有鉴权开发预览，普通debug APK信任为空。**当前Windows在线验收为已安装的alpha.6→alpha.7；Android/relay仍从alpha.5开始逐端准备下一版本。**原始alpha.5→alpha.6统一组合仅是历史计划。各端必须使用本机实际版本比较，Android versionCode递增。既有归档不换包；已签元数据过期时，以新序号重新签发相同已验证文件，不改包字节或关闭验证。以后可独立更新某个组件。
 
 完成须同时满足：真实 HTTPS 下载、发布者及包校验、实际运行版本改变、身份/数据/权限保留、手机与 Desktop 同任务继续交互、失败行为可解释。没有执行的步骤记“待测”，下载成功、CI 成功与 `probe_verified` 均不能代替这些结果。
 
@@ -17,7 +19,7 @@ alpha.4保留为私有鉴权开发预览，普通debug APK信任为空。**alpha
 | 项目 | 用户提供或确认 | 实施工作与边界 |
 | --- | --- | --- |
 | 代码基线 | **已批准并合并PR #1** | 受控alpha.5输入1a4b4c0；后续文档提交与程序输入分开记录 |
-| 测试环境 | **已选择现有中继服务器隔离环境，确认https://106.53.126.69:9443** | 已完成只读预检；资源、证书续期、私有路由及撤回方案见[部署审查](OTA-DEPLOYMENT-REVIEW.md)。具体部署仍待批准 |
+| 测试环境 | **已批准并安装现有服务器独立隔离环境，测试 origin 为https://106.53.126.69:9443** | 服务器内 HTTPS/鉴权、FRP、受管启停通过；主电脑公网 `9443`/`17443` 的鉴权下载与合成FRPC链路通过。见[部署记录](OTA-ISOLATED-DEPLOYMENT-20261008.md) |
 | 包访问权限 | **已确认保持私有，先补下载鉴权** | alpha.4 复用 Android 账号、Windows DPAPI 配对身份与中继管理员短期会话；元数据和包均需鉴权。Windows/relay ZIP 含源码，不公开为静态文件 |
 | 密钥管理 | **已批准并配置本机DPAPI及六项Android CI Secrets** | RSA私钥留本机，客户端仅有审核公钥和源；无PAT。独立备份/跨电脑恢复尚未验收，不把DPAPI文件复制当恢复方案 |
 | 实机操作 | 一部测试手机、一条专用 Desktop 任务；手动确认安装和配对 | 维护者先查实际 Desktop/运行时兼容；不放宽 pin。用户只在指定任务做可核对文字交互 |
@@ -26,9 +28,9 @@ alpha.4保留为私有鉴权开发预览，普通debug APK信任为空。**alpha
 
 ## 第一阶段：建立可重复的首装基线
 
-1. 固定 test 渠道的长期 HTTPS 源，分别使用 `desktop-remote-updates/test/android/`、`windows/`、`relay/`；不覆盖旧 Android 更新接口。签名公钥/source 随首装固定，test/stable 分开；首轮不做渠道切换。
+1. test 渠道的隔离 HTTPS 源已安装并从主电脑公网验收，分别使用 `desktop-remote-updates/test/android/`、`windows/`、`relay/`；不覆盖旧 Android 更新接口。签名公钥/source 随首装固定，test/stable 分开；首轮不做渠道切换。
 2. 准备 alpha.5 的三端受控构件。APK 使用固定证书并内置 test trust；Windows/relay 使用已签 ZIP、元数据和审核公钥建立新受管目录。签名、依赖和命令见 [发布](OTA-PUBLISH.md)与[安装](install/README.md)。
-3. 先部署新 relay 基线：独立账号/数据库、明确端口、HTTPS/FRPS、受管宿主、私有管理 socket、真实委派 cgroup v2。配置用户密码与凭据走本机安全输入，不能复制旧数据库来完成首装。
+3. 新 relay 基线已在隔离服务器安装：独立账号/数据库、明确端口、HTTPS/FRPS、受管宿主、私有管理 socket、委派 cgroup v2；服务器内 stop/start、树清空、DB 摘要保持通过。公网合成 HTTPS/FRPS 链路已验收，后续仍须真实手机和 Desktop 任务验收，不能复制旧数据库来完成首装。
 4. 在 Windows 新目录配置专用 Desktop 任务，核对精确版本/文件哈希和权限，再装手机基线并手动配对新设备。保留现用 APP、连接器和身份；相同包名的已装 debug APK 若签名冲突，先查实际证书和数据，不能默认卸载。必要时先用另一台测试手机。
 5. 在 N 基线先完成“手机发送 → Desktop 同一任务接续 → 手机看到接续”。核对任务 UUID、设备绑定、权限摘要和三端实际运行版本；另测连接器 `/api/connector/update-status` 的新鲜 idle/权限/回执证据。旧接口、活动或未知任务必须阻止安装。
 

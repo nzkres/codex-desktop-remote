@@ -1,3 +1,6 @@
+# OTA 主流程：check 获取可信版本，stage 验证并暂存，Transaction.apply 执行切换。
+# current.json 只是版本指针，用户数据留在稳定 data 目录；失败不能盲目用备份覆盖新数据。
+
 """Signed staging and a journaled switch. Drivers retain ownership and admission gates."""
 import hashlib
 from pathlib import Path
@@ -9,6 +12,8 @@ from updates.storage import read, atomic, digest, lock, slot, no_links
 
 
 def installed(home):
+    # 读取本安装配置和 current.json，并校验它确实指向可验证的当前版本。
+    # 返回(安装配置, 当前指针, 版本目录)，错误时不继续更新。
     home = no_links(home)
     config, current = read(home / 'install.json'), read(home / 'current.json')
     if config.get('schema') != 1 or config.get('component') not in ('windows', 'relay'):
@@ -20,6 +25,8 @@ def installed(home):
 
 
 def check(home, context=None, authorization=None):
+    # 获取并验签最新发布元数据，写入防回放账本与候选记录；返回发布详情。
+    # context 是 TLS 配置，authorization 是只允许访问该订阅源的凭据。
     home = no_links(home)
     with lock(home / 'state' / 'update.lock'):
         config, current, _ = installed(home)
@@ -39,6 +46,8 @@ def check(home, context=None, authorization=None):
 
 
 def stage(home, progress=None, context=None, authorization=None):
+    # 再次验证候选与当前版本的关系，下载、解包并校验后登记 staged.json。
+    # progress 用于报告下载字节数；本阶段只准备文件，不切换运行版本。
     home = no_links(home)
     with lock(home / 'state' / 'update.lock'):
         config, current, _ = installed(home)
@@ -71,21 +80,27 @@ def stage(home, progress=None, context=None, authorization=None):
 
 
 class Transaction:
+    # 一次切换的持久化状态机；driver 负责进程停启、健康检查和业务准入。
+    # 事务只记录与验证切换过程，不接管用户数据。
     def __init__(self, home, driver):
+        # home 是安装根目录；driver 由 Windows 或 Relay 的宿主提供。
         self.home, self.driver = no_links(home), driver
         self.journal = self.home / 'state' / 'transaction.json'
         self.pointer = self.home / 'current.json'
 
     def record(self, phase, **extra):
+        # 每跨过一个关键阶段就原子写日志，中断后可知道停在哪一步。
         self.value.update(phase=phase, **extra)
         atomic(self.journal, self.value)
 
     def cas(self, old, new):
+        # 仅当 current.json 仍是预期旧指针时才切换，避免覆盖并发变更。
         if read(self.pointer) != old:
             raise UpdateError('update_pointer_changed')
         atomic(self.pointer, new)
 
     def recover(self):
+        # 只标记未决事务需要复核并返回记录，不猜测旧/新进程状态自动重放。
         with lock(self.home / 'state' / 'update.lock'):
             self.value = read(self.journal)
             if self.value.get('phase') not in ('committed', 'rolled_back', 'needs_review'):
@@ -93,6 +108,8 @@ class Transaction:
             return self.value
 
     def apply(self):
+        # 应用已暂存版本：复验包与现场、停止旧进程、切指针、启动验证新进程。
+        # 成功时返回 committed 日志；失败时按已越过的阶段回滚或标记复核。
         with lock(self.home / 'state' / 'update.lock'):
             if self.journal.exists():
                 prior = read(self.journal)
@@ -131,6 +148,7 @@ class Transaction:
             stopped = False
             activation_started = False
             self.driver.preflight()
+            # 从 prepared 起每一步都有落盘阶段；业务准入只在新版本验证后进行。
             try:
                 self.value = {'schema': 1, 'old': old, 'candidate': candidate,
                               'releaseDigest': digest(request['envelope']),
@@ -157,6 +175,7 @@ class Transaction:
                          and re.fullmatch(r'[a-z0-9_]{1,80}', failure.code)
                          else 'update_operation_failed')
                 if activation_started:
+                    # 可能已接纳真实工作，不能凭一次异常重新启动旧版本。
                     # An activation acknowledgement or journal write can be lost
                     # after new work was admitted. Never roll it back or replay.
                     self.record('needs_review', success=False, error='activation_outcome_requires_review')
@@ -185,5 +204,6 @@ class Transaction:
             return self.value
 
     def preserved(self):
+        # 确认 driver 快照里的用户数据未因更新变化；不尝试从快照还原。
         if self.driver.snapshot() != self.value['preserved']:
             raise UpdateError('preservation_changed')

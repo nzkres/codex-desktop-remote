@@ -12,13 +12,13 @@ Android构件保存在自有服务器，手机更新走私有HTTPS；**alpha.9 �
 | --- | --- | --- |
 | [下载 APK、安装、登录与配对](docs/install/ANDROID.md) | [准备 Python、打开窗口、连接测试任务](docs/install/WINDOWS.md) | [本地隔离启动、认证与公网前置条件](docs/install/RELAY.md) |
 
-当前先核对首装资料、预览合成窗口；隔离HTTPS中继部署和真实设备安装需分别确认后联调。Windows是源码窗口，中继是源码服务，尚无一键安装包；中继本地启动不等于手机可从公网连接。
+alpha.5 已在现有服务器的独立隔离环境完成中继、FRPS、HTTPS 与私有 OTA 的安装，并从主电脑公网验收 `9443` HTTPS 与 `17443` FRPS。手机安装和真实设备联调尚未验收。Windows是源码窗口，中继是源码服务，尚无一键安装包；公网测试夹具连通不等于手机或真实任务已接通。
 
 ## 版本更新记录
 
-**alpha.5受控测试首装候选已构建并复验。** PR #1已合并，专用RSA/APK签名和六项Android CI Secrets已配置；main受控构建通过，Windows/WSL新临时目录bootstrap通过。实际指纹、测试与归档证据见[STATUS](STATUS.md)。服务器预检、固定测试origin和撤回步骤见[部署审查清单](docs/OTA-DEPLOYMENT-REVIEW.md)，尚未部署。
+**alpha.5受控测试首装包已构建并复验。** PR #1已合并，专用RSA/APK签名和六项Android CI Secrets已配置；main受控构建通过，Windows/WSL新临时目录bootstrap通过。独立服务器环境已完成 loopback 与主电脑公网 HTTPS 鉴权下载、FRPS/TLS 夹具连接、受管启停等验收。实际指纹、测试与归档证据见[STATUS](STATUS.md)，隔离部署证据见[本轮记录](docs/OTA-ISOLATED-DEPLOYMENT-20261008.md)。
 
-三端沿用alpha.4的私有下载鉴权：手机复用账号登录，Windows复用配对身份，中继管理员交互登录后更新。元数据与包都受控，仅向同源HTTPS固定目录发送凭据，发布签名独立验证。alpha.5有受控**测试**签名；公网源、真实设备首装及alpha.5→alpha.6仍待验收。普通CI包不能直接作为OTA基线。按[三阶段验收](docs/OTA-ACCEPTANCE.md)、[实现边界](docs/OTA.md)、[发布](docs/OTA-PUBLISH.md)和[恢复](docs/OTA-RECOVERY.md)推进。
+三端沿用alpha.4的私有下载鉴权：手机复用账号登录，Windows复用配对身份，中继管理员交互登录后更新。元数据与包都受控，仅向同源HTTPS固定目录发送凭据，发布签名独立验证。alpha.5有受控**测试**签名；私有源已从主电脑公网完成合成账号/设备验收，但真实设备首装及alpha.5→alpha.6仍待验收。普通CI包不能直接作为OTA基线。按[三阶段验收](docs/OTA-ACCEPTANCE.md)、[实现边界](docs/OTA.md)、[发布](docs/OTA-PUBLISH.md)和[恢复](docs/OTA-RECOVERY.md)推进。
 
 **仓库文档是查看每次更新的主要入口。** 三个软件分别保存完整历史，按版本从新到旧排列：
 
@@ -33,6 +33,8 @@ Android构件保存在自有服务器，手机更新走私有HTTPS；**alpha.9 �
 以后每次软件版本更新，都必须把更新内容追加到对应文档并随代码提交；已发布记录持续保留。目前三份文档包含alpha.5受控首装、alpha.4私有鉴权及更早历史。
 
 受控测试归档：[v0.1.0-alpha.5](https://github.com/nzkres/codex-desktop-remote/releases/tag/v0.1.0-alpha.5)。七项附件已发布且服务端大小/哈希核对一致；有权限的GitHub账号可下载三端程序、bootstrap公开信任/已签元数据、校验值和报告。旧alpha.4及更早版本保留。Android受控包已内置test信任，仍为debuggable测试构建；Windows/relay需要外部运行时，尚无一体化EXE或托盘。建议先看[原型关系图](docs/ARCHITECTURE.md)，再运行合成自测/窗口预览，最后依[测试指南](docs/TESTING.md)做专用任务联调。问题按[测试反馈](https://github.com/nzkres/codex-desktop-remote/issues/new?template=test-feedback.yml)记录实际版本与结果。
+
+手机选择框、审批、Plan及其他特殊操作的当前支持情况与手机操作设计，见[特殊交互清单](docs/MOBILE-SPECIAL-INTERACTIONS.md)。该清单区分现有能力和待实现功能。
 
 ## 先安全自测
 

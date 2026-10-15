@@ -110,7 +110,7 @@ class RenewCaddyHookTests(unittest.TestCase):
         self.assertTrue(all(call[0] == "inspect" and call[-1] == CONTAINER_ID
                             for call in calls[1:5]))
         self.assertEqual(calls[5], [
-            "exec", CONTAINER_ID, "caddy", "reload", "--config", "/etc/caddy/Caddyfile",
+            "exec", CONTAINER_ID, "caddy", "reload", "--force", "--config", "/etc/caddy/Caddyfile",
             "--adapter", "caddyfile", "--address", "127.0.0.1:22019",
         ])
 

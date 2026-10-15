@@ -6,11 +6,11 @@
 
 # OTA 打包、签名与发布交接
 
-2026-10-08 签名准备增量：已实现发行RSA密钥的Windows用户作用域DPAPI库，`sign --signing-home`直接在内存解封；受控Android构建新增严格公钥/source预检与APK内trust逐字节核对，并明确PKCS12格式。用户明确批准后，PR #1已合并，专用测试签名及六项Secrets已配置，alpha.5版本记录已准备；**main受控构建与实际包复验已完成，Windows/WSL仅做临时bootstrap；公网部署和手机安装没有执行**。实际公开指纹与证据见STATUS，不替换alpha.4资产。
+2026-10-08 当前状态：PR #1已合并，专用测试签名及六项Secrets已配置，alpha.5 main受控构建、实际包复验和隔离服务器部署已完成。手机现为alpha.5；Windows已用同一已签alpha.6包维护升级，用户确认手机原任务同步恢复。**Windows alpha.6→alpha.7普通HTTPS GUI OTA及升级后手机同任务接续已实际验收通过；Android/relay的真实N→N+1尚未完成。**Windows alpha.7私有源已获批发布sequence3，正常TLS公网账号下载/签名/哈希及匿名401通过；用户随后经原GUI完成真实alpha.6→alpha.7下载/安装，保全与新窗口通过，并明确确认手机两条新测试回复均显示，发布证据与后续边界见[alpha.7审查](WINDOWS-ALPHA7-OTA-REVIEW.md)；公开指纹与分层结果见[STATUS](../STATUS.md)。原alpha.5/alpha.6包保持不变。
 
 2026-10-08 本地准备增量：`sign` 现在强制 source 为 `/desktop-remote-updates/{channel}/{component}/latest.json`，包 URL 必须是同目录的 `component-{catalog.version}.apk|zip`，渠道/组件/版本/扩展名须一致；拒绝时不生成元数据，避免签出私有服务无法提供的地址。该发行工具不随三端运行包分发，本次不重发 alpha.4、不递增三个软件版本。该段为前期准备记录；暂缓签名/合并已由后续明确批准替代，见[当前状态](../STATUS.md)。
 
-以下是 **alpha.4 起支持的私有 OTA** 操作范式，构建与归档证据见 [STATUS](../STATUS.md)；alpha.5已签发受控首装资料，尚未部署源或完成真实手机/电脑验收。既有程序包不以同版本换包。[验收计划](OTA-ACCEPTANCE.md)使用alpha.5首装、alpha.6在线升级，后者尚未构建。下面为工具调用范式，alpha.5成品已存在，不能重新打包覆盖；后续先更新对应catalog再发新版本。当前 `updates.publish` 只在本地打包 Windows/relay 源码 ZIP、对已有 APK/ZIP 签发布元数据，**不构建 APK、不上传文件、不部署中继**。正式发布须有受控 RSA 3072 位以上私钥、经审核的公钥/trust、Android 连续 APK 签名证书，以及与登录/配对中继同源的受鉴权 HTTPS 下载入口。私钥路径、口令与凭据不得进入仓库、日志或命令示例。
+以下是 **alpha.4 起支持的私有 OTA** 操作范式，构建与归档证据见 [STATUS](../STATUS.md)。[验收计划](OTA-ACCEPTANCE.md)最初采用alpha.5→alpha.6；Windows现在按实际安装基线改为alpha.6→alpha.7，Android/relay仍从alpha.5逐端推进。下面是历史首装工具调用范式，alpha.5成品已存在，不能重跑来覆盖旧包；本轮签发以alpha.7审查中的固定CI输入、版本和sequence为准。`updates.publish` 本身只在本地打包 Windows/relay 源码 ZIP、对已有 APK/ZIP 签发布元数据，**不构建 APK、不上传文件、不部署中继**。正式发布须有受控 RSA 3072 位以上私钥、经审核的公钥/trust、Android 连续 APK 签名证书，以及与登录/配对中继同源的受鉴权 HTTPS 下载入口。私钥路径、口令与凭据不得进入仓库、日志或命令示例。
 
 先在仓库根目录更新发生变化组件的 `releases.json` 与版本说明，运行 `python scripts/check_versions.py --write` 及只读校验和相关测试。`pack` 从当前源码按固定白名单生成新文件，输出路径必须尚不存在。以下 PowerShell **占位符必须按已审核的真实资源替换**，`$PythonExe` 为带 `cryptography` 的 Python 3.12；本仓库不提供密钥或部署主机：
 
@@ -40,7 +40,7 @@ $AndroidUrl = 'https://<REVIEWED_RELAY_HOST>/desktop-remote-updates/test/android
 & $PythonExe -B -m updates.publish sign android --artifact $Apk --output (Join-Path $OutputDir 'android-latest.json') --signing-home $SigningHome --key-id $KeyId --source $AndroidSource --url $AndroidUrl --sequence $Sequence --channel test --apk-version-code $AndroidVersionCode --apk-package-id dev.codex.desktopremote.lite --min-sdk 26 --apk-verified
 ```
 
-Android 普通 push/PR CI 构建嵌入空 trust 且使用临时 debug 签名，只能测试，不能生产 OTA。`.github/workflows/android.yml` 的 `workflow_dispatch` 可选 `signed_ota=true`，仅 main 且所需 GitHub secrets 全部就绪时生成受控**测试**签名 APK；CI 会核对证书指纹，artifact 保留 14 天。本项目六项Secrets已配置，受控run37736837251已通过；尚未上线feed。后续构建仍须独立核对输入与运行结果。首次发行还必须把审核后的 `update-trust.json` 从外部注入构建，后续证书保持连续；不能靠改包名或卸载原 App 解决签名不一致。
+Android 普通 push/PR CI 构建嵌入空 trust 且使用临时 debug 签名，只能测试，不能生产 OTA。`.github/workflows/android.yml` 的 `workflow_dispatch` 可选 `signed_ota=true`，仅 main 且所需 GitHub secrets 全部就绪时生成受控**测试**签名 APK；CI 会核对证书指纹，artifact 保留 14 天。本项目六项Secrets已配置，受控run37736837251已通过；独立服务器测试feed已从主电脑公网完成账号鉴权下载，手机 App 内下载未验收。后续构建仍须独立核对输入与运行结果。首次发行还必须把审核后的 `update-trust.json` 从外部注入构建，后续证书保持连续；不能靠改包名或卸载原 App 解决签名不一致。
 
 Windows/relay 首次安装的 `trust.json` 需由受控流程从**已审核的发布公钥**制作，字段为 `schema:1`、`product:codex-desktop-remote`、`channel:test|stable`、`keys:{keyId:PEM_PUBLIC_KEY}` 和 `sources:{windows|relay|android:HTTPS_LATEST_JSON}`；只配置该安装需要的组件 source。`sign` 不替操作者生成、安装或轮换 trust。首次 bootstrap 接收本地 trust、已签元数据和对应 ZIP，随后固定在新目录；旧实例不能通过下载更新自己的信任根。发布签名和首次安装的固定公钥验证仍是内容真实性边界，**登录或配对只授予下载权限，不能代替签名**。不在客户端嵌入 GitHub PAT。
 
@@ -65,17 +65,17 @@ Android使用另一份连续APK签名证书，构建格式固定为[PKCS12](http
 
 准备完成后的受控首装操作限定为：核对并合并PR #1；固定测试origin为`https://106.53.126.69:9443`；在本机`%LOCALAPPDATA%\CodexDesktopRemoteSigning\test-v1`下建立新的专用签名材料（不复用旧项目密钥），RSA使用DPAPI，Android使用加密PKCS12及受控本地保护；只向本私有仓库配置上述六项Secrets；将三端首装版本更新为alpha.5并运行main受控构建、验签和包内校验。该批准范围已执行至真实alpha.5构建、签名、下载和临时首装复验；私有归档及准确哈希见STATUS。
 
-用户已明确批准上述签名与合并范围，PR #1已合并为`1e405ad`。此范围不包含公网部署、开放端口、手机安装、真实身份迁移或停止现用服务。构件通过后再审核[隔离部署清单](OTA-DEPLOYMENT-REVIEW.md)及回退步骤；旧alpha.4资产保留。前期“暂缓合并/签名”的决定已被此次明确批准替代，不需重复询问这两项。
+用户先批准上述签名与合并范围，PR #1已合并为`1e405ad`；随后又批准在现有服务器以独立账号、目录、数据库和端口部署测试 relay/FRPS/HTTPS/私有OTA及续证hook。隔离安装、服务器内及主电脑公网的合成验收已执行，现用服务和身份保持原样。**手机安装、真实身份迁移和真实任务N→N+1不在本次授权范围，也未执行。**旧alpha.4资产保留，前期“暂缓合并/签名/隔离部署”的决定已由后续授权替代。
 
 `updates.android_publisher create --directory $SigningHome --key-id $KeyId --origin $Origin`在已创建的RSA库内新建专用APK签名，私钥/口令只在内存处理并写入`android-signing.dpapi`，同时输出公开`android-public.json`及固定`android-trust.json`；底层PKCS12也使用强随机口令加密。不会复用旧项目证书、写明文p12或口令文件。
 
 `updates.android_publisher provision-github`使用同样三个参数，将六项Android构建输入逐一经`gh secret set`的标准输入提交到固定的`nzkres/codex-desktop-remote`。先检查这些Secret名称尚不存在，不读取秘密值；本地`github-provision.json`只记录阶段和名称。失败或未知结果标为`needs_review`，重复执行拒绝，不能自动覆盖、删除远端Secrets或清除记录重试。RSA私钥不在这六项中。此工具仍不提供跨电脑密钥恢复，Git仓库/CI成功不等于备份完成。
 
-私有下载文件只放在**新受管中继**的 `home/data/update-feed/{test|stable}/{android|windows|relay}/`。`home`、`data`、`update-feed`、渠道和组件目录均须由运行中继的同一用户持有，权限 `0700`；`latest.json` 和不可变版本包须为同一用户的普通单链接文件，权限 `0600`。只允许 `latest.json` 和与组件/版本相符的 `component-x.y.z[-alpha.N].apk|zip`；不能用软链接、硬链接、重解析点或目录浏览暴露其他文件。先把**版本化包**放到目标组件目录，核对实际字节数/SHA-256、签名元数据的 URL/有效期与 HTTPS 证书；最后以同目录临时文件和原子替换发布 `latest.json`。不要原地改已有版本包，也不要先让元数据指向尚未到位的包。仓库没有通用上传命令；测试服务器origin已确认，但具体部署未批准。私有GitHub Release可作归档，14天Actions artifact不能作长期feed。
+私有下载文件只放在**新受管中继**的 `home/data/update-feed/{test|stable}/{android|windows|relay}/`。`home`、`data`、`update-feed`、渠道和组件目录均须由运行中继的同一用户持有，权限 `0700`；`latest.json` 和不可变版本包须为同一用户的普通单链接文件，权限 `0600`。只允许 `latest.json` 和与组件/版本相符的 `component-x.y.z[-alpha.N].apk|zip`；不能用软链接、硬链接、重解析点或目录浏览暴露其他文件。先把**版本化包**放到目标组件目录，核对实际字节数/SHA-256、签名元数据的 URL/有效期与 HTTPS 证书；最后以同目录临时文件和原子替换发布 `latest.json`。不要原地改已有版本包，也不要先让元数据指向尚未到位的包。仓库没有通用上传命令；测试服务器origin已在独立隔离环境使用，主电脑公网经正常IP证书验证三组件账号下载和RSA/哈希/大小。私有GitHub Release可作归档，14天Actions artifact不能作长期feed。
 
 HTTPS 必须使用与账号登录、Windows 配对相同的已审核 origin。反向代理把 `/desktop-remote-updates/*` **原路径**送往新受管中继的 API loopback 监听，不使用 `file_server` 或独立公开静态目录，也不能套用只认账号的前置 `forward_auth` 遮住设备凭据。代理须保留 `Authorization`、`X-Desktop-Remote-Principal`、`X-Desktop-Remote-Device`，且不记录这些请求头、下载内容或令牌。每次 `GET` 元数据和包都由中继重新鉴权：账号会话可下载三组件；已配对且活跃的设备凭据仅可下载 Windows，暂停或撤销后新请求被拒绝；FRP plugin 监听不提供该路径。已开始的流式下载属于已准入请求，维护门禁会等它结束，不能声称撤销能追回已发出的字节。空目录、未配置 feed、过期会话及旧中继都不能作为可用发布源。
 
-**首发顺序**：先在隔离环境核验包含 alpha.4 私有路由实现的受控中继签名ZIP/trust（alpha.5已准备），用本地 bootstrap 建立新的受管 home 并启动该版中继；旧服务没有私有 OTA 路由，不能只靠上传文件启用它。再审核同源 HTTPS 路由和身份转发，在新受管目录放入各组件已签构件与 `latest.json`，从对应账号/设备分别验证两次授权下载，最后发布下一版本执行客户端 `check`。这仍是待执行流程，不代表当前服务器、手机或电脑已更新。发布证据至少记录源码版本、构件哈希、签名 keyId/公钥指纹、已服务文件哈希、元数据有效期、鉴权拒绝结果、安装和真实任务验收层级，勿记录私钥或账号令牌。
+**首发顺序与当前进度**：隔离环境已核验 alpha.5 受控中继签名ZIP/trust，以 bootstrap 建立新受管 home 并启动中继；旧服务没有私有 OTA 路由，也未被替换。新实例的同源 HTTPS、身份转发和已签构件/`latest.json` 已在服务器内及主电脑公网验收：三组件账号完整下载、匿名六项401、合成设备Windows200及其他组件/暂停撤销403；主电脑 `updates.security` 验证正常TLS、RSA/哈希/大小匹配，跨origin凭据在发请求前拒绝，logout后401。实际FRPC/FRPS 0.71 TLS和设备插件经独立Windows Job中的无任务HTTP夹具通过公网转发；受管stop/start与cgroup清空/DB摘要保持已验收。独立Caddy reload hook通过，certbot timer active但未实际续出新证。真实客户端 `check`、手机/电脑首装和下一版本N→N+1仍待测。发布证据至少记录源码版本、构件哈希、签名 keyId/公钥指纹、已服务文件哈希、元数据有效期、鉴权拒绝结果、安装和真实任务验收层级，勿记录私钥或账号令牌；本轮细节见[部署记录](OTA-ISOLATED-DEPLOYMENT-20261008.md)。
 
 
 ## 固定引导器与运行时

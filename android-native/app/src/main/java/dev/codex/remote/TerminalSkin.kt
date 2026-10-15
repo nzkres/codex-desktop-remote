@@ -32,12 +32,15 @@ data class TerminalSkin(
     val bright: Boolean = true, val textShadow: Boolean = true,
     val effect: GridEffect = GridEffect.Blocks, val palette: GridPalette = GridPalette.Graphite,
     val speed: Float = 1f, val brightness: Float = 1f, val idleStill: Boolean = false, val rainbow: Boolean = true,
+    val lineBrightness: Float = 1.4f, val flowBrightness: Float = 1f, val coreFlow: Boolean = true,
 )
 private inline fun <reified T:Enum<T>> SharedPreferences.enum(key:String, fallback:T):T = enumValues<T>().find { it.name == getString(key,null) } ?: fallback
 internal fun readTerminalSkin(p:SharedPreferences) = TerminalSkin(
     p.enum("skin_glass",GlassSkin.Clear),p.enum("skin_font",BodyFont.MaShan),p.getBoolean("skin_bright",true),p.getBoolean("skin_shadow",true),
     p.enum("skin_effect",GridEffect.Blocks),p.enum("skin_palette",GridPalette.Graphite),
-    boundedMotion(p.getFloat("skin_speed",1f)),boundedMotion(p.getFloat("skin_brightness",1f)),p.getBoolean("skin_idle_still",false),p.getBoolean("skin_rainbow",true))
+    boundedMotion(p.getFloat("skin_speed",1f)),boundedLight(p.getFloat("skin_brightness",1.4f)),p.getBoolean("skin_idle_still",false),p.getBoolean("skin_rainbow",true),
+    boundedLight(p.getFloat("skin_line_brightness",1.4f)),boundedLight(p.getFloat("skin_flow_brightness",1f)),p.getBoolean("skin_core_flow",true))
+internal fun boundedLight(value:Float) = if(value.isFinite()) value.coerceIn(0f,4f) else 1f
 internal fun boundedMotion(value:Float) = if(value.isFinite()) value.coerceIn(.25f,2f) else 1f
 internal fun gridPace(running:Boolean, idleStill:Boolean, motion:Boolean, speed:Float):Float =
     if(!motion) 0f else boundedMotion(speed) * if(running) 1.5f else if(idleStill) 0f else .25f
@@ -64,8 +67,18 @@ internal fun configureSkinText(view:TextView, skin:TerminalSkin, night:Boolean) 
     SkinToggle("停止或等待回答时保持静止",skin.idleStill){prefs.edit().putBoolean("skin_idle_still",it).apply()}
     Text("速度 · ${"%.2f".format(skin.speed)}×",color=p.ink,fontSize=13.sp)
     Slider(skin.speed,{prefs.edit().putFloat("skin_speed",it).apply()},valueRange=.25f..2f)
-    Text("亮度 · ${(skin.brightness*100).toInt()}%",color=p.ink,fontSize=13.sp)
-    Slider(skin.brightness,{prefs.edit().putFloat("skin_brightness",it).apply()},valueRange=.25f..2f)
+    SkinToggle("核心外散流光",skin.coreFlow){prefs.edit().putBoolean("skin_core_flow",it).apply()}
+    Text("背景光格亮度 · ${(skin.brightness*100).toInt()}%",color=p.ink,fontSize=13.sp)
+    Slider(skin.brightness,{prefs.edit().putFloat("skin_brightness",it).apply()},valueRange=0f..4f)
+    Text("背景线亮度 · ${(skin.lineBrightness*100).toInt()}%",color=p.ink,fontSize=13.sp)
+    Slider(skin.lineBrightness,{prefs.edit().putFloat("skin_line_brightness",it).apply()},valueRange=0f..4f)
+    Text("核心流光亮度 · ${(skin.flowBrightness*100).toInt()}%",color=p.ink,fontSize=13.sp)
+    Slider(skin.flowBrightness,{prefs.edit().putFloat("skin_flow_brightness",it).apply()},valueRange=0f..4f)
+    Box(Modifier.fillMaxWidth().height(176.dp).padding(vertical=8.dp)) {
+        androidx.compose.foundation.Canvas(Modifier.matchParentSize()) { drawRect(if(p.isNight) Color(skin.palette.dark) else Color(0xFFF1F2F3)) }
+        TerminalGrid(true,Modifier.matchParentSize())
+        Text("实时背景预览\n前景文字保持清晰",color=Color(0xFFE1E8F0),fontSize=14.sp,modifier=Modifier.padding(16.dp))
+    }
     Text("运行速度 ×1.5；空闲慢速 ×0.25。后台、减少动画或系统关闭动画时停止。字体离线可用，代码保持等宽。",color=p.muted,fontSize=12.sp)
 }
 @Composable private fun SkinToggle(label:String,value:Boolean,onChange:(Boolean)->Unit) {

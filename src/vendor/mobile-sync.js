@@ -1,5 +1,9 @@
+// 手机增量同步：把原生消息整理为稳定条目，再按游标返回变化和历史分页。
+// 游标只帮助显示同步，不是 Desktop 的任务数据库或模型执行回执。
+
 import { createHash } from "node:crypto";
 import { milliseconds, turnTiming } from "./conversation-timing.js";
+// 摘要只为本地稳定标识与修订比较；text/array 将异常字段收窄到渲染器可处理的形状。
 const digest = (value) => createHash("sha256").update(JSON.stringify(value)).digest("hex");
 const text = (value) => typeof value === "string" ? value : "";
 const array = (value) => Array.isArray(value) ? value.filter((v) => v && typeof v === "object") : [];
@@ -7,6 +11,7 @@ const visible = new Set(["userMessage", "agentMessage", "plan", "commandExecutio
 // Project only the fields the mobile renderer uses. Never ship turn params,
 // hidden context, base64 images, or permission/runtime internals with history.
 function itemContent(item) {
+    // 输入原生 item；输出白名单字段。图片只计数，不复制图像数据。
     return {
         type: text(item.type), text: text(item.text) || array(item.content).map((p) => text(p.text)).filter(Boolean).join("\n"),
         command: text(item.command), aggregatedOutput: text(item.aggregatedOutput), cwd: text(item.cwd),
@@ -17,6 +22,8 @@ function itemContent(item) {
     };
 }
 function entries(source) {
+    // 展开回合为可见条目；用回合/条目身份及出现次数生成稳定 key，内容变化另算 revision。
+    // 同时附带回合状态、时间和轮次，供增量同步检测相同条目的后续变化。
     const seen = new Map();
     let round = 0;
     return array(source.thread.turns).flatMap((turn, ti) => {
@@ -46,6 +53,8 @@ function entries(source) {
     });
 }
 function preview(entry) {
+    // 对列表预览限制正文、命令、输出及差异长度；fullBytes 记录原条目的 JSON 字节数。
+    // 截断时避免将 UTF-16 代理对拆开；完整条目由 item() 单独读取。
     let truncated = false;
     const clip = (value, max) => {
         if (value.length <= max)
@@ -65,6 +74,7 @@ function preview(entry) {
 }
 /** In-memory, bounded revision ledger; contains hashes/IDs only, never transcript bodies. */
 export class MobileSync {
+    // 输入快照投影后按 cursor 比对修订；checkpoint 只在本进程内存中保存键和摘要。
     now;
     maxCheckpoints;
     checkpoints = new Map();
@@ -73,6 +83,8 @@ export class MobileSync {
         this.maxCheckpoints = maxCheckpoints;
     }
     sync(threadId, source, cursor, older = false) {
+        // 游标只在同一任务、30 分钟内且首条 key 仍能定位时延续，否则重置到最新窗口。
+        // older=true 向前翻页；变化过大时重新以最近一页建立游标。
         const all = entries(source);
         const previous = cursor ? this.checkpoints.get(cursor) : undefined;
         const valid = previous?.threadId === threadId && this.now() - previous.at < 30 * 60_000;
@@ -110,6 +122,8 @@ export class MobileSync {
             latestUserMessage: latestUser ? preview(latestUser) : null,
             userMessageCount: all.filter(entry => entry.item.type === "userMessage").length,
             pendingQuestions: source.pendingQuestions, pendingApprovals: source.pendingApprovals,
+            controlNotice: source.controlNotice ?? null, capabilities: source.capabilities ?? null,
+            usage: source.usage ?? null,
             latestTurn: latest ? { id: latest.id, status: latest.status, hasPlan: array(latest.items).some((i) => i.type === "plan") } : null };
         const next = digest([threadId, keys, revisions, meta, start > 0]);
         const checkpoint = { threadId, at: this.now(), keys, revisions };
@@ -133,10 +147,12 @@ export class MobileSync {
             items: changes };
     }
     item(source, key) {
+        // 根据稳定 key 返回一条完整可见内容；找不到时交由 HTTP 层返回 404。
         const entry = entries(source).find((e) => e.key === key);
         return entry && { ...entry, item: { ...entry.item, truncated: false } };
     }
     tasks(source, before) {
+        // 只分页用户消息；before 失效返回 stale，页大小同时受 24 条和约 96 KiB 限制。
         const all = entries(source).filter(entry => entry.item.type === "userMessage");
         let end = before ? all.findIndex(entry => entry.key === before) : all.length;
         if (end < 0)
@@ -157,8 +173,11 @@ export class MobileSync {
 }
 /** Only event identifiers/status cross the network, never notification transcript text. */
 export function mobileSignals(source) {
+    // 仅返回最近回合状态、计划标记和待处理项 ID，不附带通知正文。
     const latest = array(source.thread.turns).at(-1);
     return { turnId: latest?.id ?? null, completed: latest?.status === "completed",
         plan: source.session.mode === "plan" && array(latest?.items).some((i) => i.type === "plan"),
-        questions: array(source.pendingQuestions).map((q) => q.id), approvals: array(source.pendingApprovals).map((a) => a.id) };
+        // Answered cards remain in the transcript, but must not notify as new pending work.
+        questions: array(source.pendingQuestions).filter((q) => !["accepted", "closed"].includes(q.status)).map((q) => q.id),
+        approvals: array(source.pendingApprovals).map((a) => a.id) };
 }

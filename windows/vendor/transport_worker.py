@@ -1,3 +1,7 @@
+# 受信任的启动门：父进程先把本进程放入 Job，再通过标准输入发送 G + 模式。
+# B 表示还要接收启动数据，N 表示没有启动数据；未收到正确指令就退出。
+# Node/FRP 子进程继承 Job 约束，因此父连接器可以核对整棵树的退出。
+
 """Trusted gate: launch only after parent has assigned this worker to its Job."""
 import subprocess
 import sys

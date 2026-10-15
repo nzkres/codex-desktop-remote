@@ -1,5 +1,10 @@
+// 原生状态到项目数据的转换：解析回合、活动状态与空闲条件。
+// 字段缺失或未知不能直接解释成“空闲且允许发送”。
+
 import { object, ControlError } from "./desktop-ipc.js";
 
+// 把 Desktop canonical history 的 islands/实体表恢复成按序回合；旧 turns 数组作后备。
+// 输出统一带 id、items 的回合列表；未知历史结构直接抛错，避免误当空记录。
 export function nativeTurns(state) {
     if (state.turnHistory != null && state.turnHistory.kind !== "canonical")
         throw new Error("Unsupported Desktop history mode");
@@ -28,9 +33,11 @@ export function nativeTurns(state) {
     }));
 }
 export function activeTurn(state) {
+    // 逆序查找 inProgress 回合，输出其 ID 或 null。
     return nativeTurns(state).reverse().find((t) => t.status === "inProgress")?.id ?? null;
 }
 export function assertIdle(state) {
+    // 回合、运行状态、待处理请求或未确认提交任一显示忙碌即拒绝；状态必须明确为 idle。
     if (activeTurn(state) || state.threadRuntimeStatus?.type === "active" || state.requests?.length || state.unconfirmedTurnSubmissions?.length) {
         throw new ControlError("thread_busy", "这段对话正在运行或等待确认。请等待结束，或先停止当前回合；消息未发送。");
     }

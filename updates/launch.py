@@ -1,3 +1,5 @@
+# 稳定安装入口：根据当前版本指针启动正确的版本，而不是让快捷方式固定在旧版本目录。
+
 """Stable, standard-library-only launcher, copied into a NEW installation home."""
 import hashlib
 import json
@@ -8,12 +10,16 @@ import sys
 
 
 def verified_slot(home):
+    # 启动前检查交易日志、当前指针、包清单和每个文件哈希。
+    # 返回(版本目录, 组件名)；校验失败就阻止运行被替换或半更新的代码。
     home = Path(home).absolute()
     def safe(path):
+        # 链接可能将验证路径导向安装外部，因此目标及父目录都不得为链接。
         if any(p.is_symlink() or (hasattr(p, 'is_junction') and p.is_junction()) for p in (path, *path.parents)):
             raise ValueError('linked_installation')
         return path
     def load(path):
+        # 状态 JSON 体积受限，避免读取异常大的本地文件。
         if safe(path).stat().st_size > 1024*1024:
             raise ValueError('invalid_installation')
         return json.loads(path.read_bytes())
@@ -46,6 +52,8 @@ def verified_slot(home):
 
 
 def main(home, arguments=()):
+    # 验证后以隔离 Python 进程启动对应组件；arguments 传给组件入口。
+    # 清除会影响代码装载的环境变量，返回组件进程退出码。
     root, component = verified_slot(home)
     entry = root / ('windows/ota_entry.py' if component == 'windows' else 'updates/relay_host.py')
     if component not in ('windows','relay'):
@@ -56,6 +64,7 @@ def main(home, arguments=()):
 
 
 if __name__ == '__main__':
+    # 无法确认安装完整性时给出复核提示，不猜测哪个版本可安全启动。
     try:
         sys.exit(main(Path(__file__).absolute().parent, sys.argv[1:]))
     except Exception:

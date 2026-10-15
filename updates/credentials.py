@@ -1,3 +1,6 @@
+# 按安装组件取得更新下载身份：Windows 复用配对身份，Linux 使用管理员登录会话。
+# 此处不包含发布私钥；不允许凭据通过任意 URL 或命令行泄漏。
+
 """Reuse a paired Windows identity or an owner-only relay login for private OTA.
 
 No password/token arguments, embedded credentials, discovery of other installs,
@@ -27,6 +30,7 @@ LOGIN_FILE = 'update-login.local.json'
 
 
 def _source(home):
+    # 从当前安装和信任配置取组件订阅地址；缺少密钥或地址就不能认证下载。
     config, _, _ = installed(home)
     trust = read(Path(home) / 'trust.json')
     source = trust.get('sources', {}).get(config['component'])
@@ -36,6 +40,8 @@ def _source(home):
 
 
 def _private(home, file_required=False):
+    # Linux 登录态只能位于本安装的私有 state 目录，目录/文件权限必须分别为 700/600。
+    # file_required=True 用于读取现有会话，文件不存在时也按错误处理。
     if not sys_linux():
         raise UpdateError('linux_update_login_required')
     home = no_links(home)
@@ -53,11 +59,13 @@ def _private(home, file_required=False):
 
 
 def sys_linux():
+    # 平台检查集中在这里，避免把 Linux 的文件权限规则误用到 Windows。
     import sys
     return sys.platform.startswith('linux')
 
 
 def _session(home):
+    # 返回尚未过期的会话记录；损坏、过期或结构不符都要求重新登录。
     try:
         value = read(_private(home, file_required=True))
         if (not isinstance(value, dict) or set(value) != {'schema', 'relay', 'token', 'expiresAt'}
@@ -72,6 +80,8 @@ def _session(home):
 
 
 def for_installation(home):
+    # Windows 重用已经配对的设备身份；Relay 使用本安装管理员显式登录的会话。
+    # 返回受源地址约束的 UpdateAuthorization，绝不扫描其他安装寻找令牌。
     component, source = _source(home)
     if component == 'windows':
         try:
@@ -100,6 +110,8 @@ def for_installation(home):
 
 
 def _post(relay, operation, body, token=None, context=None):
+    # 向已经验证来源的登录服务发送 JSON；只返回受大小限制的响应对象。
+    # token 仅用于已登录操作，context 可注入经校验的 TLS 配置。
     # Caller first binds this origin to the provisioned, reviewed update source.
     headers = {'Content-Type': 'application/json', 'Accept': 'application/json'}
     if token is not None:
@@ -127,6 +139,8 @@ def _post(relay, operation, body, token=None, context=None):
 
 def login(home, *, username_provider=input, password_provider=getpass.getpass,
           notice=print, context=None):
+    # 在验证订阅来源和本地权限后，才向操作员询问账号密码。
+    # 成功后仅保存限期令牌并返回到期时间；密码不会写入安装目录。
     component, source = _source(home)
     if component != 'relay':
         raise UpdateError('use_existing_device_pairing')
@@ -156,6 +170,8 @@ def login(home, *, username_provider=input, password_provider=getpass.getpass,
 
 
 def logout(home, *, context=None):
+    # 先请求服务端撤销，再删除本地记录；返回 signedOut 状态。
+    # 网络请求期间若凭据文件已被替换，拒绝删除新文件，保留现场供复核。
     component, source = _source(home)
     if component != 'relay':
         raise UpdateError('use_existing_device_pairing')
