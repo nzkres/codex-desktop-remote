@@ -1,3 +1,5 @@
+文档校对：规范化alpha.14/alpha.15发布证据的文件末尾空行；没有软件或安装包变更。
+
 ## 2026-10-15 最终私有发布核验
 
 Android alpha.15与Windows alpha.18已在原源发布，真实HTTPS鉴权完整下载、签名、大小与哈希均通过。原签名、服务和身份/回执保护保留；本次未安装到手机或电脑。alpha.14旧包保留，最终更新请使用alpha.15；详见docs/ANDROID-ALPHA15-PUBLICATION.md。
