@@ -1,3 +1,9 @@
+## 2026-10-15 Android alpha.10 已发布
+
+Android alpha.10/versionCode 10/sequence 4 已发布；原证书、实际 Manifest、内置 trust 与实际 HTTPS 完整下载核验通过。手机可检查更新，覆盖安装待用户确认。
+
+更新错误按暂停、离线、任务忙、权限、网络与两端未知回执分别提示。原身份、回执、任务保护保留。GitHub runner 因账户额度未启动，改用固定合并提交本机构建及原签名；本机单元/Lint 通过，55 项模拟器回归覆盖相同运行源码。完整证据见 [发布记录](docs/ANDROID-ALPHA10-PUBLICATION.md)。
+
 ## 2026-10-15 更新状态诊断修复（alpha.10，已通过构建验证，未发布）
 
 终端最初为 active / offline，用户点击连接后心跳在线，但更新状态接口仍返回 503 terminal_credential_unavailable。本机 runtimeNeedsReview=true，本地任务接口拒绝连接。电脑配置对应的 10 条回执全部 accepted 且具备 turnId；没有手机调试通道，手机本地回执未核验。没有清除保护、重发或清除回执。更新源 HTTP 200，仍为 alpha.9 / sequence 3。

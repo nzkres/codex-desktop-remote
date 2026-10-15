@@ -1,3 +1,5 @@
+> 最新：Android alpha.10/versionCode 10/sequence 4 已发布；原证书、实际 Manifest、内置 trust 与实际 HTTPS 完整下载核验通过。手机可检查更新，覆盖安装待用户确认。 见 [alpha.10 发布记录](ANDROID-ALPHA10-PUBLICATION.md)。本次为原证书本机构建及管理员私有上传，来源与 CI 分开记录。
+
 > 最新：Android alpha.9/sequence 3 已发布，独立验包及实际 HTTPS 鉴权完整下载通过；手机安装待确认。见 [发布记录](ANDROID-ALPHA9-PUBLICATION.md)。
 
 > 2026-10-14新方案：[Android构件直接存自有服务器](SERVER-OTA-DELIVERY.md)，保留main原证书构建及正式源鉴权/签名。专用接收账号和CI配置已获准并部署；最新实际结果见[部署实录](SERVER-OTA-DEPLOYMENT-20261014.md)。以下GitHub artifact保存说明是历史流程，不再作为新Android受控构建的交付方式。

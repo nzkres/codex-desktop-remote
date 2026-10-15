@@ -1,3 +1,5 @@
+> 当前 Android：alpha.10/sequence4 已发布，实际 HTTPS 完整下载通过；手机安装待确认。见 [发布记录](ANDROID-ALPHA10-PUBLICATION.md)。
+
 # 三端 OTA：当前实现边界
 
 Android、Windows连接器和Linux中继都有更新实现。alpha.5已建立专用测试RSA/APK签名与固定test信任，受控构建、下载复核和Windows/WSL临时首装通过；**隔离测试HTTPS私有源已部署；Android alpha.8已签名发布并经实际HTTPS鉴权下载验包；手机覆盖安装仍待用户确认。稳定生产渠道未建立，不能据此宣布三端OTA实机验收完成**。代码、CI、构件、安装和真实设备结果分别以[STATUS](../STATUS.md)为准。下载与仓库版本不等于实际部署或真机升级。
