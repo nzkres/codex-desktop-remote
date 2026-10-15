@@ -11,6 +11,7 @@ class NativeInterfacePreviewUiTest {
     @Test fun completionNeedsVisibleFinalResultAndPreviewCanClose() {
         var closed = false
         compose.setContent { HapiStyle(night = true) { NativeInterfacePreview { closed = true } } }
+        compose.onNodeWithText("未读与发送").performClick()
         compose.onNodeWithTag("native-interface-preview").assertExists()
         compose.onNodeWithTag("preview-complete").performClick()
         compose.onNodeWithTag("preview-main-row").assertTextContains("未读", substring = true)

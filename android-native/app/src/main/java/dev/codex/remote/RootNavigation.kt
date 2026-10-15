@@ -114,7 +114,7 @@ fun MeScreen(
         TextButton(onClick = onManageDevices, modifier = Modifier.padding(horizontal=10.dp)) { Text("设备与配对管理") }
         ReleaseNotesEntry(updateStatus, updateProgress, updateBusy, updateAvailable, onCheckUpdate, onInstallUpdate)
         TextButton(onClick = { previewOpen = true }, modifier = Modifier.padding(horizontal = 10.dp)) {
-            Text("界面预览 · 未读与发送按钮")
+            Text("界面预览 · 额度与交互")
         }
         HorizontalDivider(color = HapiPalette.divider, thickness = 0.5.dp)
         NotificationSettings()

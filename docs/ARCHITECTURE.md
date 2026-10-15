@@ -1,3 +1,7 @@
+## alpha.17 账号额度动效演示隔离
+
+QuotaActivityPreview持有合成A/Plus和B/Pro设备、任务开关及独立动画模型，不读取Gateway、账号令牌或真实任务。QuotaActivityMotion用指数渐入/渐出积分转角，账号A两设备共用一个模型、账号B独立；减少动画与后台无循环。drawQuotaCore仅增加可选activity参数，默认null；TerminalGrid默认showQuota=true，正式调用点不变。真实联动尚需授权数据源提供可信账号标识和新鲜运行信号，不能用套餐名推断账号或以连接在线推断任务运行。
+
 ## alpha.16 原生预览隔离
 
 预览为我的页内独立全屏Dialog，不持有Gateway、TaskTarget、DraftStore或正式回执存储。演示设备各自的完成版本/阅读水位只写interface-preview-only-v1；输入及模拟发送只在预览内存。前台可见才记读，后台停止动效。正式网络、连接、身份、草稿和发送/答案回执路径不改。
