@@ -21,8 +21,9 @@ import java.util.Date
     var now by remember { mutableLongStateOf(System.currentTimeMillis()) }
     LaunchedEffect(snapshot) { while(true) { now=System.currentTimeMillis();delay(30000) } }
     val core=snapshot?.limits?.find { it.id=="codex" } ?: snapshot?.limits?.firstOrNull()
-    val warning=core!=null && !usageStale(core,now) && core.windows.any { it.remaining<=10 }
-    val summary=if(core==null) "额度未同步" else (if(unavailable||usageStale(core,now))"上次 · "else "剩余 · ")+core.windows.joinToString("  │  ") { "${it.label} ${it.remaining}%" }
+    val windows=quotaWindows(core)
+    val warning=core!=null && !usageStale(core,now) && windows.any { it.remaining<=10 }
+    val summary=if(core==null) "额度未同步" else if(windows.isEmpty()) "Pro 周额度未同步" else (if(unavailable||usageStale(core,now))"上次 · "else "剩余 · ")+windows.joinToString("  │  ") { "${it.label} ${it.remaining}%" }
     Text(summary,color=if(warning&&!unavailable)palette.errorInk else palette.muted,fontSize=11.sp,
         maxLines=1,overflow=TextOverflow.Ellipsis,
         modifier=Modifier.fillMaxWidth().testTag("device-quota-details").clickable {open=true}.padding(vertical=10.dp))
@@ -34,7 +35,8 @@ import java.util.Date
             else if(snapshot.limits.isEmpty()) Text("尚未读到有效额度；请保持 Desktop 登录。任务产生新的额度记录后会随对话同步。",modifier=Modifier.padding(top=12.dp),color=palette.ink)
             snapshot?.limits?.forEach { limit ->
                 Text((if(limit.id=="codex") "Codex" else limit.id)+" · "+(limit.planType?.uppercase() ?: "套餐未同步"),color=palette.ink,modifier=Modifier.padding(top=16.dp))
-                limit.windows.forEach { window ->
+                if(limit.planType=="pro") Text("Pro 显示周额度；五小时限制已取消。没有周快照时等待电脑同步，不推算额度。",color=palette.muted,fontSize=12.sp)
+                quotaWindows(limit).forEach { window ->
                     Text("${window.label} · 剩余 ${window.remaining}%",color=palette.ink,fontSize=14.sp)
                     LinearProgressIndicator(progress={window.remaining/100f},modifier=Modifier.fillMaxWidth().padding(vertical=8.dp))
                     Text("重置：${DateFormat.getDateTimeInstance(DateFormat.SHORT,DateFormat.SHORT).format(Date(window.resetsAt*1000))}",color=palette.muted,fontSize=12.sp)
