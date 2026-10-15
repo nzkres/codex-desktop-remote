@@ -22,6 +22,14 @@ python -B -m scripts.preview_feed --html docs/prototypes/quota-live-preview.html
 
 **普通预览更新只改独立内容文件**，不改APP目录、APK源或代理配置，也不重启服务。R修订不是软件版本，不为一次HTML改稿虚增Android版本；内容修订记在对应发布证据中。
 
+## 内容修订 R3（2026-10-15）
+
+额度动效增加“播放完整动效”：先空闲，约0.9秒后模拟家用电脑启动，同账号额度渐强呼吸、外环连续加速，运行约10秒后全部停止并缓慢淡出。手动切换设备或任务开关取消自动演示，后台不继续触发演示阶段；五种额度样式与账号隔离保留。数字仅为合成演示，真实额度不扣减。
+
+源片段 `docs/prototypes/quota-live-preview-r3.html`，签名内容29955 bytes，SHA256 `57dc0d774d8acc8db4ad503bbae81f410842c9fa698b1bc4bf004778193e1127`。服务器2026-10-15T14:45:53.528124+00:00原子发布R3，14:46:11.003117+00:00实际HTTPS鉴权读取、正常TLS、用途签名、匿名/错误令牌401通过，临时验收会话已注销。服务、代理配置、Android/Windows/relay更新索引未变，没有新APK。
+
+浏览器验证渐进启动/运行/停止、账号隔离、五种样式、320/390手机宽度及CSP阻止fetch通过，无脚本错误和外部请求。手机实际刷新与视觉仍待用户验收。审计沿用operator/preview-feed-bootstrap-20261015的r3.json与r3-published.json，回退设计需更高R修订。
+
 ## 一次性服务入口
 
 新入口固定在原独立:9443代理：`GET /desktop-remote-previews/test/latest.json`。账号鉴权通过原中继只读`/control-api/version`完成；未登录或错误令牌不能取文件。唯一公开匹配名重写为`/config/ui-preview-test/latest.json`，无目录浏览、其他文件和上传接口；`private, no-store`、nosniff。原APK/Windows/relay鉴权路由不变，原443 Gateway不动。
