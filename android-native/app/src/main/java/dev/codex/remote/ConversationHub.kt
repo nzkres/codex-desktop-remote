@@ -35,7 +35,7 @@ internal fun hubStatus(session:Session, signal:SignalSnapshot, now:Long):HubStat
 
 @Composable internal fun ConversationHub(
     gateway: Gateway, sessions: List<Session>, projects: List<Project>, activity: List<ActivityEntry>, busy: Boolean,
-    statuses: MutableMap<String,HubStatus>, lastSync:Long, draftStore: DraftStore?,
+    statuses: MutableMap<String,HubStatus>, lastSync:Long, draftStore: DraftStore?, quotas: DeviceQuotaStore?,
     onSelect:(TaskTarget)->Unit, onOpen:(String,Boolean)->Unit, onManage:()->Unit,
 ) {
     val palette=LocalAppPalette.current; val lifecycle=LocalLifecycleOwner.current
@@ -45,6 +45,7 @@ internal fun hubStatus(session:Session, signal:SignalSnapshot, now:Long):HubStat
     var filter by rememberSaveable(gateway.target.id){mutableStateOf("all")}
     var batch by remember(gateway){mutableIntStateOf(0)};var checking by remember(gateway){mutableStateOf(false)}
     var checkAgain by remember(gateway){mutableIntStateOf(0)}
+    val quotaClients=remember(gateway){mutableMapOf<String,Gateway>()}
     val target=gateway.target
     LaunchedEffect(control,lifecycle){lifecycle.lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED){while(true){
         try {terminals=control.snapshot().terminals;deviceError=""}catch(e:CancellationException){throw e}catch(_:Exception){deviceError="设备状态暂未核对"}finally{loading=false};delay(15000)
@@ -62,6 +63,27 @@ internal fun hubStatus(session:Session, signal:SignalSnapshot, now:Long):HubStat
     }
     var now by remember { mutableLongStateOf(System.currentTimeMillis()) }
     LaunchedEffect(lifecycle){lifecycle.lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED){while(true){now=System.currentTimeMillis();delay(30000)}}}
+    LaunchedEffect(gateway,terminals.map { it.id to it.online },sessions.firstOrNull()?.id,lifecycle,quotas) {
+        lifecycle.lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
+            while(true) {
+                // Only paired, active/online devices; ordinary reads never set open=1 or submit anything.
+                terminals.filter { it.online && it.state == "active" }.forEach { terminal ->
+                    val previous=quotas?.values?.get(terminal.id)
+                    if(quotas!=null) {
+                        try {
+                            val result=withTimeoutOrNull(12000) {
+                                val client=quotaClients.getOrPut(terminal.id){gateway.forTarget(TaskTarget(terminal.id,terminal.name))}
+                                val thread=previous?.thread ?: (if(terminal.id==target.id) sessions else client.sessions()).maxByOrNull { it.updatedAt }?.id
+                                thread?.let { it to client.conversation(it).usage }
+                            }
+                            if(result!=null) quotas.update(terminal.id,result.first,result.second) else quotas.failed(terminal.id)
+                        } catch(e:CancellationException){throw e}catch(_:Exception){quotas.failed(terminal.id)}
+                    }
+                }
+                delay(30000L)
+            }
+        }
+    }
     val freshStatuses=statuses.filterValues{now-it.checkedAt in 0..120000}
     val waiting=sessions.count{freshStatuses[it.id]?.waiting==true}
     val running=sessions.count{freshStatuses[it.id]?.running==true && freshStatuses[it.id]?.waiting!=true}
@@ -72,7 +94,8 @@ internal fun hubStatus(session:Session, signal:SignalSnapshot, now:Long):HubStat
                 val active=terminal.id==target.id
                 Column(Modifier.width(IntrinsicSize.Min).heightIn(min=48.dp).clickable(enabled=!busy&&terminal.state=="active"){onSelect(TaskTarget(terminal.id,terminal.name))},verticalArrangement=Arrangement.Center){
                     Text(terminal.name,Modifier.processingLight(terminal.state=="active"&&!terminal.online&&loading),color=if(terminal.online&&terminal.state=="active")palette.green else palette.muted,fontSize=12.sp,maxLines=1)
-                    Spacer(Modifier.height(7.dp));Box(Modifier.fillMaxWidth().height(1.dp).background(if(active)palette.muted else Color.Transparent))
+                    key(terminal.id) { DeviceQuotaLight(quotas?.values?.get(terminal.id)?.let { if(!terminal.online || terminal.state!="active") it.copy(unavailable=true) else it },now,compact=true) }
+                    Spacer(Modifier.height(4.dp));Box(Modifier.fillMaxWidth().height(1.dp).background(if(active)palette.muted else Color.Transparent))
                 }
             }
             if(terminals.isEmpty())Text(if(loading)"正在连接…"else "暂无设备",Modifier.processingLight(loading).padding(vertical=14.dp),color=palette.muted,fontSize=12.sp)
@@ -84,6 +107,10 @@ internal fun hubStatus(session:Session, signal:SignalSnapshot, now:Long):HubStat
             }
             TextButton(onClick=onManage,enabled=!busy){Text("设备",color=palette.muted,fontSize=11.sp)}
         }
+        key(target.id) { Column(Modifier.fillMaxWidth().padding(horizontal=16.dp,vertical=3.dp)) {
+            DeviceQuotaLight(quotas?.values?.get(target.id)?.let { if(!online) it.copy(unavailable=true) else it },now)
+            if(quotas==null) Text("额度加密缓存不可用",color=palette.errorInk,fontSize=10.sp)
+        } }
         Row(Modifier.fillMaxWidth().padding(horizontal=12.dp),verticalAlignment=Alignment.CenterVertically){
             listOf(Triple("all","全部",sessions.size),Triple("running",if(online)"运行中"else"上次运行",running),Triple("waiting",if(online)"待回答"else"上次待答",waiting)).forEach{(key,label,count)->
                 TextButton(onClick={filter=key},modifier=Modifier.testTag("hub-filter-$key"),contentPadding=PaddingValues(horizontal=7.dp)){
