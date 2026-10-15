@@ -33,7 +33,7 @@ internal fun circuitPoint(route:List<Offset>,distance:Float):Offset {
     return route.last()
 }
 
-internal fun DrawScope.drawCoreFlow(cols:Int,rows:Int,unit:Float,time:Float,skin:TerminalSkin,night:Boolean) {
+internal fun DrawScope.drawCoreFlow(cols:Int,rows:Int,unit:Float,time:Float,skin:TerminalSkin,night:Boolean,quotaCore:Boolean=false) {
     if(!skin.coreFlow || skin.flowBrightness<=0f || skin.effect==GridEffect.Off) return
     val routes=coreRoutes(cols,rows);val core=routes.firstOrNull()?.firstOrNull() ?: return
     val power=boundedLight(skin.flowBrightness)
@@ -43,10 +43,12 @@ internal fun DrawScope.drawCoreFlow(cols:Int,rows:Int,unit:Float,time:Float,skin
     val pulse=.8f+.2f*sin(time*2.2f)
     val origin=core*unit
     // Broad, faint bloom; tight bright rings. Keep the center hollow for readability.
+    if(!quotaCore) {
     for(layer in 4 downTo 1) drawCircle(tint.copy(alpha=(.014f*power*pulse).coerceAtMost(.09f)),unit*(1.2f+layer*.32f),origin,style=Stroke(unit*.4f))
     drawCircle(tint.copy(alpha=(.15f*power).coerceAtMost(.42f)),unit*1.25f,origin,style=Stroke(unit*.06f))
     drawArc(white.copy(alpha=(.28f*power*pulse).coerceAtMost(.65f)),time*18f,245f,false,
         origin-Offset(unit,unit),androidx.compose.ui.geometry.Size(unit*2,unit*2),style=Stroke(unit*.065f,cap=StrokeCap.Round))
+    }
     routes.forEachIndexed { index,route ->
         val length=circuitLength(route)
         if(length<=0f) return@forEachIndexed
@@ -54,7 +56,7 @@ internal fun DrawScope.drawCoreFlow(cols:Int,rows:Int,unit:Float,time:Float,skin
         // Short segments sample arclength, so bends never produce diagonal shortcuts.
         for(part in 0..23) {
             val from=head-part*.12f;val to=from-.1f
-            if(to<1.35f || from>length) continue
+            if(to<(if(quotaCore)size.width/unit*.46f else 1.35f) || from>length) continue
             val a=circuitPoint(route,to)*unit;val b=circuitPoint(route,from)*unit
             val fade=(1f-part/24f).pow(2)
             val color=if(skin.rainbow)Color.hsv((hue+index*12f)%360,.5f,if(night)1f else .55f) else tint

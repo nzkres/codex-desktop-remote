@@ -65,7 +65,7 @@ internal class GridSimulation(private val random: Random = Random.Default) {
     }
 }
 
-@Composable internal fun TerminalGrid(running: Boolean, modifier: Modifier = Modifier) {
+@Composable internal fun TerminalGrid(running: Boolean, modifier: Modifier = Modifier, quota: DeviceQuota? = null) {
     val skin=LocalChatAppearance.current.skin
     val motion=rememberChatMotion()
     val pace=gridPace(running,skin.idleStill,motion,skin.speed)
@@ -82,6 +82,8 @@ internal class GridSimulation(private val random: Random = Random.Default) {
         }
     }
     val night=LocalAppPalette.current.isNight
+    var observedNow by remember { mutableLongStateOf(System.currentTimeMillis()) }
+    LaunchedEffect(quota) { while(true) { observedNow=System.currentTimeMillis();delay(30000) } }
     Canvas(modifier) {
         val unit=24.dp.toPx()
         val cols=ceil(size.width/unit).toInt(); val rows=ceil(size.height/unit).toInt()
@@ -89,11 +91,12 @@ internal class GridSimulation(private val random: Random = Random.Default) {
         val lineAlpha=(.075f*boundedLight(skin.lineBrightness)).coerceAtMost(.3f)
         for(x in 0..cols) drawLine(line.copy(alpha=lineAlpha),Offset(x*unit,0f),Offset(x*unit,size.height),.65.dp.toPx())
         for(y in 0..rows) drawLine(line.copy(alpha=lineAlpha),Offset(0f,y*unit),Offset(size.width,y*unit),.65.dp.toPx())
-        drawCoreFlow(cols,rows,unit,clock.floatValue,skin,night)
+        drawCoreFlow(cols,rows,unit,clock.floatValue,skin,night,quotaCore=true)
         simulation.cells(skin.effect,clock.floatValue,cols,rows).forEach { cell ->
             val hue=if(skin.rainbow) cell.hue else skin.palette.hue
             val color=Color.hsv(hue,.55f,if(night) 1f else .65f, (cell.strength*.25f*boundedLight(skin.brightness)).coerceIn(0f,.48f))
             drawRect(color,Offset(cell.x*unit+1,cell.y*unit+1),Size(unit-2,unit-2))
         }
+        drawQuotaCore(quota,observedNow,clock.floatValue,skin,night)
     }
 }

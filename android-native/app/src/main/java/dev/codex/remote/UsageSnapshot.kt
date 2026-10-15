@@ -7,7 +7,8 @@ data class UsageWindow(val usedPercent:Double,val minutes:Int,val resetsAt:Long)
     val remaining:Int get()=(100-usedPercent).coerceIn(0.0,100.0).roundToInt()
     val label:String get()=when { minutes%1440==0 -> "${minutes/1440}天";minutes%60==0 -> "${minutes/60}小时";else -> "${minutes}分钟" }
 }
-data class UsageLimit(val id:String,val capturedAt:Long,val windows:List<UsageWindow>)
+data class UsageLimit(val id:String,val capturedAt:Long,val windows:List<UsageWindow>,val planType:String?=null)
+internal fun quotaPlan(value:String?):String? = value?.lowercase()?.takeIf { it in setOf("free","go","plus","pro","team","business","enterprise","edu") }
 data class UsageSnapshot(val limits:List<UsageLimit>,val supported:Boolean=true)
 internal fun parseUsageSnapshot(value:JSONObject?):UsageSnapshot? {
     if(value==null) return null
@@ -22,7 +23,7 @@ internal fun parseUsageSnapshot(value:JSONObject?):UsageSnapshot? {
             val used=w.optDouble("usedPercent",Double.NaN);val minutes=w.optInt("windowDurationMins",0);val reset=w.optLong("resetsAt",0)
             if(!used.isFinite() || used !in 0.0..100.0 || minutes !in 1..525600 || reset<=0) null else UsageWindow(used,minutes,reset)
         }
-        if(valid.isEmpty()) null else UsageLimit(id,at,valid)
+        if(valid.isEmpty()) null else UsageLimit(id,at,valid,quotaPlan(row.optString("planType")))
     }
     return UsageSnapshot(parsed)
 }

@@ -335,7 +335,7 @@ private fun RemoteApp(night: Boolean, destination: NotificationDestination?, onD
 
     val palette = LocalAppPalette.current
     Box(Modifier.fillMaxSize().background(if(palette.isNight) Color(LocalChatAppearance.current.skin.palette.dark) else palette.background)) {
-    if (selectedId == null) TerminalGrid(sessions.any { hubStatuses[it.id]?.running == true }, Modifier.matchParentSize())
+    if (selectedId == null) TerminalGrid(sessions.any { hubStatuses[it.id]?.running == true }, Modifier.matchParentSize(),quotaStore?.values?.get(gateway?.target?.id))
     Column(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing)) {
         if (gateway != null && draftStorage.isFailure) Text("本机草稿存储暂不可用，请复制输入内容后再离开对话。",
             color = palette.errorInk, fontSize = 12.sp, modifier = Modifier.padding(12.dp))

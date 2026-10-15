@@ -12,8 +12,16 @@ class DesktopUsageTests(unittest.TestCase):
         db.execute('CREATE TABLE threads(id,rollout_path,source,originator,thread_source)')
         db.execute('INSERT INTO threads VALUES (?,?,?,?,?)',(ID,str(path),'vscode','Codex Desktop',None));db.commit();db.close()
         return path
-    def append(self,path,used=80,limit='codex'):
-        with path.open('a',encoding='utf8') as f:f.write(json.dumps({'type':'event_msg','timestamp':'2026-10-15T00:00:00Z','payload':{'type':'token_count','rate_limits':{'limit_id':limit,'primary':{'used_percent':used,'window_minutes':10080,'resets_at':1792474764},'credits':{'balance':'PRIVATE_VALUE'}}}})+'\n')
+    def append(self,path,used=80,limit='codex',plan=None):
+        with path.open('a',encoding='utf8') as f:f.write(json.dumps({'type':'event_msg','timestamp':'2026-10-15T00:00:00Z','payload':{'type':'token_count','rate_limits':{'limit_id':limit,'plan_type':plan,'primary':{'used_percent':used,'window_minutes':10080,'resets_at':1792474764},'credits':{'balance':'PRIVATE_VALUE'}}}})+'\n')
+    def test_plan_is_whitelisted_from_same_event_and_never_borrowed_from_older_snapshot(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory);path=self.fixture(root)
+            for plan in ('plus','PRO','PRIVATE_TOKEN',None,{'token':'PRIVATE_VALUE'}):
+                self.append(path,plan=plan)
+                row=module.read_usage(root,ID)['limits'][0]
+                self.assertEqual(row.get('planType'),plan.lower() if isinstance(plan,str) and plan.lower() in ('plus','pro') else None)
+                self.assertNotIn('PRIVATE',json.dumps(row))
     def test_recent_events_only_public_fields_multiple_buckets_and_wal(self):
         with tempfile.TemporaryDirectory() as directory:
             root=Path(directory);path=self.fixture(root)

@@ -15,6 +15,7 @@ import androidx.compose.ui.unit.sp
 import androidx.core.content.res.ResourcesCompat
 
 enum class GlassSkin(val label: String) { Smoke("烟灰玻璃"), Frost("极简磨砂"), Clear("清透玻璃") }
+enum class QuotaStyle(val label: String) { Digits("光格数字"), Ring("环形光格"), Matrix("圆内矩阵"), Dual("双额度环"), Radial("星核扩散") }
 enum class GridEffect(val label: String) { Off("关闭"), Snake("随机光蛇"), Blocks("随机方块"), Rhythm("网格律动"), Random("随机格子"), Scan("扫光"), Breathe("呼吸"), Stars("星点") }
 enum class GridPalette(val label: String, val dark: Long, val hue: Float) {
     Graphite("石墨黑",0xFF151516,210f), Silver("雾银灰",0xFF202123,210f),
@@ -33,13 +34,15 @@ data class TerminalSkin(
     val effect: GridEffect = GridEffect.Blocks, val palette: GridPalette = GridPalette.Graphite,
     val speed: Float = 1f, val brightness: Float = 1f, val idleStill: Boolean = false, val rainbow: Boolean = true,
     val lineBrightness: Float = 1.4f, val flowBrightness: Float = 1f, val coreFlow: Boolean = true,
+    val quotaStyle: QuotaStyle = QuotaStyle.Digits,
 )
 private inline fun <reified T:Enum<T>> SharedPreferences.enum(key:String, fallback:T):T = enumValues<T>().find { it.name == getString(key,null) } ?: fallback
 internal fun readTerminalSkin(p:SharedPreferences) = TerminalSkin(
     p.enum("skin_glass",GlassSkin.Clear),p.enum("skin_font",BodyFont.MaShan),p.getBoolean("skin_bright",true),p.getBoolean("skin_shadow",true),
     p.enum("skin_effect",GridEffect.Blocks),p.enum("skin_palette",GridPalette.Graphite),
     boundedMotion(p.getFloat("skin_speed",1f)),boundedLight(p.getFloat("skin_brightness",1.4f)),p.getBoolean("skin_idle_still",false),p.getBoolean("skin_rainbow",true),
-    boundedLight(p.getFloat("skin_line_brightness",1.4f)),boundedLight(p.getFloat("skin_flow_brightness",1f)),p.getBoolean("skin_core_flow",true))
+    boundedLight(p.getFloat("skin_line_brightness",1.4f)),boundedLight(p.getFloat("skin_flow_brightness",1f)),p.getBoolean("skin_core_flow",true),
+    p.enum("skin_quota_style",QuotaStyle.Digits))
 internal fun boundedLight(value:Float) = if(value.isFinite()) value.coerceIn(0f,4f) else 1f
 internal fun boundedMotion(value:Float) = if(value.isFinite()) value.coerceIn(.25f,2f) else 1f
 internal fun gridPace(running:Boolean, idleStill:Boolean, motion:Boolean, speed:Float):Float =
@@ -61,6 +64,7 @@ internal fun configureSkinText(view:TextView, skin:TerminalSkin, night:Boolean) 
     SkinChoice("对话字体",BodyFont.entries,skin.font,{it.label}){prefs.edit().putString("skin_font",it.name).apply()}
     SkinChoice("背景配色",GridPalette.entries,skin.palette,{it.label}){prefs.edit().putString("skin_palette",it.name).apply()}
     SkinChoice("背景动效",GridEffect.entries,skin.effect,{it.label}){prefs.edit().putString("skin_effect",it.name).apply()}
+    SkinChoice("额度样式",QuotaStyle.entries,skin.quotaStyle,{it.label}){prefs.edit().putString("skin_quota_style",it.name).apply()}
     SkinToggle("灰白文字（关闭为深灰）",skin.bright){prefs.edit().putBoolean("skin_bright",it).apply()}
     SkinToggle("文字阴影",skin.textShadow){prefs.edit().putBoolean("skin_shadow",it).apply()}
     SkinToggle("彩色光格",skin.rainbow){prefs.edit().putBoolean("skin_rainbow",it).apply()}
@@ -74,11 +78,6 @@ internal fun configureSkinText(view:TextView, skin:TerminalSkin, night:Boolean) 
     Slider(skin.lineBrightness,{prefs.edit().putFloat("skin_line_brightness",it).apply()},valueRange=0f..4f)
     Text("核心流光亮度 · ${(skin.flowBrightness*100).toInt()}%",color=p.ink,fontSize=13.sp)
     Slider(skin.flowBrightness,{prefs.edit().putFloat("skin_flow_brightness",it).apply()},valueRange=0f..4f)
-    Box(Modifier.fillMaxWidth().height(176.dp).padding(vertical=8.dp)) {
-        androidx.compose.foundation.Canvas(Modifier.matchParentSize()) { drawRect(if(p.isNight) Color(skin.palette.dark) else Color(0xFFF1F2F3)) }
-        TerminalGrid(true,Modifier.matchParentSize())
-        Text("实时背景预览\n前景文字保持清晰",color=Color(0xFFE1E8F0),fontSize=14.sp,modifier=Modifier.padding(16.dp))
-    }
     Text("运行速度 ×1.5；空闲慢速 ×0.25。后台、减少动画或系统关闭动画时停止。字体离线可用，代码保持等宽。",color=p.muted,fontSize=12.sp)
 }
 @Composable private fun SkinToggle(label:String,value:Boolean,onChange:(Boolean)->Unit) {

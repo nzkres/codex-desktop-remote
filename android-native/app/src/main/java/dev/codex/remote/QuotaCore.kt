@@ -1,0 +1,112 @@
+package dev.codex.remote
+
+import android.graphics.Paint
+import android.graphics.Typeface
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.nativeCanvas
+import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.unit.dp
+import kotlin.math.*
+
+// Each window remains attached to its real account snapshot. A plan name is not
+// evidence that a returned weekly window can be discarded (Pro can return both).
+internal fun quotaWindows(limit: UsageLimit?) = limit?.windows.orEmpty().take(2)
+internal data class QuotaCoreGeometry(val center: Offset, val radius: Float)
+internal fun quotaCoreGeometry(width: Float, height: Float, count: Int): List<QuotaCoreGeometry> {
+    if(width<=0f || height<=0f) return emptyList()
+    val n=count.coerceIn(1,2)
+    val radius=min(width*(if(n==1).31f else .215f),height*.19f)
+    return List(n) { i -> QuotaCoreGeometry(Offset(width*(if(n==1).5f else if(i==0).265f else .735f),height*.32f),radius) }
+}
+private val quotaGlyphs=mapOf(
+    '0' to "01110/11011/11011/11011/11011/11011/01110", '1' to "00100/01100/00100/00100/00100/00100/01110",
+    '2' to "01110/11011/00011/00110/01100/11000/11111", '3' to "11110/00011/00011/01110/00011/00011/11110",
+    '4' to "00011/00111/01111/11011/11111/00011/00011", '5' to "11111/11000/11000/11110/00011/00011/11110",
+    '6' to "01110/11000/11000/11110/11011/11011/01110", '7' to "11111/00011/00110/00110/01100/01100/01100",
+    '8' to "01110/11011/11011/01110/11011/11011/01110", '9' to "01110/11011/11011/01111/00011/00011/01110",
+    '%' to "11001/11011/00010/00100/01000/11011/10011", '—' to "00000/00000/00000/11111/00000/00000/00000")
+internal fun quotaDigitCells(text: String): List<Pair<Int,Int>> = text.take(4).flatMapIndexed { index,ch ->
+    quotaGlyphs[ch].orEmpty().split('/').flatMapIndexed { y,row -> row.mapIndexedNotNull { x,c -> if(c=='1') (index*6+x) to y else null } }
+}
+
+internal fun DrawScope.drawQuotaCore(value: DeviceQuota?, now: Long, time: Float, skin: TerminalSkin, night: Boolean) {
+    val limit=quotaLimit(value); val windows=quotaWindows(limit)
+    val stale=value?.unavailable==true || limit?.let { usageStale(it,now) }!=false
+    val power=boundedLight(skin.flowBrightness)
+    if(power==0f) return
+    val tint=if(night) Color(0xFFD5F7EB) else Color(0xFF285A4C)
+    val alpha=(power*(if(stale).16f else .32f)).coerceAtMost(if(night).48f else .4f)
+    val paint=Paint(Paint.ANTI_ALIAS_FLAG).apply { textAlign=Paint.Align.CENTER;typeface=Typeface.MONOSPACE }
+    val combined=skin.quotaStyle==QuotaStyle.Dual && windows.size==2
+    val geometry=quotaCoreGeometry(size.width,size.height,if(combined)1 else windows.size)
+    geometry.forEachIndexed { index,g ->
+        val w=windows.getOrNull(index);val amount=w?.remaining
+        val fraction=(amount ?: 0)/100f
+        val c=g.center;val r=g.radius
+        val ink=tint.copy(alpha=alpha)
+        drawCircle(ink.copy(alpha=alpha*.17f),r,c,style=Stroke(r*.06f))
+        drawCircle(ink.copy(alpha=alpha*.1f),r*.91f,c,style=Stroke(r*.14f))
+        when(skin.quotaStyle) {
+            QuotaStyle.Digits -> {
+                drawCircle(ink.copy(alpha=alpha*.4f),r*.96f,c,style=Stroke(r*.009f))
+                drawArc(ink,-90f,360f*fraction,false,c-Offset(r,r),Size(r*2,r*2),style=Stroke(r*.022f))
+            }
+            QuotaStyle.Ring -> repeat(80) { cell ->
+                val angle=(cell/80f*2*PI-PI/2).toFloat()
+                val point=c+Offset(cos(angle),sin(angle))*r*.94f
+                val lit=cell<floor(fraction*80).toInt()
+                val cellSize=r*.045f
+                drawRect(ink.copy(alpha=alpha*if(lit).9f else .12f),point-Offset(cellSize/2,cellSize/2),Size(cellSize,cellSize))
+            }
+            QuotaStyle.Matrix -> {
+                val cells=(-10..10).flatMap { y -> (-10..10).mapNotNull { x ->
+                    if(x*x+y*y<=100 && (abs(y)>4 || abs(x)>8)) x to y else null
+                } }.sortedWith(compareByDescending<Pair<Int,Int>>{it.second}.thenBy {it.first})
+                val edge=r*.082f
+                cells.forEachIndexed { i,(x,y) ->
+                    val point=c+Offset(x*r*.09f,y*r*.09f)
+                    drawRect(ink.copy(alpha=alpha*if(i<floor(cells.size*fraction).toInt()).55f else .08f),point-Offset(edge/2,edge/2),Size(edge,edge))
+                }
+            }
+            QuotaStyle.Dual -> {
+                for((ring,scale) in (if(combined)listOf(.94f,.81f)else listOf(.94f)).withIndex()) {
+                    val radius=r*scale
+                    val actual=(windows.getOrNull(if(combined)ring else index)?.remaining ?: 0)/100f
+                    drawCircle(ink.copy(alpha=alpha*.15f),radius,c,style=Stroke(r*.026f))
+                    drawArc(ink.copy(alpha=alpha*if(scale>.9f).85f else .55f),-90f,360f*actual,false,
+                        c-Offset(radius,radius),Size(radius*2,radius*2),style=Stroke(r*.026f))
+                }
+            }
+            QuotaStyle.Radial -> repeat(64) { ray ->
+                val a=(ray/64f*2*PI).toFloat();val direction=Offset(cos(a),sin(a))
+                val lit=ray<floor(64*fraction).toInt()
+                val pulse=if(lit) .8f+.2f*sin(time*1.3f+ray*.4f) else .12f
+                drawLine(ink.copy(alpha=alpha*pulse*.65f),c+direction*r*.76f,c+direction*r*(if(ray%4==0)1.07f else .98f),r*.018f)
+            }
+        }
+        // Square pixels build the digits; every style has its number in the ring center.
+        val slots=if(combined)windows else listOf(w)
+        slots.forEachIndexed { slot,window ->
+        val numberCenter=if(combined)c+Offset(0f,if(slot==0)-r*.27f else r*.27f)else c
+        val text=window?.remaining?.let { "$it%" } ?: "—"
+        val pixel=min(r*(if(combined).048f else .073f),r*1.38f/(text.length*6-1))
+        val origin=numberCenter-Offset((text.length*6-1)*pixel/2,7*pixel/2)
+        quotaDigitCells(text).forEach { (x,y) ->
+            val point=origin+Offset(x*pixel,y*pixel)
+            drawRect(ink.copy(alpha=alpha*.13f),point-Offset(pixel*.3f,pixel*.3f),Size(pixel*1.45f,pixel*1.45f))
+            drawRect(ink,point,Size(pixel*.78f,pixel*.78f))
+        }
+        paint.textSize=min(11.dp.toPx(),r*.15f);paint.color=ink.copy(alpha=alpha*.9f).toArgb()
+        val label=if(window==null) "未同步" else (if(stale)"上次 · " else "")+window.label
+        drawContext.canvas.nativeCanvas.drawText(label,numberCenter.x,numberCenter.y+r*(if(combined).27f else .49f),paint)
+        }
+        if(index==0 && limit?.planType!=null) {
+            paint.textSize=min(10.dp.toPx(),r*.13f)
+            drawContext.canvas.nativeCanvas.drawText(limit.planType.uppercase(),c.x,c.y-r*(if(combined).65f else .5f),paint)
+        }
+    }
+}
