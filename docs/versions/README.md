@@ -1,3 +1,5 @@
+> Windows alpha.25：修复独立回退和分阶段提示；已发布且稳定启动器已维护迁移，安装等待原生空闲。[分层证据](../EXISTING-CONVERSATION-ADMISSION.md)。
+
 > Windows alpha.24：长路径兼容与原验收空对话接入，具体分层证据见[接入记录](../EXISTING-CONVERSATION-ADMISSION.md)。
 
 > Windows alpha.23：接入已有验收空对话，沿用原 ID 和回执；[具体证据与安装边界](../EXISTING-CONVERSATION-ADMISSION.md)。
