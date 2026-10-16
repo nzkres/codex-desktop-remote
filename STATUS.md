@@ -1,3 +1,7 @@
+## 2026-10-16 手机新对话缺口已核实，尚未接通
+
+用户指出新版首页没有新对话。确认正式ConversationHub无入口、旧入口禁用，Gateway旧创建POST未被连接器实现，create能力固定false。只读核对Desktop26.1007.9446：原生follower无创建方法，新建深链仅prefill草稿；独立工具桥尚缺手机调用方合法接入。未启用无效按钮、伪造工具回合或新增执行器；原连接/回执未变，无新发布。接入及防重复创建要求见[新对话缺口](docs/MOBILE-CREATE-CONVERSATION.md)。
+
 ## 2026-10-16 Windows alpha.20 已发布，现装alpha.18保持连接
 
 新sequence16签名包已发布原私有源；实际HTTPS完整下载/原签名/大小/哈希通过，匿名元数据与包401。使用实际alpha.18验签器、原信任和账本验证新包通过，未改本机指针/账本/事务；原alpha.18连接health=200、healthy及sameInstance为true。Node184、Python219（7跳过）通过。新包尚未实际安装，候选真实健康及手机新发送另验收。见[发布证据](docs/WINDOWS-ALPHA20-PUBLICATION.md)。
