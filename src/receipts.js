@@ -18,7 +18,7 @@ export class Receipts {
   // key 固定同一任务及客户端消息编号；digest 固定消息正文，供重复请求比对。
   digest(text) { return createHash('sha256').update(text).digest('hex'); }
   file(key) { return join(this.directory, key + '.json'); }
-  assertCertain() {
+  assertCertain(exceptCreationKey = null) {
     // 发送前或断开/更新前扫描目录：存在 pending、损坏记录或链接时，拒绝继续操作。
     // The directory belongs to all explicitly configured tasks. Changing a message
     // ID must never escape an earlier uncertain send, including after restart.
@@ -29,6 +29,7 @@ export class Receipts {
         throw new ControlError('receipt_invalid','发送记录无法核对，消息未发送。');
       let record;
       try { record=JSON.parse(readFileSync(join(this.directory,name),'utf8')); } catch { record=null; }
+      if(name===exceptCreationKey+'.json' && record?.creation && record.state==='pending') continue;
       if (record?.schema !== 1 || record.state !== 'accepted' || typeof record.turnId !== 'string' || !record.turnId)
         throw new ControlError('send_unknown','已开放任务中有一条发送结果未确认，请在 Desktop 核对；更换消息编号也不会重发。');
     }
@@ -49,6 +50,34 @@ export class Receipts {
     try { writeFileSync(fd, JSON.stringify(value)); fsyncSync(fd); } finally { closeSync(fd); }
   }
   begin(key, digest, question = null) { this.write(this.file(key), { schema: 1, digest, state: 'pending', ...(question ? {question} : {}) }); }
+  creationRecords() {
+    const result=[];
+    const files=readdirSync(this.directory).filter(n=>n.endsWith('.json'));
+    if(files.length>10000)throw new ControlError('receipt_limit','操作记录需维护者核对。');
+    for(const name of files) {
+      if(!/^[a-f0-9]{64}\.json$/.test(name)||lstatSync(join(this.directory,name)).isSymbolicLink())
+        throw new ControlError('receipt_invalid','创建记录无法核对。');
+      let r;try{r=JSON.parse(readFileSync(join(this.directory,name),'utf8'));}catch{throw new ControlError('receipt_invalid','操作记录无法核对。');}
+      if(!r.creation)continue;
+      const c=r.creation;
+      if(r.schema!==1||!['pending','accepted'].includes(r.state)||!/^[a-f0-9]{64}$/.test(r.digest??'')
+        ||!/^[A-Za-z0-9_-]{1,100}$/.test(c.requestId??'')||typeof c.projectId!=='string'||typeof c.projectPath!=='string'
+        ||this.key('create-conversation',c.requestId)+'.json'!==name
+        ||(c.threadId&&!/^[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}$/.test(c.threadId))
+        ||(Object.hasOwn(c,'persisted')&&typeof c.persisted!=='boolean')
+        ||(c.persisted&&!c.threadId)
+        ||(r.state==='accepted'&&(!c.persisted||r.turnId!==c.threadId)))
+        throw new ControlError('receipt_invalid','创建记录无法核对。');
+      result.push({...r,key:name.slice(0,-5)});
+      if(result.length>1000)throw new ControlError('receipt_limit','创建记录需维护者核对。');
+    }
+    return result;
+  }
+  saveCreation(key,digest,creation,state='pending',initial=false) {
+    const value={schema:1,digest,state,creation,...(state==='accepted'?{turnId:creation.threadId}:{})};
+    if(initial){this.write(this.file(key),value);return;}
+    const tmp=this.file(key)+'.'+randomUUID()+'.tmp';this.write(tmp,value);renameSync(tmp,this.file(key));
+  }
   // Desktop 确认后先写临时文件，再原子替换 pending；异常会留下待人工核对的记录。
   accept(key, digest, turnId, question = null, outcome = 'accepted') {
     const tmp = this.file(key) + '.' + randomUUID() + '.tmp';

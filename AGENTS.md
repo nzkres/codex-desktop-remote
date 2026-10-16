@@ -1,6 +1,7 @@
 # Project rules
 
 - Product: an Android remote for an existing native Codex Desktop task. Desktop owns execution. Do not add app-server, copy threads, alter Desktop internals, or bypass compatibility/permissions.
+- User-authorized exception (2026-10-16): a short-lived stdio-only app-server may initialize, create/name/read an empty conversation, then exit before native Desktop adoption. It must never start a turn, inject input, borrow executor/tool metadata, or become an execution channel. Preserve the paired connection and original receipts. Other app-server use remains prohibited.
 - Keep the first acceptance scope to one explicitly selected test task. Keep changes small and record evidence in STATUS.md and CHANGELOG.md.
 - Read docs/UI-BASELINE.md before UI work. Reuse existing Android transcript, glass controls, drafts and navigation; retain the Windows connection window. Do not redesign without the user's request.
 - Use synthetic identities, temporary databases and isolated loopback ports for tests. Never copy real DPAPI state, private logs, signing keys, account tokens or runtime data into Git.

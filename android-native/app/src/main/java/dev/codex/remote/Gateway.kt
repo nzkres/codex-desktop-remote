@@ -111,6 +111,8 @@ internal fun questionAnswerRejectedBeforeSend(error: GatewayException): Boolean 
         else -> false
     }
 
+internal data class PendingConversationCreate(val id:String,val project:String,val title:String,val prompt:String)
+
 class Credentials(context: Context) {
     private val prefs = EncryptedSharedPreferences.create(
         "gateway-credentials",
@@ -137,6 +139,23 @@ class Credentials(context: Context) {
     var url: String
         get() = prefs.getString("url", "") ?: ""
         set(value) { prefs.edit().putString("url", value).apply() }
+    internal fun pendingCreate(scope: String): PendingConversationCreate? = prefs.getString("pending-create-$scope", null)?.let {
+        val j=JSONObject(it)
+        PendingConversationCreate(j.getString("id"),j.getString("project"),j.getString("title"),j.getString("prompt"))
+    }
+    internal fun prepareCreate(scope:String,project:String,title:String,prompt:String):PendingConversationCreate {
+        pendingCreate(scope)?.let { old ->
+            check(old.project==project && old.title==title && old.prompt==prompt) { "上次创建尚未确认，请先核对原请求。" }
+            return old
+        }
+        val pending=PendingConversationCreate(java.util.UUID.randomUUID().toString(),project,title,prompt)
+        check(prefs.edit().putString("pending-create-$scope",JSONObject().put("id",pending.id).put("project",project)
+            .put("title",title).put("prompt",prompt).toString()).commit()) { "无法保存创建请求，未开始新建。" }
+        return pending
+    }
+    internal fun finishCreate(scope:String,id:String) {
+        if(pendingCreate(scope)?.id==id)check(prefs.edit().remove("pending-create-$scope").commit()) { "对话已创建，请再次核对保存结果。" }
+    }
     var token: String
         get() = prefs.getString("token", "") ?: ""
         set(value) { prefs.edit().putString("token", value).apply() }
@@ -175,7 +194,7 @@ class Credentials(context: Context) {
     }
     fun acknowledgeMessage(endpoint: String, id: String) { prefs.edit().remove(messageKey(endpoint, id)).commit() }
     fun hasUnconfirmedMessages(): Boolean = prefs.all.keys.any {
-        it.startsWith("pending-send-") && it != "pending-send-legacy-owner"
+        (it.startsWith("pending-send-") && it != "pending-send-legacy-owner") || it.startsWith("pending-create-")
     }
     fun clear() { prefs.edit().clear().apply() }
 }
@@ -346,8 +365,13 @@ class Gateway(private val baseUrl: String, private val token: String, val target
             if(result.opt("running") is Boolean) result.getBoolean("running") else null, parseUsageSnapshot(result.optJSONObject("usage")), result.string("readRevision"), result.string("readKey"))
     }
 
-    suspend fun create(projectId: String, title: String, mode: String): Session {
-        val json = request("/api/projects/${projectId.encode()}/sessions", JSONObject().put("title", title).put("mode", mode))
+    suspend fun creationProjects():List<Project> {
+        val json=request("/api/projects")
+        check(json.optBoolean("create",false)) { "这台电脑暂不支持手机新建，请更新连接器并保持 Desktop 打开。" }
+        return json.array("creationProjects").map { Project(it.string("id"),it.string("name")) }
+    }
+    suspend fun create(projectId: String, title: String, requestId: String): Session {
+        val json = request("/api/projects/${projectId.encode()}/sessions", JSONObject().put("title", title).put("createRequestId",requestId))
         val item = json.getJSONObject("session")
         return Session(item.string("id"), item.string("project_id"), item.string("title"), item.string("status"), null, item.string("mode"), item.optLong("updated_at"))
     }

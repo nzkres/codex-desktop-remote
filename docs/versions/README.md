@@ -1,4 +1,6 @@
-> Windows alpha.21/sequence17已签名发布，本机实际安装并自动连接；[验收证据](../WINDOWS-ALPHA21-PUBLICATION.md)。原生手机新建对话仍未实现，不包含在本版中。
+> 本轮候选：Android alpha.21 / Windows alpha.22 已接入手机新建；先完成构建与测试，未替换现有连接或更新私有索引。[实现与验收边界](../MOBILE-CREATE-CONVERSATION.md)。以下 alpha.21 连接器发布记录是历史层级，不代表本轮功能已安装。
+
+> Windows alpha.21/sequence17已签名发布；当时的[验收证据](../WINDOWS-ALPHA21-PUBLICATION.md)。手机新建不包含在该旧版中。
 
 ## Windows alpha.21激活修复
 

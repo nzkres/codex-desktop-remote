@@ -84,3 +84,4 @@ pythonw windows/controller.py fixture.local.json
 连接窗口的服务器地址默认留空，由用户填写。当前现用旧实例不能由本命令直接接管，见 [RECOVERY.md](RECOVERY.md)。本仓库不修改原 APK 安装或公网服务。
 
 Android 包的 application ID 独立，可与旧 App 并存，**不用卸载旧 App**；本包关闭旧 OTA。CI/debug 构件没有稳定的跨机器签名，后续覆盖安装必须使用同一私有签名，不能承诺 debug APK 可连续升级。手机 UI 沿用 [原视觉基线](docs/UI-BASELINE.md)，但原界面里保留的“新建任务、审批、模式”等入口并不代表新连接器已经接通这些能力；这些操作目前留在 Desktop。版本计划见 [docs/ITERATION.md](docs/ITERATION.md)。
+> 构建验证候选：Android alpha.21 / Windows alpha.22 接通手机新建空对话，退出创建辅助进程后由 Desktop 接管；消息保持草稿并沿原发送链路处理。本轮先完成构建与测试，未替换现有连接或私有更新索引。[实现与验收](docs/MOBILE-CREATE-CONVERSATION.md)。

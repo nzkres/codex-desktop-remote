@@ -116,6 +116,8 @@ private fun RemoteApp(night: Boolean, destination: NotificationDestination?, onD
     var error by remember { mutableStateOf("") }
     var busy by remember { mutableStateOf(false) }
     var createOpen by remember { mutableStateOf(false) }
+    var creationProjects by remember { mutableStateOf<List<Project>>(emptyList()) }
+    var pendingCreation by remember { mutableStateOf<PendingConversationCreate?>(null) }
     var endpointOpen by remember { mutableStateOf(false) }
     val updater = remember(context) { UpdateClient(context) }
     var updateOffer by remember { mutableStateOf<UpdateOffer?>(null) }
@@ -394,7 +396,23 @@ private fun RemoteApp(night: Boolean, destination: NotificationDestination?, onD
                 Box(Modifier.weight(1f)) {
                     when (rootTab) {
                         RootTab.Tasks -> ConversationHub(gateway!!, sessions, projects, activityEntries, busy, hubStatuses, lastMetadataAt, draftStore, quotaStore, quotaRuntime, readStore,
-                            onSelect = ::selectTarget, onOpen = { id, question -> openSelected(id, question) }, onManage = { terminalManagerOpen = true })
+                            onSelect = ::selectTarget, onOpen = { id, question -> openSelected(id, question) }, onManage = { terminalManagerOpen = true },
+                            onCreate = {
+                                val client=gateway!!
+                                scope.launch {
+                                    busy=true;error=""
+                                    try {
+                                        val list=client.creationProjects()
+                                        if(gateway===client) {
+                                            creationProjects=list
+                                            pendingCreation=credentials.pendingCreate(draftScope(client.taskEndpoint,credentials.account,credentials.token))
+                                            createOpen=true
+                                        }
+                                    } catch(e:CancellationException){throw e}
+                                    catch(e:Exception){if(gateway===client)error=e.message?:"无法读取这台电脑的项目"}
+                                    finally{busy=false}
+                                }
+                            })
                         RootTab.Projects -> ProjectRepositoryScreen(repositoryStore)
                         RootTab.Me -> MeScreen(
                             gatewayUrl = credentials.url,
@@ -669,11 +687,13 @@ private fun RemoteApp(night: Boolean, destination: NotificationDestination?, onD
 
     if (createOpen && gateway != null) {
         NewTaskDialog(
-            projects = projects,
+            projects = creationProjects,
             terminalName = gateway!!.target.name,
             busy = busy,
+            pending = pendingCreation,
+            notice = error,
             onDismiss = { createOpen = false },
-            onCreate = { project, title, mode, firstMessage ->
+            onCreate = { project, title, _, firstMessage ->
                 val client = gateway ?: return@NewTaskDialog
                 val targetDraftStore = draftStore
                 val sendScope = draftScope(client.taskEndpoint, credentials.account, credentials.token)
@@ -682,8 +702,18 @@ private fun RemoteApp(night: Boolean, destination: NotificationDestination?, onD
                     error = ""
                     var createdId: String? = null
                     try {
-                        val created = client.create(project, title.ifBlank { "新任务" }, mode)
+                        check(firstMessage.isBlank()||targetDraftStore!=null){"草稿存储不可用，未开始创建。"}
+                        val pending=credentials.prepareCreate(sendScope,project,title.trim().ifBlank{"新对话"},firstMessage)
+                        pendingCreation=pending
+                        val created = client.create(pending.project,pending.title,pending.id)
                         createdId = created.id
+                        // Preserve input on its original computer even if a delayed response arrives after switching.
+                        if(firstMessage.isNotBlank()) {
+                            val existing=targetDraftStore?.read(created.id)?.text.orEmpty()
+                            check(existing.isBlank()||existing==firstMessage){"新对话已有不同草稿；本次输入仍保存在创建请求中，请先核对。"}
+                            targetDraftStore?.write(created.id, firstMessage, durable=true)
+                        }
+                        credentials.finishCreate(sendScope,pending.id)
                         if (gateway !== client) throw CancellationException("电脑已切换")
                         // Once creation succeeds, a send/read failure must not
                         // leave the create dialog inviting a second new thread.
@@ -693,16 +723,6 @@ private fun RemoteApp(night: Boolean, destination: NotificationDestination?, onD
                         conversation = null
                         selectedId = created.id
                         createOpen = false
-                        if (firstMessage.isNotBlank()) {
-                            // A successful creation followed by a failed first send must not lose input.
-                            targetDraftStore?.write(created.id, firstMessage)
-                            val firstDraft = targetDraftStore?.read(created.id)
-                            val endpoint = sendScope
-                            val messageId = credentials.pendingMessageId(endpoint, created.id, firstMessage)
-                            client.send(created.id, firstMessage, messageId)
-                            credentials.acknowledgeMessage(endpoint, created.id)
-                            targetDraftStore?.clearIfUnchanged(created.id, firstDraft)
-                        }
                         try { refresh(client, created.id) } catch (exception: CancellationException) {
                             throw exception
                         } catch (exception: Exception) {
@@ -711,8 +731,8 @@ private fun RemoteApp(night: Boolean, destination: NotificationDestination?, onD
                     } catch (exception: CancellationException) {
                         throw exception
                     } catch (exception: Exception) {
-                        error = if (createdId != null) "任务已创建，但首条消息未确认。请先核对当前对话，不要重复新建：${exception.message.orEmpty()}"
-                            else exception.message ?: "创建失败"
+                        if(gateway===client)error = if (createdId != null) "对话已创建，请刷新原对话，消息草稿保留：${exception.message.orEmpty()}"
+                            else "创建尚未确认，已保留原请求。点击“核对并继续”不会重复新建：${exception.message.orEmpty()}"
                     } finally { busy = false }
                 }
             },
@@ -847,11 +867,11 @@ internal fun SessionList(sessions: List<Session>, activityEntries: List<Activity
 
 @Composable
 internal fun NewTaskDialog(projects: List<Project>, busy: Boolean, onDismiss: () -> Unit, terminalName: String = "",
+    pending:PendingConversationCreate?=null,notice:String="",
     onCreate: (String, String, String, String) -> Unit) {
-    var projectId by remember { mutableStateOf(projects.firstOrNull()?.id.orEmpty()) }
-    var title by remember { mutableStateOf("") }
-    var prompt by remember { mutableStateOf("") }
-    var mode by remember { mutableStateOf("default") }
+    var projectId by remember { mutableStateOf(pending?.project?:projects.firstOrNull()?.id.orEmpty()) }
+    var title by remember { mutableStateOf(pending?.title.orEmpty()) }
+    var prompt by remember { mutableStateOf(pending?.prompt.orEmpty()) }
     var projectsOpen by remember { mutableStateOf(false) }
     AlertDialog(
         onDismissRequest = { if (!busy) onDismiss() },
@@ -862,22 +882,20 @@ internal fun NewTaskDialog(projects: List<Project>, busy: Boolean, onDismiss: ()
                 if (terminalName.isNotBlank()) Text("执行电脑：$terminalName", color = HapiPalette.muted, fontSize = 12.sp)
                 Box {
                     GlassActionButton(projects.firstOrNull { it.id == projectId }?.name ?: "选择项目", { projectsOpen = true },
-                        Modifier.fillMaxWidth(), icon = "plan", enabled = !busy, chevron = true, menuOpen = projectsOpen)
+                        Modifier.fillMaxWidth(), icon = "plan", enabled = !busy&&pending==null, chevron = true, menuOpen = projectsOpen)
                     DropdownMenu(projectsOpen && !busy, { projectsOpen = false }) {
                         projects.forEach { project -> DropdownMenuItem(text = { Text(project.name) }, onClick = { projectId = project.id; projectsOpen = false }) }
                     }
                 }
-                OutlinedTextField(title, { title = it }, enabled = !busy, label = { Text("标题（可选）") }, shape = RoundedCornerShape(16.dp), modifier = Modifier.fillMaxWidth())
-                OutlinedTextField(prompt, { prompt = it }, enabled = !busy, label = { Text("第一条消息") }, shape = RoundedCornerShape(16.dp), modifier = Modifier.fillMaxWidth(), minLines = 2, maxLines = 4)
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    GlassActionButton("Agent", { mode = "default" }, icon = "agent", selected = mode == "default", enabled = !busy)
-                    Spacer(Modifier.width(8.dp))
-                    GlassActionButton("Plan", { mode = "plan" }, icon = "plan", selected = mode == "plan", enabled = !busy)
-                }
+                OutlinedTextField(title, { title = it.take(100) }, enabled = !busy&&pending==null, label = { Text("标题（可选）") }, shape = RoundedCornerShape(16.dp), modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(prompt, { prompt = it }, enabled = !busy&&pending==null, label = { Text("消息草稿（创建后手动发送）") }, shape = RoundedCornerShape(16.dp), modifier = Modifier.fillMaxWidth(), minLines = 2, maxLines = 4)
+                Text("模式和模型使用电脑的默认设置。",color=HapiPalette.muted,fontSize=11.sp)
+                if(notice.isNotBlank())Text(notice,color=LocalAppPalette.current.errorInk,fontSize=12.sp)
+                if(projects.isEmpty())Text("这台电脑暂无可用的本机项目目录。",color=HapiPalette.muted,fontSize=12.sp)
             }
         },
-        confirmButton = { GlassActionButton(if (busy) "正在创建" else "创建对话", { onCreate(projectId, title, mode, prompt) },
-            Modifier.testTag("confirm-new-conversation"), icon = "plus", selected = true, busy = busy, enabled = projectId.isNotBlank()) },
+        confirmButton = { GlassActionButton(if (busy) "正在核对" else if(pending!=null)"核对并继续"else "创建对话", { onCreate(projectId, title, "default", prompt) },
+            Modifier.testTag("confirm-new-conversation"), icon = "plus", selected = true, busy = busy, enabled = !busy&&projectId.isNotBlank()) },
         dismissButton = { TextButton(onClick = onDismiss, enabled = !busy) { Text("取消", color = HapiPalette.muted) } },
     )
 }

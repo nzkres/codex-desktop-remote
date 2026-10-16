@@ -1,7 +1,8 @@
 // 两种共享模式：旧配置保留选定任务；用户授权 all-local 后按本机目录自动发现。
 import { realpathSync } from 'node:fs';
-import { isAbsolute, toNamespacedPath } from 'node:path';
-import { Service, permissionDigests, READ_EVIDENCE } from './service.js';
+import { isAbsolute, toNamespacedPath, basename } from 'node:path';
+import {createHash} from 'node:crypto';
+import { Service, permissionDigests, configuredPermissionsMatch, READ_EVIDENCE } from './service.js';
 import { Follower } from './follower.js';
 import { ControlError, object } from './vendor/desktop-ipc.js';
 import { VERSION } from './version.js';
@@ -9,6 +10,8 @@ import {readCatalog, taskScope, taskId, localProjectPath} from './catalog.js';
 import {MobileSync} from './vendor/mobile-sync.js';
 import {Activity} from './activity.js';
 import {ensureDesktopConversation} from './desktop-open.js';
+import {createEmptyConversation,verifyCreationSupport} from './create-empty.js';
+import {nativeTurns,assertIdle} from './vendor/desktop-state.js';
 
 export function taskConfigs(config) {
   if (taskScope(config) === 'all-local') return [];
@@ -38,11 +41,13 @@ export function taskConfigs(config) {
 }
 
 export class TaskService {
-  constructor(config, receipts, {createFollower = cfg => new Follower(cfg), discover = readCatalog, prepareDesktop = ensureDesktopConversation, ...options} = {}) {
+  constructor(config, receipts, {createFollower = cfg => new Follower(cfg), discover = readCatalog, prepareDesktop = ensureDesktopConversation,
+    createEmpty = createEmptyConversation, verifyCreate = verifyCreationSupport, ...options} = {}) {
     this.config = config; this.services = new Map(); this.draining = false; this.checking = false; this.writes = 0;
     this.discover = discover; this.createFollower = createFollower; this.prepareDesktop = prepareDesktop; this.desktopOpening = null; this.receipts = receipts; this.options = options;
     this.automatic = taskScope(config) === 'all-local'; this.catalog = new Map(); this.closed = false; this.readers = new Map(); this.readDrainWaiters = new Set();
     this.activity = new Activity(receipts);
+    this.createEmpty=createEmpty;this.verifyCreate=verifyCreate;
     if (this.automatic) this.options = {...options,
       beforeStop:(task,turn)=>this.activity.beginStop(task,turn),
       afterStop:(task,operation)=>this.activity.confirmStop(task,operation)};
@@ -62,14 +67,15 @@ export class TaskService {
     // 同时到达的列表/读取共用一次目录查询，查询失败不回退到过期授权列表。
     if (this.refreshing) return this.refreshing;
     this.refreshing = (async () => {
-      const rows = await this.discover(this.config), next = new Map();
+      const creations=this.receipts.creationRecords().filter(r=>r.creation.persisted);
+      const rows = await this.discover({...this.config,createdThreadIds:creations.map(r=>r.creation.threadId)}), next = new Map();
       if (!Array.isArray(rows) || rows.length > 10000) throw new ControlError('catalog_unavailable', '对话目录无法核对。', 503);
       for (const row of rows) {
         if (!taskId(row.threadId) || next.has(row.threadId) || typeof row.projectPath !== 'string')
           throw new ControlError('catalog_unavailable', '对话目录无法核对。', 503);
         // 远端 Linux 等非本机目录不能通过 Windows 本地 follower 执行。
         if (!localProjectPath(row.projectPath)) continue;
-        next.set(row.threadId, {...row, title:typeof row.title === 'string' && row.title.trim() ? row.title.slice(0,200) : '未命名对话',
+        next.set(row.threadId, {...row,mobileCreated:creations.some(r=>r.creation.threadId===row.threadId), title:typeof row.title === 'string' && row.title.trim() ? row.title.slice(0,200) : '未命名对话',
           projectId:'desktop-'+row.threadId});
       }
       if (this.closed) throw new ControlError('disconnect_preparing', '连接器已关闭。', 503);
@@ -117,6 +123,85 @@ export class TaskService {
     if (this.automatic) return this.refreshCatalog().then(() => [...this.catalog.values()].map(row =>
       ({id:row.projectId, name:row.title, path:row.projectPath})));
     return [...this.services.values()].map(s => ({id:s.config.projectId, name:s.config.title, path:s.config.projectPath}));
+  }
+  async creationProjects() {
+    if(!this.automatic)return [];
+    await this.refreshCatalog();
+    const unique=new Map();
+    for(const row of this.catalog.values()) {
+      let path;try{path=realpathSync(row.projectPath);}catch{continue;}
+      if(!localProjectPath(path)||toNamespacedPath(path).toLowerCase()!==toNamespacedPath(row.projectPath).toLowerCase())continue;
+      const id='project-'+createHash('sha256').update(toNamespacedPath(path).toLowerCase()).digest('hex').slice(0,32);
+      unique.set(id,{id,name:basename(path)||path,path});
+    }
+    return [...unique.values()];
+  }
+  async creationSupport() {
+    if(!this.automatic||this.closed||this.draining||this.options.quarantine)return {create:false};
+    try{await this.verifyCreate(this.config);return {create:true};}catch{return {create:false};}
+  }
+  async create(projectId,body) {
+    if(!object(body)||Object.keys(body).some(k=>!['title','createRequestId'].includes(k))
+      ||typeof body.title!=='string'||!body.title.trim()||body.title.length>100
+      ||!/^[A-Za-z0-9_-]{1,100}$/.test(body.createRequestId??''))
+      throw new ControlError('invalid_create','新建请求格式无效。',400);
+    body={...body,title:body.title.trim()};
+    const key=this.receipts.key('create-conversation',body.createRequestId);
+    const digest=this.receipts.digest(JSON.stringify([projectId,body.title]));
+    let record=this.receipts.creationRecords().find(r=>r.key===key);
+    if(record&&record.digest!==digest)throw new ControlError('create_conflict','同一创建编号的内容已变化，请保留原请求核对。',409);
+    if(record?.state==='accepted')return {session:this.createdSession(record,body.title),replayed:true};
+    if(this.creating)throw new ControlError('operation_busy','正在创建对话，请等待原请求。',409);
+    if(record&&!record.creation.persisted)throw new ControlError('create_unknown','创建结果尚未确认，请保留原请求，在电脑核对；不会重复新建。',409);
+    if(!this.automatic)throw new ControlError('create_unsupported','当前电脑仅共享选定对话，暂不支持手机新建。',501);
+    if(this.closed||this.draining)throw new ControlError('disconnect_preparing','连接器正在断开，未新建对话。',503);
+    if(this.options.quarantine)throw new ControlError('update_quarantine','更新验证中，未新建对话。',503);
+    if(this.checking||this.writes||this.desktopOpening)throw new ControlError('operation_busy','已有操作未结束，请稍后核对。',409);
+    this.writes++;this.creating=true;
+    try {
+      await this.verifyCreate(this.config);
+      const guard=()=>{
+        if(this.closed||this.draining)throw new ControlError('disconnect_preparing','连接器正在断开，创建结果请稍后核对。',503);
+        this.receipts.assertCertain(record?key:null);this.activity.assertCertain();
+      };
+      guard();
+      const project=(await this.creationProjects()).find(p=>p.id===projectId);
+      if(!project||record&&record.creation.projectPath!==project.path)
+        throw new ControlError('outside_scope','项目目录已变化，请刷新这台电脑的项目列表。',403);
+      guard();
+      // Check the existing native channel before admitting the new side effect.
+      const readiness=this.createFollower(this.config);
+      try{await readiness.ipc.ready();}finally{readiness.close();}
+      guard();
+      if(!record) {
+        record={key,digest,state:'pending',creation:{requestId:body.createRequestId,projectId,projectPath:project.path}};
+        this.receipts.saveCreation(key,digest,record.creation,'pending',true);
+        await this.createEmpty(this.config,project.path,body.title,(id,persisted)=>{
+          record.creation={...record.creation,threadId:id,persisted};
+          this.receipts.saveCreation(key,digest,record.creation);
+        });
+      }
+      const id=record.creation.threadId;
+      if(!record.creation.persisted||!taskId(id))throw new ControlError('create_unknown','创建结果尚未确认，不会重复新建。',409);
+      const {additionalTasks,permissionsHash,approvedAlternatePermissionsHash,...base}=this.config;
+      const cfg={...base,threadId:id,projectId:'desktop-'+id,projectPath:project.path,title:body.title,mobileCreated:true};
+      const follower=this.createFollower(cfg);
+      try {
+        this.activity.change(cfg,true);
+        await this.prepareDesktop(cfg,follower,{guard,refresh:async()=>{},attempts:8});
+        guard();const state=await follower.completeSnapshot();
+        if(state.id!==id||!configuredPermissionsMatch(state,cfg))throw new ControlError('permissions_unverified','新对话权限尚未核对，请在电脑检查。',409);
+        nativeTurns(state);
+        if(!Array.isArray(state.requests)||!['idle','active'].includes(state.threadRuntimeStatus?.type))
+          throw new ControlError('create_unknown','Desktop 接管状态尚未确认，请稍后核对。',409);
+        this.receipts.saveCreation(key,digest,record.creation,'accepted');
+        try{assertIdle(state);this.activity.change(cfg,false);}catch{/* Keep active work in the OTA gate. */}
+        return {session:this.createdSession(record,body.title),replayed:false};
+      } finally {follower.close();}
+    } finally {this.creating=false;this.writes--;this.prune();}
+  }
+  createdSession(record,title='新对话') {
+    return {id:record.creation.threadId,project_id:'desktop-'+record.creation.threadId,title,status:'UNKNOWN',mode:'default',updated_at:0};
   }
   async sessions() {
     if (this.automatic) {
@@ -219,6 +304,7 @@ export class TaskService {
   }
   async prepareDisconnect() {
     this.draining = true;
+    if(this.creating)throw new ControlError('operation_busy','创建操作尚未结束，不能确认安全断开。',409);
     // 所有任务先一起禁止新写操作，再等待旧操作结束；不停止 Desktop 正在执行的任务。
     for (const service of this.services.values()) service.draining = true;
     this.receipts.assertCertain();

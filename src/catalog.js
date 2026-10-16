@@ -24,7 +24,7 @@ export async function readCatalog(config) {
   if (!python || !isAbsolute(python)) throw new ControlError('catalog_unavailable', '本机对话目录不可用，请在连接器中重新连接。', 503);
   try {
     const {stdout} = await execute(python, ['-I', '-B', fileURLToPath(new URL('../scripts/desktop_catalog.py', import.meta.url)),
-      config.codexHome ?? process.env.CODEX_HOME ?? join(homedir(), '.codex')],
+      config.codexHome ?? process.env.CODEX_HOME ?? join(homedir(), '.codex'),JSON.stringify(config.createdThreadIds??[])],
       {windowsHide:true, timeout:5000, maxBuffer:4*1024*1024, encoding:'utf8'});
     const value = JSON.parse(stdout);
     if (value.schema !== 1 || !Array.isArray(value.tasks)) throw new Error();

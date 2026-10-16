@@ -127,9 +127,9 @@ export class Service {
           || (Object.hasOwn(state,'unconfirmedTurnSubmissions') &&
               (!Array.isArray(state.unconfirmedTurnSubmissions) || state.unconfirmedTurnSubmissions.length)))
         throw new ControlError('history_unavailable','对话记录尚未就绪，请稍后重试获取。',503);
-      throw new ControlError('history_empty','这条对话暂无历史记录。请在 Desktop 确认原对话；有记录后点击“重试”获取。',409);
+      if(!this.config.mobileCreated)throw new ControlError('history_empty','这条对话暂无历史记录。请在 Desktop 确认原对话；有记录后点击“重试”获取。',409);
     }
-    const status = active ? 'RUNNING'
+    const status = !latest ? 'IDLE' : active ? 'RUNNING'
       : latest?.status === 'failed' ? 'FAILED' : latest?.status === 'interrupted' ? 'INTERRUPTED' : 'COMPLETED';
     return {
       [READ_EVIDENCE]: {state, idleVerified},
@@ -358,10 +358,13 @@ export function httpServer(service, token, instance, controlToken = null) {
       if (req.method === 'GET' && url.pathname === '/api/connector/update-status')
         return reply(200, await service.updateStatus());
       if (req.method === 'GET' && url.pathname === '/api/projects')
-        return reply(200, {projects:await service.projects()});
+        return reply(200, {projects:await service.projects(),creationProjects:await service.creationProjects?.()??[],...await service.creationSupport?.()??{create:false}});
       if (req.method === 'GET' && url.pathname === '/api/sessions')
         return reply(200, {sessions:await service.sessions()});
       if (req.method === 'GET' && url.pathname === '/api/activity') return reply(200, {activity:[]});
+      const createRoute=/^\/api\/projects\/([A-Za-z0-9_-]+)\/sessions$/.exec(url.pathname);
+      if(createRoute&&req.method==='POST'&&typeof service.create==='function')
+        return reply(200,await service.create(createRoute[1],await bodyOf(req)));
       const questionRoute=/^\/api\/sessions\/([A-Za-z0-9-]+)\/questions\/([a-f0-9]{64})\/answer$/.exec(url.pathname);
       if(questionRoute && req.method==='POST') {
         const body=await bodyOf(req);

@@ -35,6 +35,19 @@ class CatalogTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             with self.assertRaises(ValueError): module.read_catalog(directory)
             self.assertFalse((Path(directory) / 'state_5.sqlite').exists())
+    def test_created_originator_requires_exact_creation_receipt_id(self):
+        with tempfile.TemporaryDirectory() as directory:
+            db=sqlite3.connect(Path(directory)/'state_5.sqlite')
+            db.execute('CREATE TABLE threads(id TEXT,cwd TEXT,title TEXT,updated_at INTEGER,archived INTEGER,source TEXT,originator TEXT,thread_source TEXT)')
+            first='00000000-1111-2222-3333-444444444444'
+            other='00000000-1111-2222-3333-555555555555'
+            for i in (first,other):
+                db.execute('INSERT INTO threads VALUES (?,?,?,1,0,?,?,NULL)',(i,directory,'Empty','vscode','desktop_remote_lite_create'))
+            db.commit()
+            self.assertEqual(module.read_catalog(directory)['tasks'],[])
+            self.assertEqual([x['threadId'] for x in module.read_catalog(directory,[first])['tasks']],[first])
+            with self.assertRaises(ValueError):module.read_catalog(directory,["invalid') OR 1=1"])
+            db.close()
     def test_unknown_schema_is_failure_not_empty_list(self):
         with tempfile.TemporaryDirectory() as directory:
             db=sqlite3.connect(Path(directory)/'state_5.sqlite');db.close()

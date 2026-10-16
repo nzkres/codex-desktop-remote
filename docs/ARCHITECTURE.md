@@ -1,3 +1,13 @@
+## Android alpha.21 / Windows alpha.22 创建空对话（构建验证中）
+
+2026-10-16用户明确允许仅创建空对话的 app-server 例外。手机提交当前电脑的项目标识、标题与稳定 createRequestId，沿现有 `/api/projects/{id}/sessions` 路由及原鉴权转发，不新增中继路由或端口。项目标识由已核验的本机目录去重产生，不接受手机传目录。
+
+本机先持久化创建账本，再用精确兼容版本的 Codex stdio app-server 初始化、thread/start、thread/name/set、thread/read。命名是空对话落盘所必需；只拿到 start 返回的 ID 不算成功。辅助进程正常退出后，原核验深链让 Desktop 打开同一 ID；follower 核对目录、权限和原生状态后才确认创建。辅助进程不发送模型输入、不复制线程、不修改 Desktop 内部文件、不监听网络端口，不借用当前执行回合或工具管道。
+
+创建回执与发送/问答共用原账本，pending 创建继续阻止发送、断开确认与 OTA，旧版本保护同样识别 pending。保存了真实 ID 但接管失败时，同编号只继续 Desktop 接管，不能再创建。仅持有本机创建回执的空对话可以显示已确认空闲的空历史；其他 history_empty 规则保持。手机加密保存账号/电脑作用域的原请求与可选消息草稿，成功后持久写入原草稿库，由用户手动发送，继续使用既有发送编号和回执。
+
+实验证据、构建与未验收层级见 [新建对话](MOBILE-CREATE-CONVERSATION.md)。本次不替换现有连接，不把本机创建/接管或合成测试算真实手机点击成功。
+
 ## alpha.20 / Windows alpha.19 额度与阅读信号
 
 mobileSignals与mobile-sync共用readRevision/readKey，只返回修订及定位键，不在通知信号中携带正文。Desktop原生明确running优先于目录摘要；旧连接器无信号时未知。额度账号ID在本地受限读取后做域分离SHA256，线上只有哈希，不带邮箱、账号原文或令牌；登录文件晚于额度采样时不关联。手机前台轮转只读signals，最多3并发，不传open=1。每账号一个LiveQuotaScene，切设备不重建；断线/过期不推断完成。阅读水位本机加密按服务/账号/设备/线程隔离。

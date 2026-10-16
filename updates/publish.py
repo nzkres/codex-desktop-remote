@@ -37,7 +37,7 @@ WINDOWS_REQUIRED = (
     "windows/update_helper.py", "windows/update_ui.py", "windows/runtime_recovery.py",
     "scripts/configure.py", "scripts/probe.mjs", "scripts/update_probe.mjs", "scripts/diagnose_desktop.mjs", "scripts/recovery_probe.mjs",
     "src/package.json", "src/compatibility.js", "src/follower.js", "src/main.js",
-    "src/activity.js", "src/catalog.js", "src/desktop-open.js", "scripts/desktop_catalog.py", "scripts/desktop_usage.py", "src/usage.js", "src/receipts.js", "src/questions.js", "src/service.js", "src/tasks.js", "src/version.js",
+    "src/activity.js", "src/catalog.js", "src/create-empty.js", "src/desktop-open.js", "scripts/desktop_catalog.py", "scripts/desktop_usage.py", "src/usage.js", "src/receipts.js", "src/questions.js", "src/service.js", "src/tasks.js", "src/version.js",
     "src/vendor/conversation-timing.js", "src/vendor/desktop-ipc.js",
     "src/vendor/desktop-state.js", "src/vendor/mobile-sync.js",
     "windows/vendor/connection_settings.py", "windows/vendor/connector_core.py",

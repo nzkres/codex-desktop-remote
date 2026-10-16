@@ -40,7 +40,7 @@ internal fun hubStatus(session:Session, signal:SignalSnapshot, now:Long):HubStat
 @Composable internal fun ConversationHub(
     gateway: Gateway, sessions: List<Session>, projects: List<Project>, activity: List<ActivityEntry>, busy: Boolean,
     statuses: MutableMap<String,HubStatus>, lastSync:Long, draftStore: DraftStore?, quotas: DeviceQuotaStore?, runtime: LiveQuotaRuntime, reads: ConversationReadStore?,
-    onSelect:(TaskTarget)->Unit, onOpen:(String,Boolean)->Unit, onManage:()->Unit,
+    onSelect:(TaskTarget)->Unit, onOpen:(String,Boolean)->Unit, onManage:()->Unit, onCreate:()->Unit = {},
 ) {
     val palette=LocalAppPalette.current; val lifecycle=LocalLifecycleOwner.current
     val control=remember(gateway){gateway.terminalControl()}
@@ -72,12 +72,15 @@ internal fun hubStatus(session:Session, signal:SignalSnapshot, now:Long):HubStat
         }
         if(deviceError.isNotEmpty()) Text(deviceError,Modifier.padding(horizontal=16.dp),color=palette.muted,fontSize=10.sp)
         Row(Modifier.fillMaxWidth().padding(horizontal=12.dp),verticalAlignment=Alignment.CenterVertically){
+            Row(Modifier.weight(1f).horizontalScroll(rememberScrollState())) {
             listOf(Triple("all","全部",sessions.size),Triple("running",if(online)"运行中"else"上次运行",running),Triple("waiting",if(online)"待回答"else"上次待答",waiting)).forEach{(key,label,count)->
                 TextButton(onClick={filter=key},modifier=Modifier.testTag("hub-filter-$key"),contentPadding=PaddingValues(horizontal=7.dp)){
                     Text("$label ${if(key=="all") count.toString() else if(known==0) "—" else count.toString()+if(known<sessions.size) "+" else ""}",color=if(key=="waiting"&&count>0)palette.green else if(filter==key)palette.ink else palette.muted,fontSize=11.sp)
                 }
             }
-            Spacer(Modifier.weight(1f));TextButton(onClick=onManage,enabled=!busy){Text("设备",color=palette.muted,fontSize=11.sp)}
+            }
+            GlassActionButton("新对话",onCreate,Modifier.testTag("hub-new-conversation"),icon="plus",compact=true,enabled=!busy&&online&&target.isSelected)
+            TextButton(onClick=onManage,enabled=!busy,contentPadding=PaddingValues(horizontal=5.dp)){Text("设备",color=palette.muted,fontSize=11.sp)}
         }
         if(reads==null || runtime.readError)Text("阅读位置暂未能保存",Modifier.padding(horizontal=16.dp),color=palette.errorInk,fontSize=10.sp)
         val shown=sessions.sortedByDescending{it.updatedAt}.filter{hubMatches(filter,freshStatuses[it.id])}

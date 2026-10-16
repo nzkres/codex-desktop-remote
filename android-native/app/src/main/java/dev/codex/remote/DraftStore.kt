@@ -38,14 +38,14 @@ class DraftStore internal constructor(private val prefs: SharedPreferences) {
     internal fun latest(allowedIds: Set<String>): String? = records.entries
         .filter { it.key in allowedIds && it.value.text.isNotBlank() }.maxByOrNull { it.value.revision }?.key
 
-    internal fun write(id: String, text: String) {
+    internal fun write(id: String, text: String, durable: Boolean = false) {
         if (records[id]?.text == text || text.isEmpty() && id !in records) return
         sequence = maxOf(sequence + 1, System.currentTimeMillis())
         val record = DraftRecord(text, sequence, java.util.UUID.randomUUID().toString())
         val editor = prefs.edit()
         if (text.isEmpty()) editor.remove(id)
         else editor.putString(id, JSONObject().put("text", text).put("revision", record.revision).put("nonce", record.nonce).toString())
-        editor.apply()
+        if(durable)check(editor.commit()) { "无法保存新对话草稿，请保留创建请求重试核对。" } else editor.apply()
         records = if (text.isEmpty()) records - id else records + (id to record)
     }
 

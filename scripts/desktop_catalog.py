@@ -10,7 +10,10 @@ import sys
 from pathlib import Path
 
 
-def read_catalog(home):
+def read_catalog(home, created_ids=()):
+    import re
+    if len(created_ids)>1000 or any(not isinstance(i,str) or not re.fullmatch(r'[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}',i) for i in created_ids):
+        raise ValueError('catalog_unavailable')
     database = Path(home).resolve(strict=True) / 'state_5.sqlite'
     if database.is_symlink() or not database.is_file():
         raise ValueError('catalog_unavailable')
@@ -19,9 +22,10 @@ def read_catalog(home):
         db.execute('PRAGMA query_only=ON')
         rows = db.execute("""SELECT id, cwd, title, updated_at, archived
             FROM threads WHERE source = 'vscode'
-            AND (originator IN ('Codex Desktop', 'codex_work_desktop') OR originator IS NULL)
+            AND (originator IN ('Codex Desktop', 'codex_work_desktop') OR originator IS NULL
+                 OR (originator='desktop_remote_lite_create' AND id IN (SELECT value FROM json_each(?))))
             AND (thread_source IS NULL OR thread_source NOT IN ('guardian_review', 'subagent'))
-            ORDER BY updated_at DESC, id LIMIT 10001""").fetchall()
+            ORDER BY updated_at DESC, id LIMIT 10001""",(json.dumps(list(created_ids)),)).fetchall()
     if len(rows) > 10000:
         raise ValueError('catalog_too_large')
     return {'schema': 1, 'tasks': [dict(zip(
@@ -30,9 +34,9 @@ def read_catalog(home):
 
 if __name__ == '__main__':
     try:
-        if len(sys.argv) != 2:
+        if len(sys.argv) not in (2,3):
             raise ValueError('catalog_unavailable')
-        print(json.dumps(read_catalog(sys.argv[1]), ensure_ascii=True))
+        print(json.dumps(read_catalog(sys.argv[1],json.loads(sys.argv[2]) if len(sys.argv)==3 else ()), ensure_ascii=True))
     except Exception:
         print('{"error":"catalog_unavailable"}')
         sys.exit(1)
