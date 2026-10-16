@@ -10,7 +10,7 @@ Windows alpha.22 仅对 all-local 与固定 Desktop 26.1007.9446.0 开放。创�
 
 真实电脑验证：独立空资料目录重启读回通过；另创建唯一一条“手机新增对话 · 空对话验收”，辅助进程退出后原生 Desktop owner 接管成功，cwdMatches=true、permissionsVerified=true、turnCount=0、status=idle、modelInputs=0。真实身份、发送回执和当前连接器未被更换，也没有发测试消息。
 
-代码/测试/构建证据更新见 STATUS.md。本机验证不等于手机安装或真实手机点击新建；本轮未更换私有 OTA 索引。以下记录保留为原缺口背景，文中旧版本的“不支持”不代表本轮候选已安装。
+最终候选、签名与测试结果见 [构建验证记录](MOBILE-CREATE-BUILD-VERIFICATION.md) 和 STATUS.md。本机验证不等于手机安装或真实手机点击新建；本轮未更换私有 OTA 索引。以下记录保留为原缺口背景，文中旧版本的“不支持”不代表本轮候选已安装。
 
 2026-10-16用户指出正式手机缺少新对话。核查结论：功能尚未接通，不在Android alpha.20或Windows alpha.20的交付范围内。本记录不代表实现完成，不能据此启用创建按钮或发布可用声明。
 

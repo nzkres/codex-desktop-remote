@@ -450,4 +450,4 @@ Android alpha.10/versionCode 10/sequence 4 已发布；原证书、实际 Manife
 
 手机对话首页新增真实创建入口，选择对应电脑去重后的已知本机项目，标题可选、消息作为草稿保存。Windows 在用户明确允许的例外范围内以短生命周期 stdio app-server 创建和命名空对话，退出后交回原生 Desktop；只在同一 ID、目录、权限和状态通过后确认。创建编号持久化防重复，未知结果沿用原更新/回执保护，不自动发送首条消息。
 
-电脑侧空对话与接管验证通过，Node 195 项回归通过。用户当前无法 USB 连接手机，先完成构建和测试；本轮不替换现有连接，不以候选版本说明代表发布或实机完成。详见 [手机新建](docs/MOBILE-CREATE-CONVERSATION.md) 与 STATUS.md。
+电脑侧空对话与接管验证通过，Node 196 项回归通过。用户当前无法 USB 连接手机，先完成构建和测试；本轮不替换现有连接，不以候选版本说明代表发布或实机完成。详见 [手机新建](docs/MOBILE-CREATE-CONVERSATION.md) 与 STATUS.md。
