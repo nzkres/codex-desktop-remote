@@ -141,6 +141,17 @@ class Controller:
     def pair(self, relay, code, name):
         return Connector(self.store).begin(relay, code, name)
 
+    def auto_connect_on_open(self):
+        """Resume only an already paired identity after the update admits work."""
+        if self.quarantine:
+            return False
+        with self.store.lock():
+            state = self.store.read()
+        return (isinstance(state, dict) and state.get('state') == 'connected'
+                and not state.get('runtimeNeedsReview')
+                and all(isinstance(state.get(key), str) and state[key].strip()
+                        for key in ('relay', 'terminalId', 'deviceToken')))
+
     # 由 GUI 工作线程调用。stop 是退出信号，on_status 是把状态送回界面的回调。
     # 第一段只等待登记确认；确认后第二段创建受管运行环境并维持心跳。
     # 被撤销、过期、拒绝等终态直接返回；不是通过重复配对恢复。

@@ -14,10 +14,16 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 sys.path.insert(0, str(ROOT / "windows"))
 from updates.engine import installed
-from updates.storage import ensure_launchable, lock, no_links, read
+from updates.storage import atomic, ensure_launchable, lock, no_links, read
 from updates.security import UpdateError
 from update_driver import controller_for, snapshot, probe
 from gui import _Window, enable_dpi
+from error_catalog import safe_code
+
+
+def health_error(error):
+    """Only catalogued identifiers, never exception text or credentials."""
+    return safe_code(getattr(error, 'code', None) or str(error))
 
 
 # 比较当前指针与实际运行源码目录，防止从另一个旧槽误启动。
@@ -47,14 +53,19 @@ def health(controller):
         def connect():
             try:
                 outcome.put(controller.connect(stop, report))
-            except Exception:
-                outcome.put(None)
+            except Exception as error:
+                outcome.put(health_error(error))
         worker = threading.Thread(target=connect, daemon=True)
         worker.start()
         worker.join(65)
         stop.set()
         worker.join(15)
-        if worker.is_alive() or not verified.is_set() or outcome.empty() or not isinstance(outcome.get(), dict):
+        if worker.is_alive() or outcome.empty():
+            raise UpdateError('candidate_transport_unverified')
+        result = outcome.get()
+        if isinstance(result, str):
+            raise UpdateError(result)
+        if not verified.is_set() or not isinstance(result, dict):
             raise UpdateError('candidate_transport_unverified')
     probe(ROOT, controller)
     if snapshot(controller) != baseline:
@@ -78,8 +89,18 @@ def run(home, quarantine=False, connect=False):
     try:
         if quarantine:
             # UI exists, but no user or phone writes are admitted during validation.
-            health(controller)
             version = read(ROOT / 'windows' / 'releases.json')['releases'][0]['version']
+            try:
+                health(controller)
+            except Exception as error:
+                # Old helpers only understand ready=False. Retain the bounded
+                # reason in stable state as well, without altering the transaction.
+                try:
+                    atomic(Path(home) / 'state' / 'candidate-health.json',
+                           {'schema':1, 'version':version, 'ready':False, 'code':health_error(error)})
+                except Exception:
+                    pass
+                raise
             print(json.dumps({'schema':1, 'ready':True, 'version':version, 'probe':'verified'}), flush=True)
             line = sys.stdin.buffer.readline(2049)
             if len(line) > 2048 or json.loads(line) != {'schema':1, 'op':'activate'}:
@@ -89,7 +110,9 @@ def run(home, quarantine=False, connect=False):
         controller.quarantine = False
         controller.update_home = Path(home)
         gui = _Window(window, controller)
-        if connect and not quarantine:
+        # Quarantine has ended only after the helper explicitly activated this slot.
+        # Reuse the normal worker once; never clear a guard or retry pairing here.
+        if controller.auto_connect_on_open() or (connect and not quarantine):
             window.after(0, gui.connect)
         if quarantine:
             print(json.dumps({'schema':1, 'active':True}), flush=True)
@@ -112,9 +135,9 @@ if __name__ == '__main__':
     args = parser.parse_args()
     try:
         run(args.home, args.quarantine, args.connect)
-    except Exception:
+    except Exception as error:
         if args.quarantine:
-            print(json.dumps({'schema':1,'ready':False}), flush=True)
+            print(json.dumps({'schema':1,'ready':False,'code':health_error(error)}), flush=True)
         else:
             import tkinter as tk
             from tkinter import messagebox

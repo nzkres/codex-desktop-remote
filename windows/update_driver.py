@@ -110,6 +110,10 @@ class WindowsDriver:
     def verify(self, root):
         message = self.target.read(timeout=100)
         expected = read(Path(root) / 'windows' / 'releases.json')['releases'][0]['version']
+        if (isinstance(message, dict) and set(message) == {'schema','ready','code'}
+                and type(message['schema']) is int and message['schema'] == 1 and message['ready'] is False):
+            from error_catalog import safe_code
+            raise UpdateError(safe_code(message['code']))
         if message != {'schema': 1, 'ready': True, 'version': expected, 'probe': 'verified'}:
             raise UpdateError('candidate_health_unverified')
 

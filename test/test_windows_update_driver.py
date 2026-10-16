@@ -162,6 +162,14 @@ class DriverTests(unittest.TestCase):
         self.driver.release("needs_review")
         self.assertEqual(child.calls, ["allow_survive_owner_exit", "write", "detach_windows"])
 
+    def test_failed_candidate_returns_only_catalogued_reason(self):
+        for supplied,expected in [('active_or_unverified_desktop_task','active_or_unverified_desktop_task'),
+                                  ('credential=synthetic-secret','operation_failed')]:
+            self.driver.target = FakeChild({'schema':1,'ready':False,'code':supplied})
+            with patch.object(update_driver,'read',return_value={'releases':[{'version':'expected'}]}):
+                with self.assertRaisesRegex(UpdateError,expected):
+                    self.driver.verify(self.home/'candidate')
+
 
 class HandoffTests(unittest.TestCase):
     def test_helper_waits_on_pinned_original_before_transaction(self):

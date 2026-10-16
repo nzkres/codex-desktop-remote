@@ -1,3 +1,7 @@
+## 2026-10-16 Windows alpha.20 修复包
+
+已配对窗口打开及更新激活后自动连接，保留隔离与恢复门禁；候选健康检查保留任务/传输/保护错误，避免只留下统一失败。旧助手可查看独立本地候选健康记录。原alpha.19包不覆盖，重新递增版本并沿用原签名发布；原连接、身份及回执保持，实际安装另验收。
+
 ## 2026-10-16 Android alpha.20 / Windows alpha.19 已发布，安装待验收
 
 原私有源已发布Android alpha.20/sequence14及Windows alpha.19/sequence15，原签名、正常TLS、账号鉴权完整包下载和哈希均通过。167项Android单测、Lint0错误，Node184、Python209（7跳过）、relay77（4跳过）；UI测试包编译，USB无设备未执行。正式额度动效、运行与持久已读、纯Loading及紧凑首页已实现；需两端升级配合。未停止当前连接器，手机安装/真实任务另验收。见[发布证据](docs/ANDROID-ALPHA20-PUBLICATION.md)。

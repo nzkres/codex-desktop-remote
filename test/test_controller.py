@@ -16,6 +16,24 @@ class Child:
         self.stops+=1; self.state='stopped'; self.tree_stopped=True
 
 class Tests(unittest.TestCase):
+    def test_open_resumes_only_a_complete_safe_paired_identity(self):
+        state = {'state':'connected', 'relay':'https://relay.example.test',
+                 'terminalId':'synthetic-terminal', 'deviceToken':'synthetic-token'}
+        class Store:
+            def lock(self): return nullcontext()
+            def read(self): return self.state
+        c=Controller.__new__(Controller);c.store=Store();c.quarantine=False
+        c.store.state=state
+        self.assertTrue(c.auto_connect_on_open())
+        for changed in (None, {}, {**state,'runtimeNeedsReview':True},
+                        *({**state,'state':s} for s in ('paused','revoked','claim_pending','awaiting_confirmation')),
+                        *({**state,k:''} for k in ('relay','terminalId','deviceToken'))):
+            with self.subTest(state=changed):
+                c.store.state=changed
+                self.assertFalse(c.auto_connect_on_open())
+        c.store.state=state;c.quarantine=True
+        self.assertFalse(c.auto_connect_on_open())
+
     def test_adapter_snapshot_is_unverified_not_missing_or_healthy(self):
         class Store:
             def lock(self): return nullcontext()

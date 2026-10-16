@@ -1,3 +1,5 @@
+> Windows alpha.20修复包：已配对窗口打开及升级激活后自动连接；不增加Windows开机自启。按[Windows步骤](WINDOWS.md)等待空闲、安全断开后更新，保留原身份与回执。发布/实际安装见STATUS。
+
 > 当前手机最终更新为alpha.15，配套Windows alpha.18已发布原私有源。保留现有应用数据与身份，使用正常检查更新流程；不重新首装或配对。见[交付与安装验收边界](../ANDROID-ALPHA15-PUBLICATION.md)。
 
 # 三个原型的安装起点
