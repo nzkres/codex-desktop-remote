@@ -41,7 +41,7 @@ export class TaskService {
   constructor(config, receipts, {createFollower = cfg => new Follower(cfg), discover = readCatalog, prepareDesktop = ensureDesktopConversation, ...options} = {}) {
     this.config = config; this.services = new Map(); this.draining = false; this.checking = false; this.writes = 0;
     this.discover = discover; this.createFollower = createFollower; this.prepareDesktop = prepareDesktop; this.desktopOpening = null; this.receipts = receipts; this.options = options;
-    this.automatic = taskScope(config) === 'all-local'; this.catalog = new Map(); this.closed = false; this.readers = new Map();
+    this.automatic = taskScope(config) === 'all-local'; this.catalog = new Map(); this.closed = false; this.readers = new Map(); this.readDrainWaiters = new Set();
     this.activity = new Activity(receipts);
     if (this.automatic) this.options = {...options,
       beforeStop:(task,turn)=>this.activity.beginStop(task,turn),
@@ -162,6 +162,7 @@ export class TaskService {
   }
   readForMobile(id, options) { return this.read(id, options); }
   async read(id, {allowDesktopOpen=false}={}) {
+    if (this.draining || this.closed) throw new ControlError('disconnect_preparing', '连接器正在断开，暂不读取新内容。', 503);
     if (this.checking) throw new ControlError('operation_busy', '更新检查中，请稍后刷新对话。');
     this.readers.set(id, (this.readers.get(id) ?? 0) + 1);
     try {
@@ -185,6 +186,7 @@ export class TaskService {
     finally {
       const remaining = this.readers.get(id) - 1;
       if (remaining) this.readers.set(id, remaining); else this.readers.delete(id);
+      if (!this.readers.size) for (const wake of [...this.readDrainWaiters]) wake();
       this.prune();
     }
   }
@@ -204,16 +206,26 @@ export class TaskService {
   send(id, body) { return this.write(id, 'send', body); }
   stop(id, body) { return this.write(id, 'stop', body); }
   answer(id, body) { return this.write(id, 'answer', body); }
+  waitForReads() {
+    if (!this.readers.size) return Promise.resolve();
+    return new Promise((resolve,reject) => {
+      const finish=()=>{clearTimeout(timer);this.readDrainWaiters.delete(finish);resolve();};
+      const timer=setTimeout(()=>{
+        this.readDrainWaiters.delete(finish);
+        reject(new ControlError('drain_timeout','已有读取未在限定时间内结束，不能确认安全断开。',503));
+      },this.options.drainTimeoutMs ?? 5000);
+      this.readDrainWaiters.add(finish);
+    });
+  }
   async prepareDisconnect() {
     this.draining = true;
     // 所有任务先一起禁止新写操作，再等待旧操作结束；不停止 Desktop 正在执行的任务。
     for (const service of this.services.values()) service.draining = true;
-    // 在途读取还可能取得活动任务快照。保留断开栅栏，让调用方稍后重试，不能先报安全退出。
-    if (this.readers.size)
-      throw new ControlError('drain_timeout', '仍在读取对话，请稍后重试断开。', 503);
     this.receipts.assertCertain();
     if (this.automatic) this.activity.assertCertain();
-    await Promise.all([...this.services.values()].map(s => s.prepareDisconnect()));
+    // Fence new reads, then let admitted reads persist their activity before
+    // acknowledging drain. Use the same bounded interval as pending mutations.
+    await Promise.all([this.waitForReads(), ...[...this.services.values()].map(s => s.prepareDisconnect())]);
     this.receipts.assertCertain();
     if (this.automatic) this.activity.assertCertain();
     return {drained:true};

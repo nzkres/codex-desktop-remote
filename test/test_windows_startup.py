@@ -16,12 +16,19 @@ from updates.security import UpdateError
 class StartupTests(unittest.TestCase):
     def run_window(self, quarantine=False, activate=True, eligible=True):
         controller = Mock(quarantine=quarantine)
-        controller.auto_connect_on_open.side_effect = lambda: eligible and not controller.quarantine
+        constructed = []
+        def policy():
+            self.assertFalse(constructed, 'identity policy must run before the GUI status worker')
+            return eligible and not controller.quarantine
+        controller.auto_connect_on_open.side_effect = policy
         window = Mock()
         scheduled = []
         window.after.side_effect = lambda delay, callback: scheduled.append(callback)
         window.mainloop.side_effect = lambda: [callback() for callback in scheduled]
-        gui = Mock()
+        gui = Mock(update_blocked=False, closing=False)
+        def build(*args):
+            constructed.append(True)
+            return gui
         def health(actual):
             self.assertTrue(actual.quarantine)
             gui.connect.assert_not_called()
@@ -31,7 +38,7 @@ class StartupTests(unittest.TestCase):
                             same_running_slot=Mock(return_value=True), ensure_launchable=Mock(),
                             controller_for=Mock(return_value=controller), enable_dpi=Mock(),
                             lock=Mock(return_value=nullcontext()), health=Mock(side_effect=health),
-                            _Window=Mock(return_value=gui)), patch('tkinter.Tk', return_value=window), \
+                            _Window=Mock(side_effect=build)), patch('tkinter.Tk', return_value=window), \
                 patch.object(sys, 'stdin', stdin), patch('builtins.print'):
             if quarantine and not activate:
                 with self.assertRaises(UpdateError):
@@ -101,3 +108,21 @@ class StartupTests(unittest.TestCase):
             self.assertIs(record['ready'],False)
             self.assertEqual(record['code'],'active_or_unverified_desktop_task')
             window.mainloop.assert_not_called()
+
+    def test_connect_waits_for_helper_commit_then_runs_once(self):
+        window=Mock();gui=Mock(closing=False,update_blocked=True,update_phase='validated')
+        ota_entry.connect_after_commit(window,gui)
+        gui.connect.assert_not_called()
+        callback=window.after.call_args.args[1]
+        gui.update_blocked=False;gui.update_phase='committed'
+        callback()
+        gui.connect.assert_called_once()
+
+    def test_unknown_activation_or_closing_never_connects(self):
+        for phase in ('needs_review','unreadable',None):
+            window=Mock();gui=Mock(closing=False,update_blocked=True,update_phase=phase)
+            ota_entry.connect_after_commit(window,gui)
+            gui.connect.assert_not_called();window.after.assert_not_called()
+        window=Mock();gui=Mock(closing=True,update_blocked=False)
+        ota_entry.connect_after_commit(window,gui)
+        gui.connect.assert_not_called()

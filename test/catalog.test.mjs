@@ -178,6 +178,7 @@ test('active snapshot is tracked before pending approval or missing history erro
 });
 test('disconnect fences and refuses an in-flight read until its activity is saved',async t=>{
  const f=fixture(t),target=await f.service.target(A);let release;
+ f.service.options.drainTimeoutMs=25;
  target.follower.completeSnapshot=()=>new Promise(r=>release=r);
  const reading=f.service.read(A);while(!release)await new Promise(r=>setImmediate(r));
  await assert.rejects(f.service.prepareDisconnect(),{code:'drain_timeout'});
@@ -210,12 +211,25 @@ test('same-task simultaneous opens share one preparation and another task is ref
 });
 test('disconnect during preparation rejects late launch and update/quarantine refuse intent',async t=>{
  const f=fixture(t);let release;const gate=new Promise(r=>release=r);let entered;const start=new Promise(r=>entered=r);let launches=0;
+ f.service.options.drainTimeoutMs=25;
  f.service.prepareDesktop=async(_cfg,_fol,{guard})=>{entered();await gate;guard();launches++;};
  const read=f.service.read(A,{allowDesktopOpen:true});await start;
  await assert.rejects(f.service.prepareDisconnect(),{code:'drain_timeout'});release();
  await assert.rejects(read,{code:'disconnect_preparing'});assert.equal(launches,0);
  f.service.draining=false;f.service.options.quarantine=true;
  await assert.rejects(f.service.read(A,{allowDesktopOpen:true}),{code:'update_quarantine'});
+});
+
+test('disconnect waits for admitted read and fences phone polling until activity is saved',async t=>{
+ const f=fixture(t),target=await f.service.target(A);let release;
+ target.follower.completeSnapshot=()=>new Promise(r=>release=r);
+ const reading=f.service.read(A);while(!release)await new Promise(r=>setImmediate(r));
+ let drained=false;const closing=f.service.prepareDisconnect().then(value=>{drained=true;return value;});
+ await assert.rejects(f.service.read(A),{code:'disconnect_preparing'});
+ assert.equal(drained,false);
+ f.states.get(A).threadRuntimeStatus.type='active';release(f.states.get(A));await reading;
+ assert.deepEqual(await closing,{drained:true});assert.equal(f.service.activity.entries().length,1);
+ assert.equal(f.service.readDrainWaiters.size,0);assert.equal(f.calls.length,0);
 });
 test('directory removal before opening rejects and unknown receipts never open',async t=>{
  const f=fixture(t);let launched=0;

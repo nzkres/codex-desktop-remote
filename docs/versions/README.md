@@ -1,3 +1,7 @@
+## Windows alpha.21激活修复
+
+修复alpha.20窗口状态线程身份锁竞争，自动连接等committed；断开等待已有读取并拦新轮询。完整测试及实际安装结果分别见[STATUS](../../STATUS.md)。
+
 > Windows alpha.20/sequence16已发布原私有源及私有归档，现装alpha.18仍连接；签名/下载与实际安装分别见[发布记录](../WINDOWS-ALPHA20-PUBLICATION.md)。
 
 ## 2026-10-16 Windows alpha.20 修复包
