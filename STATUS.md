@@ -1,3 +1,7 @@
+## 2026-10-16 检查更新保护恢复实测
+
+现装alpha.18断开后runtimeNeedsReview=true、原端口无监听，更新认证被identity_or_runtime_requires_review拦截。管理员按完整恢复流程核对原进程退出、原生任务/权限/回执及身份CAS，通过后仅解除经过核验的运行保护；任务数据、身份和原owner/DACL均保留。普通用户复验runtimeNeedsReview=false；在真实窗口点击检查更新，成功弹出alpha.20说明，candidate.json已收到新签名封套。正常关闭并确认原窗口及相关安装进程不存在后重开，消除旧断开错误。未安装新版本、未发送测试消息；保留旧事务历史，不将检查成功描述为升级成功。
+
 ## 2026-10-16 手机新对话缺口已核实，尚未接通
 
 用户指出新版首页没有新对话。确认正式ConversationHub无入口、旧入口禁用，Gateway旧创建POST未被连接器实现，create能力固定false。只读核对Desktop26.1007.9446：原生follower无创建方法，新建深链仅prefill草稿；独立工具桥尚缺手机调用方合法接入。未启用无效按钮、伪造工具回合或新增执行器；原连接/回执未变，无新发布。接入及防重复创建要求见[新对话缺口](docs/MOBILE-CREATE-CONVERSATION.md)。
