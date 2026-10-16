@@ -1,3 +1,5 @@
+> Windows alpha.21/sequence17已签名发布，本机实际安装并自动连接；[验收证据](../WINDOWS-ALPHA21-PUBLICATION.md)。原生手机新建对话仍未实现，不包含在本版中。
+
 ## Windows alpha.21激活修复
 
 修复alpha.20窗口状态线程身份锁竞争，自动连接等committed；断开等待已有读取并拦新轮询。完整测试及实际安装结果分别见[STATUS](../../STATUS.md)。

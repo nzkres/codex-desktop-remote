@@ -1,3 +1,7 @@
+## 2026-10-16 Windows alpha.21已实际安装并自动连接
+
+原签名sequence17已发布，真实HTTPS完整下载及原18验签器通过。经完整现场核验、清理未接单候选并回退18后，用现装alpha.18原WindowsDriver/Transaction实际升级至21，committed=true，保全及配对身份核对通过。真实21新窗口自动连接、诊断无错误；本机health200/healthy/sameInstance为true，手机HTTPS设备在线/原对话200（idle/desktop-ipc），30条既有回执全accepted。新测试消息0，USB为空，未声称手机屏幕及新发送实机通过。源码修复分支待PR合并，main直推被自动审批阻止；[完整证据](docs/WINDOWS-ALPHA21-PUBLICATION.md)。
+
 ## 2026-10-16 alpha.21自动测试通过，待真实安装
 
 Node185通过；Python221通过（7跳过）；真实Tk隔离实验用旧20入口重现身份锁冲突，新入口提交后只连接一次并退出工作线程。版本校验通过。将使用现装alpha.18原事务驱动执行签名安装，尚未把测试结果当安装成功。

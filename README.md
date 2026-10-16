@@ -1,3 +1,5 @@
+> Windows alpha.21已发布并在本机实际升级、自动连接通过，修复alpha.20安装激活故障；[发布和运行证据](docs/WINDOWS-ALPHA21-PUBLICATION.md)。源码修复分支待合并，未宣称main已更新。
+
 > Windows alpha.20修复包已发布：已配对打开后自动连接，保留候选健康失败原因。原alpha.18连接保持，升级需任务空闲、安全断开；[发布证据及安装边界](docs/WINDOWS-ALPHA20-PUBLICATION.md)。
 
 > 最新发布：Android alpha.20 / Windows alpha.19，正式额度动效、运行与未读、纯Loading和紧凑首页。原私有源可更新，安装与真实任务验收另记录，见[发布证据](docs/ANDROID-ALPHA20-PUBLICATION.md)。
