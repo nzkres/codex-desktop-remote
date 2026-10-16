@@ -26,6 +26,16 @@ def health_error(error):
     return safe_code(getattr(error, 'code', None) or str(error))
 
 
+def connect_after_commit(window, gui, attempts=80):
+    """Activation acknowledgement precedes the helper's durable commit."""
+    if gui.closing:
+        return
+    if not gui.update_blocked:
+        gui.connect()
+    elif gui.update_phase in ('prepared', 'old_stopped', 'switched', 'validated') and attempts:
+        window.after(250, lambda: connect_after_commit(window, gui, attempts - 1))
+
+
 # 比较当前指针与实际运行源码目录，防止从另一个旧槽误启动。
 def same_running_slot(slot):
     path = no_links(slot)
@@ -109,11 +119,14 @@ def run(home, quarantine=False, connect=False):
         lease.__enter__()
         controller.quarantine = False
         controller.update_home = Path(home)
+        # _Window starts a status worker which takes the same nonblocking identity
+        # lock. Read startup policy BEFORE that worker exists, not concurrently.
+        auto_connect = controller.auto_connect_on_open() or (connect and not quarantine)
         gui = _Window(window, controller)
         # Quarantine has ended only after the helper explicitly activated this slot.
         # Reuse the normal worker once; never clear a guard or retry pairing here.
-        if controller.auto_connect_on_open() or (connect and not quarantine):
-            window.after(0, gui.connect)
+        if auto_connect:
+            window.after(0, lambda: connect_after_commit(window, gui))
         if quarantine:
             print(json.dumps({'schema':1, 'active':True}), flush=True)
         window.deiconify()

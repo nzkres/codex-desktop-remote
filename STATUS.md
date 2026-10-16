@@ -1,3 +1,23 @@
+## 2026-10-16 Windows alpha.21已实际安装并自动连接
+
+原签名sequence17已发布，真实HTTPS完整下载及原18验签器通过。经完整现场核验、清理未接单候选并回退18后，用现装alpha.18原WindowsDriver/Transaction实际升级至21，committed=true，保全及配对身份核对通过。真实21新窗口自动连接、诊断无错误；本机health200/healthy/sameInstance为true，手机HTTPS设备在线/原对话200（idle/desktop-ipc），30条既有回执全accepted。新测试消息0，USB为空，未声称手机屏幕及新发送实机通过。源码修复分支待PR合并，main直推被自动审批阻止；[完整证据](docs/WINDOWS-ALPHA21-PUBLICATION.md)。
+
+## 2026-10-16 alpha.21自动测试通过，待真实安装
+
+Node185通过；Python221通过（7跳过）；真实Tk隔离实验用旧20入口重现身份锁冲突，新入口提交后只连接一次并退出工作线程。版本校验通过。将使用现装alpha.18原事务驱动执行签名安装，尚未把测试结果当安装成功。
+
+## 2026-10-16 alpha.20激活故障复现，alpha.21修复核验中
+
+实际失败是activation_outcome_requires_review，指针切到20但激活确认丢失。管理员在应用/运行独占锁、空闲端口、完整原生权限/回执及原始保全摘要完全一致的条件下证明候选未接单，固定两条候选原始句柄清理后回退18，身份、回执与文件原owner/DACL保持。真实Tk+状态线程合成实验稳定复现20的自动连接策略与状态线程身份锁冲突；改为创建GUI前读取，提交committed后再连接。另修复断开时新轮询未栅栏、在途读取立即失败的问题，仍保留5秒超时保护。未将合成测试当实机升级。
+
+## 2026-10-16 检查更新保护恢复实测
+
+现装alpha.18断开后runtimeNeedsReview=true、原端口无监听，更新认证被identity_or_runtime_requires_review拦截。管理员按完整恢复流程核对原进程退出、原生任务/权限/回执及身份CAS，通过后仅解除经过核验的运行保护；任务数据、身份和原owner/DACL均保留。普通用户复验runtimeNeedsReview=false；在真实窗口点击检查更新，成功弹出alpha.20说明，candidate.json已收到新签名封套。正常关闭并确认原窗口及相关安装进程不存在后重开，消除旧断开错误。未安装新版本、未发送测试消息；保留旧事务历史，不将检查成功描述为升级成功。
+
+## 2026-10-16 手机新对话缺口已核实，尚未接通
+
+用户指出新版首页没有新对话。确认正式ConversationHub无入口、旧入口禁用，Gateway旧创建POST未被连接器实现，create能力固定false。只读核对Desktop26.1007.9446：原生follower无创建方法，新建深链仅prefill草稿；独立工具桥尚缺手机调用方合法接入。未启用无效按钮、伪造工具回合或新增执行器；原连接/回执未变，无新发布。接入及防重复创建要求见[新对话缺口](docs/MOBILE-CREATE-CONVERSATION.md)。
+
 ## 2026-10-16 Windows alpha.20 已发布，现装alpha.18保持连接
 
 新sequence16签名包已发布原私有源；实际HTTPS完整下载/原签名/大小/哈希通过，匿名元数据与包401。使用实际alpha.18验签器、原信任和账本验证新包通过，未改本机指针/账本/事务；原alpha.18连接health=200、healthy及sameInstance为true。Node184、Python219（7跳过）通过。新包尚未实际安装，候选真实健康及手机新发送另验收。见[发布证据](docs/WINDOWS-ALPHA20-PUBLICATION.md)。
