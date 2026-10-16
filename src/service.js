@@ -22,7 +22,7 @@ export const permissionDigest = state => {
     if (Array.isArray(value) && ['writableRoots', 'runtimeWorkspaceRoots'].includes(key)) {
       const roots = [...new Set(value.map(p => {
         if (typeof p !== 'string' || !isAbsolute(p)) throw new ControlError('permissions_unverified','权限目录无法核对。');
-        return realpathSync(p).toLowerCase();
+        return realpathSync.native(p).toLowerCase();
       }))].sort();
       // Desktop can add cwd when it is already covered by an authorized parent.
       // Resolve real paths so a junction to an external directory is not covered.

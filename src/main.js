@@ -40,8 +40,8 @@ try {
     || typeof config.title !== 'string' || config.title.length > 100) throw new Error('invalid_configuration');
   if (taskScope(config) === 'selected') permissionDigests(config);
   taskConfigs(config);
-  if (taskScope(config) === 'selected') config.projectPath = realpathSync(config.projectPath);
-  config.dataDir = realpathSync(config.dataDir);
+  if (taskScope(config) === 'selected') config.projectPath = realpathSync.native(config.projectPath);
+  config.dataDir = realpathSync.native(config.dataDir);
   const compatibility = await verifyCompatibility(config);
   const auth = await bootstrap();
   const scope = createHash('sha256').update(config.dataDir.toLowerCase()).digest('hex').slice(0,32);

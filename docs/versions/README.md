@@ -1,3 +1,5 @@
+> Windows alpha.24：长路径兼容与原验收空对话接入，具体分层证据见[接入记录](../EXISTING-CONVERSATION-ADMISSION.md)。
+
 > Windows alpha.23：接入已有验收空对话，沿用原 ID 和回执；[具体证据与安装边界](../EXISTING-CONVERSATION-ADMISSION.md)。
 
 > 本轮候选：Android alpha.21 / Windows alpha.22 已接入手机新建；先完成构建与测试，未替换现有连接或更新私有索引。[实现与验收边界](../MOBILE-CREATE-CONVERSATION.md)。以下 alpha.21 连接器发布记录是历史层级，不代表本轮功能已安装。

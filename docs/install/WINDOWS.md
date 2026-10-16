@@ -1,3 +1,7 @@
+## alpha.24 长路径兼容
+
+保留原配对与回执，由安全更新器安装本版。旧版原探针对 Windows 命名空间目录无法完成核验时，维护助手只使用已验签新包的只读探针重做同样的空闲、目录、权限和回执核验；原应用/运行锁、身份/数据保全、候选隔离、旧槽回退和提交后重连保持不变，运行中的任务仍不得更新。手机APK无需更新。
+
 ## alpha.23 接入已有验收对话
 
 本机维护配置可添加 linkedConversations，逐条固定 threadId、projectPath、title、originator、threadSource、allowEmptyHistory；只对已明确授权并由原生 Desktop 核验的已有对话使用。目录扫描同时比对原 SQLite 元数据，不写 Desktop 数据；本机显示标题不改原标题。不修改原创建/发送回执。配置在正常安全退出后原子写入，重新启动原连接器生效；发布包不包含用户接入记录。安装必须继续通过原空闲、权限、身份和回执门禁。见 [接入证据](../EXISTING-CONVERSATION-ADMISSION.md)。

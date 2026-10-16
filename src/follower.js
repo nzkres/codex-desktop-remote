@@ -84,7 +84,7 @@ export class Follower {
     if (state?.id !== this.config.threadId || typeof state.cwd !== 'string') return false;
     // 两种路径比较都要通过：实际落盘位置相同，整理后的路径也相同；统一小写用于 Windows 比较。
     // try/catch 表示路径读取失败时返回 false，不尝试猜测或修复目录。
-    try { return toNamespacedPath(realpathSync(state.cwd)).toLowerCase() === toNamespacedPath(realpathSync(this.config.projectPath)).toLowerCase()
+    try { return toNamespacedPath(realpathSync.native(state.cwd)).toLowerCase() === toNamespacedPath(realpathSync.native(this.config.projectPath)).toLowerCase()
       && toNamespacedPath(resolve(state.cwd)).toLowerCase() === toNamespacedPath(resolve(this.config.projectPath)).toLowerCase(); }
     catch { return false; }
   }

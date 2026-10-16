@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { EventEmitter } from 'node:events';
 import { tmpdir } from 'node:os';
 import { mkdtempSync, mkdirSync, rmSync } from 'node:fs';
-import { join } from 'node:path';
+import { join,toNamespacedPath } from 'node:path';
 import { Follower } from '../src/follower.js';
 import { Service, permissionDigest } from '../src/service.js';
 import { Receipts } from '../src/receipts.js';
@@ -31,6 +31,20 @@ class Ipc extends EventEmitter {
  message() {return {method:'thread-stream-state-changed',version:11,sourceClientId:this.owner,params:{hostId:'local',conversationId:'test',change:{type:'snapshot',revision:this.revision,conversationState:{id:'test',cwd:tmpdir(),turns:[],threadRuntimeStatus:{type:'idle'},currentPermissions:this.permissions}}}};}
  close(){this.emit('disconnected');}
 }
+
+test('Windows namespaced local directories retain native path and permission checks',async t=>{
+ const dir=mkdtempSync(join(tmpdir(),'namespace-owner-'));t.after(()=>rmSync(dir,{recursive:true,force:true}));
+ const other=join(dir,'other');mkdirSync(other);
+ const ipc=new Ipc(),config={threadId:'test',projectPath:toNamespacedPath(dir)};
+ const f=new Follower(config,ipc);
+ ipc.message=()=>({method:'thread-stream-state-changed',version:11,sourceClientId:ipc.owner,
+  params:{hostId:'local',conversationId:'test',change:{type:'snapshot',revision:1,conversationState:{id:'test',cwd:dir,turns:[],threadRuntimeStatus:{type:'idle'},currentPermissions:ipc.permissions}}}});
+ assert.equal((await f.snapshot()).id,'test');assert.equal(f.authorized({id:'test',cwd:toNamespacedPath(dir)}),true);
+ assert.equal(f.authorized({id:'test',cwd:other}),false);assert.equal(f.authorized({id:'another',cwd:dir}),false);
+ const normal=permissionDigest({currentPermissions:{sandboxPolicy:{type:'workspaceWrite',writableRoots:[dir]},approvalPolicy:'on-request'}});
+ assert.equal(permissionDigest({currentPermissions:{sandboxPolicy:{type:'workspaceWrite',writableRoots:[toNamespacedPath(dir)]},approvalPolicy:'on-request'}}),normal);
+ f.close();
+});
 test('fresh snapshot and controls target discovered owner; never registers ownership handlers',async()=>{
  const ipc=new Ipc(),f=new Follower({threadId:'test',projectPath:tmpdir()},ipc);
  assert.equal((await f.snapshot()).id,'test');await f.forward('thread-follower-start-turn',{});

@@ -28,7 +28,7 @@ export function taskConfigs(config) {
       throw new ControlError('invalid_task_scope', '已授权任务清单无效。', 400);
     permissionDigests(task); // 备用任务不能继承主任务权限摘要。
     let projectPath;
-    try { projectPath = realpathSync(task.projectPath); }
+    try { projectPath = realpathSync.native(task.projectPath); }
     catch { throw new ControlError('invalid_task_scope', '已授权任务目录无法核对。', 400); }
     ids.add(task.threadId);
     // 只共享机器运行配置与同一份按 threadId 分隔的回执库。
@@ -136,7 +136,7 @@ export class TaskService {
     await this.refreshCatalog();
     const unique=new Map();
     for(const row of this.catalog.values()) {
-      let path;try{path=realpathSync(row.projectPath);}catch{continue;}
+      let path;try{path=realpathSync.native(row.projectPath);}catch{continue;}
       if(!localProjectPath(path)||toNamespacedPath(path).toLowerCase()!==toNamespacedPath(row.projectPath).toLowerCase())continue;
       const id='project-'+createHash('sha256').update(toNamespacedPath(path).toLowerCase()).digest('hex').slice(0,32);
       unique.set(id,{id,name:basename(path)||path,path});
@@ -337,8 +337,8 @@ export class TaskService {
         const tasks = new Map(anchors.map(t=>[t.threadId,t]));
         for (const task of this.activity.entries()) {
           const anchor = tasks.get(task.threadId);
-          if (anchor && toNamespacedPath(realpathSync(anchor.projectPath)).toLowerCase() !==
-              toNamespacedPath(realpathSync(task.projectPath)).toLowerCase())
+          if (anchor && toNamespacedPath(realpathSync.native(anchor.projectPath)).toLowerCase() !==
+              toNamespacedPath(realpathSync.native(task.projectPath)).toLowerCase())
             throw new ControlError('task_directory_changed','手机任务目录与原任务绑定不一致，更新已延期。');
           tasks.set(task.threadId, anchor ? {...anchor,uncertain:task.uncertain} : task);
         }

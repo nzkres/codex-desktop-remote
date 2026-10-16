@@ -13,7 +13,7 @@ export async function verifyCreationSupport(config) {
   if(pin.desktopVersion!=='26.1007.9446.0')
     throw new ControlError('create_unsupported','当前 Desktop 版本尚未验证手机新建，请先更新连接器与 Desktop。',501);
 }
-const samePath=(a,b)=>toNamespacedPath(realpathSync(a)).toLowerCase()===toNamespacedPath(realpathSync(b)).toLowerCase();
+const samePath=(a,b)=>toNamespacedPath(realpathSync.native(a)).toLowerCase()===toNamespacedPath(realpathSync.native(b)).toLowerCase();
 export async function createEmptyConversation(config, projectPath, title, onCreated, {launch=spawn,timeoutMs=45000,verify=verifyCreationSupport}={}) {
   await verify(config);
   const environment={...process.env,CODEX_HOME:config.codexHome??process.env.CODEX_HOME??join(homedir(),'.codex')};
