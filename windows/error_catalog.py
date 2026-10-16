@@ -10,6 +10,8 @@ from pathlib import Path
 import re
 
 _DECLARED_CODES = frozenset({
+    'permissions_unverified',
+    'rollback_context_unverified',
     'recovery_containment_unverified',
     'recovery_desktop_unverified',
     'recovery_failed',
@@ -284,6 +286,8 @@ _COMMON = {
     'identity_or_runtime_requires_review': ('保护', '更新前身份或运行保护状态不满足安全条件。', '保留现场，由维护者核对运行保护和交易记录。'),
     'update_needs_review': ('更新', '持久更新事务处于需复核阶段。', '保留 data 与 state，核对交易 cause 和 error；不要直接重试或删除保护。'),
     'update_rolled_back': ('更新', '候选更新未通过验证，事务已确认回到旧版本。', '查看交易原因并核对旧版本实际连接状态；不要把回退当作新版安装成功。'),
+    'rollback_context_unverified': ('保护', '旧版本、指针或回退阶段与已核验的恢复上下文不一致。', '保留原身份、回执、旧槽及事务，由维护者核对；不激活旧版或重放操作。'),
+    'permissions_unverified': ('保护', 'Desktop 的任务访问权限未得到完整核验。', '保留身份和回执，核对 Desktop 权限及只读探针结果后再恢复。'),
     'update_record_unreadable': ('更新', '更新记录不能安全读取。', '保持连接禁用，保留记录，由维护者核对文件完整性。'),
     'update_operation_failed': ('更新', '更新操作没有可公开的具体错误码。', '保留原安装与交易记录，由维护者核对，不要猜测已经升级成功。'),
     'operation_failed': ('操作', '操作未完成，具体原因未经过安全分类。', '保留当前状态并查看已知错误码；不要根据未知文本重复配对或发送。'),

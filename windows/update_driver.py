@@ -9,6 +9,8 @@ from pathlib import Path
 import subprocess
 import sys
 
+ROOT = Path(__file__).resolve().parents[1]
+
 from updates.processes import OwnedChild
 from updates.security import UpdateError
 from updates.storage import digest, lock, no_links, read
@@ -83,7 +85,9 @@ class WindowsDriver:
         try:
             with self.controller.store.lock('runtime.lock'):
                 snapshot(self.controller)
-                probe(self.old_slot, self.controller)
+                # Use this verified updater's protocol implementation, including
+                # its namespace-path fix when maintaining an older installation.
+                probe(ROOT, self.controller)
         except BaseException:
             self.release('preflight_failed')
             raise
@@ -105,6 +109,19 @@ class WindowsDriver:
             raise UpdateError('candidate_tree_exit_unconfirmed')
         self.target = OwnedChild([sys.executable, '-B', Path(root) / 'windows' / 'ota_entry.py',
                                   '--home', self.home, '--quarantine'], cwd=root)
+
+    def start_restore(self, root):
+        """Restore verified old code using a quarantined recovery host.
+
+        Old entry points may contain the exact health bug that caused failure.
+        Never call that broken check again, or open old work before activation.
+        """
+        if self.target is not None or self.activation_started:
+            raise UpdateError('candidate_tree_exit_unconfirmed')
+        if Path(root).resolve(strict=True) != self.old_slot.resolve(strict=True):
+            raise UpdateError('update_pointer_changed')
+        self.target = OwnedChild([sys.executable, '-B', ROOT / 'windows' / 'rollback_entry.py',
+                                  '--home', self.home], cwd=root)
 
     # 等待候选明确回报版本和健康验证完成；进程存在或窗口出现都不够。
     def verify(self, root):

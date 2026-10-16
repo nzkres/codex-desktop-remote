@@ -137,7 +137,19 @@ def _source_tree(base, version, good_probe):
     catalog["releases"] = [release]
     catalog_path.write_text(json.dumps(catalog, ensure_ascii=False), encoding="utf-8")
     (root / "scripts/update_probe.mjs").write_text(
-        PROBE.replace("GOOD", "True" if good_probe else "False"), encoding="utf-8")
+        PROBE.replace("GOOD", "True"), encoding="utf-8")
+    # Real child/Tk/activation lifecycle; only native observations are synthetic.
+    # Work may begin after the idle admission. Health must still verify it.
+    proof = {'schema':1, 'compatible':True, 'tasksVerified':True,
+             'permissionsVerified':good_probe, 'receiptsCertain':True,
+             'runningTaskCount':1, 'modelInputs':0}
+    (root / 'scripts/recovery_probe.mjs').write_text(
+        'import json\nprint(json.dumps('+repr(proof)+'), flush=True)\n', encoding='utf-8')
+    if version == '0.0.1':
+        # The old GUI is usable, but its old quarantine entry is broken. A
+        # rollback must use the distinct reviewed host, not repeat this bug.
+        (root / 'windows/ota_entry.py').write_text(
+            "raise RuntimeError('synthetic_broken_legacy_entry')\n", encoding='utf-8')
     return root
 
 
@@ -173,6 +185,7 @@ def _run_case(base, bad_candidate=False):
     (home / "data" / "fixture-task").mkdir()
     python = Path(sys.executable).resolve()
     config = {"schema": 1, "port": 37651, "dataDir": str(home / "data" / "fixture-task"),
+              "desktopRoot": str(base),
               "node": {"path": str(python), "sha256": _digest(python)},
               "permissionsHash": "0" * 64}
     (home / "data" / "fixture.local.json").write_text(json.dumps(config), encoding="utf-8")

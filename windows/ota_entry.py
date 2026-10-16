@@ -16,7 +16,8 @@ sys.path.insert(0, str(ROOT / "windows"))
 from updates.engine import installed
 from updates.storage import atomic, ensure_launchable, lock, no_links, read
 from updates.security import UpdateError
-from update_driver import controller_for, snapshot, probe
+from update_driver import controller_for
+from update_health import health as quarantined_health, record_health_failure
 from gui import _Window, enable_dpi
 from error_catalog import safe_code
 
@@ -32,7 +33,7 @@ def connect_after_commit(window, gui, attempts=80):
         return
     if not gui.update_blocked:
         gui.connect()
-    elif gui.update_phase in ('prepared', 'old_stopped', 'switched', 'validated') and attempts:
+    elif gui.update_phase in ('prepared', 'old_stopped', 'switched', 'validated', 'rollback_required', 'rollback_restoring') and attempts:
         window.after(250, lambda: connect_after_commit(window, gui, attempts - 1))
 
 
@@ -47,39 +48,7 @@ def same_running_slot(slot):
 # 更新候选的真实健康检查：先检查任务，再短暂连接验证传输，最后比较保全摘要。
 # 已配对安装会接触其配置的服务器；这不是纯 UI 演示或合成测试入口。
 def health(controller):
-    baseline = snapshot(controller)
-    probe(ROOT, controller)
-    with controller.store.lock():
-        paired = controller.store.read() is not None
-    if paired:
-        stop = threading.Event()
-        outcome = queue.Queue()
-        verified = threading.Event()
-        # 仅收到登记 connected 且通道 probe_verified 后置位验证信号，并请求正常断开。
-        def report(value):
-            if value.get('state') == 'connected' and value.get('dataChannel') == 'probe_verified':
-                verified.set(); stop.set()
-        # 在线程里执行检查用连接，把结果交回主流程；异常只返回失败标记。
-        def connect():
-            try:
-                outcome.put(controller.connect(stop, report))
-            except Exception as error:
-                outcome.put(health_error(error))
-        worker = threading.Thread(target=connect, daemon=True)
-        worker.start()
-        worker.join(65)
-        stop.set()
-        worker.join(15)
-        if worker.is_alive() or outcome.empty():
-            raise UpdateError('candidate_transport_unverified')
-        result = outcome.get()
-        if isinstance(result, str):
-            raise UpdateError(result)
-        if not verified.is_set() or not isinstance(result, dict):
-            raise UpdateError('candidate_transport_unverified')
-    probe(ROOT, controller)
-    if snapshot(controller) != baseline:
-        raise UpdateError('preservation_changed')
+    return quarantined_health(ROOT, controller)
 
 
 # 普通启动需通过事务可启动检查；隔离启动先健康验证并等待助手激活。
@@ -106,8 +75,7 @@ def run(home, quarantine=False, connect=False):
                 # Old helpers only understand ready=False. Retain the bounded
                 # reason in stable state as well, without altering the transaction.
                 try:
-                    atomic(Path(home) / 'state' / 'candidate-health.json',
-                           {'schema':1, 'version':version, 'ready':False, 'code':health_error(error)})
+                    record_health_failure(home, 'candidate', version, health_error(error))
                 except Exception:
                     pass
                 raise
@@ -155,7 +123,9 @@ if __name__ == '__main__':
             import tkinter as tk
             from tkinter import messagebox
             root=tk.Tk();root.withdraw()
-            messagebox.showerror('连接器未启动', '安装或更新现场需要复核。请查看 state/transaction.json；不要删除身份或保护标志。')
+            from updates.launch import describe_problem
+            title, message, kind = describe_problem(args.home, error)
+            (messagebox.showinfo if kind == 'info' else messagebox.showerror)(title, message)
             root.destroy()
         sys.exit(1)
 

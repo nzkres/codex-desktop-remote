@@ -35,6 +35,7 @@ WINDOWS_REQUIRED = (
     "windows/controller.py", "windows/gui.py", "windows/error_catalog.py", "windows/demo.py", "windows/release_notes.py",
     "windows/releases.json", "windows/ota_entry.py", "windows/update_driver.py",
     "windows/update_helper.py", "windows/update_ui.py", "windows/runtime_recovery.py",
+    "windows/update_health.py", "windows/rollback_entry.py",
     "scripts/configure.py", "scripts/probe.mjs", "scripts/update_probe.mjs", "scripts/diagnose_desktop.mjs", "scripts/recovery_probe.mjs",
     "src/package.json", "src/compatibility.js", "src/follower.js", "src/main.js",
     "src/activity.js", "src/catalog.js", "src/create-empty.js", "src/desktop-open.js", "scripts/desktop_catalog.py", "scripts/desktop_usage.py", "src/usage.js", "src/receipts.js", "src/questions.js", "src/service.js", "src/tasks.js", "src/version.js",

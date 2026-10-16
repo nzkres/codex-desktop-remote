@@ -191,13 +191,19 @@ class Transaction:
                             self.cas(candidate, old)
                         elif current != old:
                             raise UpdateError('update_pointer_changed')
-                        self.driver.start(old_root)
+                        self.record('rollback_restoring')
+                        restore = getattr(self.driver, 'start_restore', self.driver.start)
+                        restore(old_root)
                         self.driver.verify(old_root)
                         self.preserved()
                         self.driver.activate()
                         self.record('rolled_back', success=False)
-                    except BaseException:
-                        self.record('needs_review', error='rollback_or_cleanup_unconfirmed')
+                    except BaseException as rollback:
+                        rollback_code = (rollback.code if isinstance(rollback, UpdateError)
+                                         and isinstance(rollback.code, str)
+                                         and re.fullmatch(r'[a-z0-9_]{1,80}', rollback.code)
+                                         else 'update_operation_failed')
+                        self.record('needs_review', error='rollback_or_cleanup_unconfirmed', rollbackCause=rollback_code)
                 raise UpdateError('update_' + self.value['phase']) from None
             finally:
                 self.driver.release(getattr(self, 'value', {}).get('phase', 'needs_review'))

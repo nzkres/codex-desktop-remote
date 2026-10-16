@@ -208,8 +208,29 @@ class EngineTests(unittest.TestCase):
         with self.assertRaisesRegex(UpdateError, "update_needs_review"):
             tx.apply()
         self.assertEqual(read(tx.journal)["phase"], "needs_review")
+        self.assertEqual(read(tx.journal)['rollbackCause'],'verify_old_failed')
         self.assertEqual(read(tx.pointer), self.pointer)
         self.assertNotIn("activate", self.driver.events)
+
+    def test_rollback_prefers_distinct_restore_host_and_keeps_original_failure(self):
+        tx=self.prepared()
+        name=read(self.home/'state/staged.json')['candidate']['path'].split('/')[-1]
+        self.driver.fail.add('verify_'+name)
+        self.driver.start_restore=lambda root:self.driver.step('restore_'+Path(root).name)
+        with self.assertRaisesRegex(UpdateError,'update_rolled_back'):tx.apply()
+        self.assertIn('restore_old',self.driver.events)
+        self.assertNotIn('start_old',self.driver.events)
+        self.assertEqual(read(tx.journal)['cause'],'update_operation_failed')
+
+    def test_ambiguous_restore_activation_is_retained_and_never_replayed(self):
+        tx=self.prepared();name=read(self.home/'state/staged.json')['candidate']['path'].split('/')[-1]
+        self.driver.fail.add('verify_'+name)
+        self.driver.activate=lambda:(_ for _ in ()).throw(UpdateError('candidate_activation_unverified'))
+        with self.assertRaisesRegex(UpdateError,'update_needs_review'):tx.apply()
+        record=read(tx.journal)
+        self.assertEqual(record['rollbackCause'],'candidate_activation_unverified')
+        self.assertEqual(self.driver.events.count('cleanup_target'),1)
+        self.assertEqual(read(tx.pointer),self.pointer)
 
     def test_power_loss_recover_blocks_replay_without_driver_actions(self):
         tx = self.prepared()

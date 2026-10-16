@@ -143,6 +143,22 @@ class DriverTests(unittest.TestCase):
         self.assertIs(self.driver.target, child)
         self.assertEqual(child.calls, ["stop_tree"])
 
+    def test_restore_uses_reviewed_host_and_only_original_slot(self):
+        self.driver.old_slot.mkdir()
+        with patch.object(update_driver, 'OwnedChild') as child:
+            self.driver.start_restore(self.driver.old_slot)
+            argv=child.call_args.args[0]
+            self.assertEqual(argv[2], update_driver.ROOT/'windows/rollback_entry.py')
+            self.assertEqual(child.call_args.kwargs['cwd'], self.driver.old_slot)
+            with self.assertRaisesRegex(UpdateError, 'candidate_tree_exit_unconfirmed'):
+                self.driver.start_restore(self.driver.old_slot)
+        self.driver.target=None
+        other=self.home/'other';other.mkdir()
+        with patch.object(update_driver, 'OwnedChild') as child:
+            with self.assertRaisesRegex(UpdateError, 'update_pointer_changed'):
+                self.driver.start_restore(other)
+            child.assert_not_called()
+
     def test_candidate_health_requires_exact_receipt(self):
         child = FakeChild({"schema": 1, "ready": True, "version": "wrong", "probe": "verified"})
         self.driver.target = child

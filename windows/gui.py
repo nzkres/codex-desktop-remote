@@ -201,7 +201,7 @@ class _Window:
                 record = read(journal) if journal.exists() else {}
                 phase = record.get('phase', 'ready')
                 if phase == 'needs_review':
-                    codes = [record.get(key) for key in ('cause', 'error') if record.get(key)]
+                    codes = [record.get(key) for key in ('cause', 'rollbackCause', 'error') if record.get(key)]
                     self._record_errors('更新事务', codes or ['update_needs_review'])
                 elif phase == 'rolled_back':
                     self._record_errors('更新事务', [record.get('cause') or 'update_rolled_back'])
@@ -211,7 +211,9 @@ class _Window:
                 if phase != self.update_phase:
                     messages = {'committed':'上次更新：新版启动、保全与健康核验通过；当前连接请查看上方状态。',
                                 'rolled_back':'上次更新失败，已验证并回退至旧版。',
-                                'needs_review':'更新结果需复核；已禁用新连接，请保留 data 与 state 目录。'}
+                                'needs_review':'更新或旧版恢复未完成；具体升级/回退原因见下方错误诊断，请保留 data 与 state。',
+                                'rollback_required':'更新验证失败，正在核对并清理未激活候选…',
+                                'rollback_restoring':'正在核验并恢复原版本，未完成前不会开放新操作…'}
                     if phase != 'ready':
                         self.update_text.set(messages.get(phase, '独立助手正在完成更新事务，请稍候…'))
                     self.update_phase = phase

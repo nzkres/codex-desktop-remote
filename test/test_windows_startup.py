@@ -10,6 +10,7 @@ import json
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'windows'))
 import ota_entry
+import update_health
 from updates.security import UpdateError
 
 
@@ -70,17 +71,17 @@ class StartupTests(unittest.TestCase):
             self.assertTrue(stop.is_set())
             return {'state':'connected'}
         c.connect.side_effect=connect
-        with patch.object(ota_entry,'snapshot',return_value={'synthetic':'unchanged'}), patch.object(ota_entry,'probe') as probe:
+        with patch.object(update_health,'snapshot',return_value={'synthetic':'unchanged'}), patch.object(update_health,'native_check') as probe:
             ota_entry.health(c)
             self.assertEqual(probe.call_count,2)
-        with patch.object(ota_entry,'snapshot',side_effect=[{'before':1},{'after':2}]), patch.object(ota_entry,'probe'):
+        with patch.object(update_health,'snapshot',side_effect=[{'before':1},{'after':2}]), patch.object(update_health,'native_check'):
             with self.assertRaisesRegex(UpdateError,'preservation_changed'):
                 ota_entry.health(c)
 
-    def test_busy_task_is_refused_before_any_candidate_connection(self):
+    def test_unverified_native_permissions_are_refused_before_candidate_connection(self):
         c=Mock()
-        with patch.object(ota_entry,'snapshot',return_value={}), patch.object(ota_entry,'probe',side_effect=UpdateError('active_or_unverified_desktop_task')):
-            with self.assertRaisesRegex(UpdateError,'active_or_unverified_desktop_task'):
+        with patch.object(update_health,'snapshot',return_value={}), patch.object(update_health,'native_check',side_effect=UpdateError('permissions_unverified')):
+            with self.assertRaisesRegex(UpdateError,'permissions_unverified'):
                 ota_entry.health(c)
         c.connect.assert_not_called()
 
@@ -90,7 +91,7 @@ class StartupTests(unittest.TestCase):
         for supplied,expected in [('previous_runtime_requires_review','previous_runtime_requires_review'),
                                   ('https://synthetic-secret.example/token','operation_failed')]:
             c.connect.side_effect=ConnectorError(supplied)
-            with patch.object(ota_entry,'snapshot',return_value={}), patch.object(ota_entry,'probe'):
+            with patch.object(update_health,'snapshot',return_value={}), patch.object(update_health,'native_check'):
                 with self.assertRaisesRegex(UpdateError,expected):
                     ota_entry.health(c)
 
@@ -107,7 +108,27 @@ class StartupTests(unittest.TestCase):
             self.assertEqual(set(record),{'schema','version','ready','code'})
             self.assertIs(record['ready'],False)
             self.assertEqual(record['code'],'active_or_unverified_desktop_task')
+            separate=home/'state'/('candidate-health-'+record['version']+'.json')
+            self.assertEqual(json.loads(separate.read_bytes()),record)
             window.mainloop.assert_not_called()
+
+    def test_native_work_after_idle_admission_is_not_an_unhealthy_connector(self):
+        c=Mock();c.store.lock.return_value=nullcontext();c.store.read.return_value=None
+        proof={'tasksVerified':True,'permissionsVerified':True,'receiptsCertain':True,'runningTaskCount':1}
+        with patch.object(update_health,'snapshot',return_value={}),patch.object(update_health,'native_check',return_value=proof) as check:
+            ota_entry.health(c)
+        self.assertEqual(check.call_count,2)
+        c.connect.assert_not_called()
+
+    def test_rollback_failure_does_not_overwrite_candidate_failure(self):
+        with TemporaryDirectory() as folder:
+            home=Path(folder)
+            update_health.record_health_failure(home,'candidate','0.1.0-alpha.25','candidate_transport_unverified')
+            original=(home/'state/candidate-health.json').read_bytes()
+            update_health.record_health_failure(home,'rollback','0.1.0-alpha.22','permissions_unverified')
+            self.assertEqual((home/'state/candidate-health.json').read_bytes(),original)
+            old=json.loads((home/'state/rollback-health-0.1.0-alpha.22.json').read_bytes())
+            self.assertEqual(old['code'],'permissions_unverified')
 
     def test_connect_waits_for_helper_commit_then_runs_once(self):
         window=Mock();gui=Mock(closing=False,update_blocked=True,update_phase='validated')

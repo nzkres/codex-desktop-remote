@@ -1,3 +1,7 @@
+## 2026-10-16 Windows 更新恢复边界
+
+安装前继续独占应用/运行锁并核验原生空闲；隔离健康改为原生权限/回执/任务可核验性、通道正常退出和保全摘要，允许准入后 Desktop 开始工作。未激活候选失败时，经清理/保全/旧指针复验后进入 rollback_restoring，受信独立恢复入口装载旧 GUI，等父助手明确激活并落盘 rolled_back 才重连。激活可能已发生或未知回执不自动回退。
+
 ## 已有对话的明确接入
 
 Windows alpha.23 的本机 linkedConversations 逐条绑定已有 ID、真实目录、originator 与 threadSource；来源仍限定本机 vscode，guardian/subagent 不能接入。没有手机扩权接口，不写 Desktop 数据或伪造创建回执。目录只为匹配的接入项标注 linkedEmptyHistory，业务层仍逐次取得完整原生快照与权限核验。配置和接入标题不随包分发。
