@@ -1,3 +1,5 @@
+> Windows alpha.20/sequence16已发布原私有源及私有归档，现装alpha.18仍连接；签名/下载与实际安装分别见[发布记录](../WINDOWS-ALPHA20-PUBLICATION.md)。
+
 ## 2026-10-16 Windows alpha.20 修复包
 
 新增打开后自动连接和脱敏候选健康诊断；不替换已发布alpha.19同名包。手机与中继不更新；发布及安装分别见[STATUS](../../STATUS.md)。

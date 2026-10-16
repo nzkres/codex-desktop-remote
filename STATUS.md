@@ -1,3 +1,7 @@
+## 2026-10-16 Windows alpha.20 已发布，现装alpha.18保持连接
+
+新sequence16签名包已发布原私有源；实际HTTPS完整下载/原签名/大小/哈希通过，匿名元数据与包401。使用实际alpha.18验签器、原信任和账本验证新包通过，未改本机指针/账本/事务；原alpha.18连接health=200、healthy及sameInstance为true。Node184、Python219（7跳过）通过。新包尚未实际安装，候选真实健康及手机新发送另验收。见[发布证据](docs/WINDOWS-ALPHA20-PUBLICATION.md)。
+
 ## 2026-10-16 Windows alpha.20 测试通过、待签名发布
 
 Node184项通过；Python219项通过（7项跳过），含Windows进程树与完整性/回退、候选健康失败诊断、打开后一次自动连接及隔离激活门禁。版本目录与记录校验通过。Windows更新包待原签名发布，实际运行alpha.18继续连接；未作当前任务中的强制升级。

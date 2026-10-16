@@ -1,3 +1,5 @@
+> Windows alpha.20修复包已发布：已配对打开后自动连接，保留候选健康失败原因。原alpha.18连接保持，升级需任务空闲、安全断开；[发布证据及安装边界](docs/WINDOWS-ALPHA20-PUBLICATION.md)。
+
 > 最新发布：Android alpha.20 / Windows alpha.19，正式额度动效、运行与未读、纯Loading和紧凑首页。原私有源可更新，安装与真实任务验收另记录，见[发布证据](docs/ANDROID-ALPHA20-PUBLICATION.md)。
 
 > 2026-10-16：原手机已通过预览显示/完整播放与R3→R4独立刷新，APK版本、安装时间和哈希未变。后续兼容预览改稿只刷新R修订，见[真机验收](docs/PREVIEW-PHONE-ACCEPTANCE-20261016.md)。
