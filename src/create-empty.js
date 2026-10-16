@@ -19,6 +19,7 @@ export async function createEmptyConversation(config, projectPath, title, onCrea
   const environment={...process.env,CODEX_HOME:config.codexHome??process.env.CODEX_HOME??join(homedir(),'.codex')};
   // Do not borrow executor identities, app tool pipes or an active model turn.
   for(const key of Object.keys(environment)) if(key.startsWith('CODEX_APP_TOOLS_')) delete environment[key];
+  for(const key of ['CODEX_INTERNAL_ORIGINATOR_OVERRIDE','CODEX_THREAD_ID','CODEX_SESSION_ID']) delete environment[key];
   const child=launch(join(config.desktopRoot,'app/resources/codex.exe'),['app-server','--listen','stdio://'],
     {cwd:projectPath,env:environment,windowsHide:true,stdio:['pipe','pipe','ignore']});
   let buffer='',serial=0,stopped=false,failed=null;

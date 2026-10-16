@@ -26,6 +26,7 @@ function fixture(t,{blockName=false,toolRequest=false}={}) {
  const launch=(exe,args,options)=>{
   assert.deepEqual(args,['app-server','--listen','stdio://']);assert.equal(options.cwd,dir);
   assert.equal(options.stdio[2],'ignore');assert.equal(Object.keys(options.env).some(k=>k.startsWith('CODEX_APP_TOOLS_')),false);
+  for(const key of ['CODEX_INTERNAL_ORIGINATOR_OVERRIDE','CODEX_THREAD_ID','CODEX_SESSION_ID'])assert.equal(Object.hasOwn(options.env,key),false);
   return child;
  };
  return {dir,methods,saved,run:()=>createEmptyConversation({desktopRoot:dir},dir,'New',(i,p)=>saved.push({id:i,persisted:p,exited}),{launch,verify:async()=>{},timeoutMs:80})};
@@ -42,4 +43,12 @@ test('name timeout keeps known ID uncertain and terminates helper without a mode
 test('unsolicited tool or approval request is never answered or granted',async t=>{
  const f=fixture(t,{toolRequest:true});await assert.rejects(f.run(),{code:'create_unknown'});
  assert.equal(f.saved.length,0);assert.equal(f.methods.includes('turn/start'),false);
+});
+test('parent executor identity cannot overwrite creation provenance and is not changed in the parent',async t=>{
+ const keys=['CODEX_INTERNAL_ORIGINATOR_OVERRIDE','CODEX_THREAD_ID','CODEX_SESSION_ID'];
+ const old=keys.map(k=>process.env[k]);
+ t.after(()=>keys.forEach((k,i)=>{if(old[i]===undefined)delete process.env[k];else process.env[k]=old[i];}));
+ keys.forEach(k=>process.env[k]='unrelated-parent-identity');
+ const f=fixture(t);assert.equal(await f.run(),id);
+ keys.forEach(k=>assert.equal(process.env[k],'unrelated-parent-identity'));
 });
