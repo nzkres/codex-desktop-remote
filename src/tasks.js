@@ -6,7 +6,7 @@ import { Service, permissionDigests, configuredPermissionsMatch, READ_EVIDENCE }
 import { Follower } from './follower.js';
 import { ControlError, object } from './vendor/desktop-ipc.js';
 import { VERSION } from './version.js';
-import {readCatalog, taskScope, taskId, localProjectPath} from './catalog.js';
+import {readCatalog, taskScope, taskId, localProjectPath,linkedConversations} from './catalog.js';
 import {MobileSync} from './vendor/mobile-sync.js';
 import {Activity} from './activity.js';
 import {ensureDesktopConversation} from './desktop-open.js';
@@ -44,6 +44,7 @@ export class TaskService {
   constructor(config, receipts, {createFollower = cfg => new Follower(cfg), discover = readCatalog, prepareDesktop = ensureDesktopConversation,
     createEmpty = createEmptyConversation, verifyCreate = verifyCreationSupport, ...options} = {}) {
     this.config = config; this.services = new Map(); this.draining = false; this.checking = false; this.writes = 0;
+    linkedConversations(config);
     this.discover = discover; this.createFollower = createFollower; this.prepareDesktop = prepareDesktop; this.desktopOpening = null; this.receipts = receipts; this.options = options;
     this.automatic = taskScope(config) === 'all-local'; this.catalog = new Map(); this.closed = false; this.readers = new Map(); this.readDrainWaiters = new Set();
     this.activity = new Activity(receipts);
@@ -68,6 +69,7 @@ export class TaskService {
     if (this.refreshing) return this.refreshing;
     this.refreshing = (async () => {
       const creations=this.receipts.creationRecords().filter(r=>r.creation.persisted);
+      const linked=linkedConversations(this.config);
       const rows = await this.discover({...this.config,createdThreadIds:creations.map(r=>r.creation.threadId)}), next = new Map();
       if (!Array.isArray(rows) || rows.length > 10000) throw new ControlError('catalog_unavailable', '对话目录无法核对。', 503);
       for (const row of rows) {
@@ -75,7 +77,10 @@ export class TaskService {
           throw new ControlError('catalog_unavailable', '对话目录无法核对。', 503);
         // 远端 Linux 等非本机目录不能通过 Windows 本地 follower 执行。
         if (!localProjectPath(row.projectPath)) continue;
-        next.set(row.threadId, {...row,mobileCreated:creations.some(r=>r.creation.threadId===row.threadId), title:typeof row.title === 'string' && row.title.trim() ? row.title.slice(0,200) : '未命名对话',
+        const admission=linked.find(r=>r.threadId===row.threadId);
+        const linkedEmptyHistory=row.linkedEmptyHistory===true&&admission?.allowEmptyHistory===true
+          &&toNamespacedPath(row.projectPath).toLowerCase()===toNamespacedPath(admission.projectPath).toLowerCase();
+        next.set(row.threadId, {...row,linkedEmptyHistory,mobileCreated:creations.some(r=>r.creation.threadId===row.threadId), title:typeof row.title === 'string' && row.title.trim() ? row.title.slice(0,200) : '未命名对话',
           projectId:'desktop-'+row.threadId});
       }
       if (this.closed) throw new ControlError('disconnect_preparing', '连接器已关闭。', 503);
@@ -102,6 +107,8 @@ export class TaskService {
       if (existing.config.projectPath !== row.projectPath)
         throw new ControlError('task_directory_changed', 'Desktop 对话目录已变化，请重新连接。', 409);
       existing.config.title = row.title;
+      existing.config.linkedEmptyHistory=row.linkedEmptyHistory;
+      existing.config.mobileCreated=row.mobileCreated;
       this.services.delete(id); this.services.set(id, existing);
       return existing;
     }

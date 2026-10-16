@@ -127,7 +127,7 @@ export class Service {
           || (Object.hasOwn(state,'unconfirmedTurnSubmissions') &&
               (!Array.isArray(state.unconfirmedTurnSubmissions) || state.unconfirmedTurnSubmissions.length)))
         throw new ControlError('history_unavailable','对话记录尚未就绪，请稍后重试获取。',503);
-      if(!this.config.mobileCreated)throw new ControlError('history_empty','这条对话暂无历史记录。请在 Desktop 确认原对话；有记录后点击“重试”获取。',409);
+      if(!this.config.mobileCreated&&!this.config.linkedEmptyHistory)throw new ControlError('history_empty','这条对话暂无历史记录。请在 Desktop 确认原对话；有记录后点击“重试”获取。',409);
     }
     const status = !latest ? 'IDLE' : active ? 'RUNNING'
       : latest?.status === 'failed' ? 'FAILED' : latest?.status === 'interrupted' ? 'INTERRUPTED' : 'COMPLETED';

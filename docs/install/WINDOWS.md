@@ -1,3 +1,7 @@
+## alpha.23 接入已有验收对话
+
+本机维护配置可添加 linkedConversations，逐条固定 threadId、projectPath、title、originator、threadSource、allowEmptyHistory；只对已明确授权并由原生 Desktop 核验的已有对话使用。目录扫描同时比对原 SQLite 元数据，不写 Desktop 数据；本机显示标题不改原标题。不修改原创建/发送回执。配置在正常安全退出后原子写入，重新启动原连接器生效；发布包不包含用户接入记录。安装必须继续通过原空闲、权限、身份和回执门禁。见 [接入证据](../EXISTING-CONVERSATION-ADMISSION.md)。
+
 ## alpha.21 激活修复
 
 alpha.20存在激活时身份锁冲突，应更新至alpha.21。已有needs_review现场先由维护者核对候选是否接单和原进程，不能删除记录强行重开。复核恢复旧版本后，等待任务空闲、安全断开，再检查更新和安装21。新窗口在助手写入committed后自动连接，保留原身份与回执，不重新配对。安装及真实通道证据见STATUS。

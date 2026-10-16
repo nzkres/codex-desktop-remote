@@ -1,3 +1,5 @@
+> Windows alpha.23：按明确授权接入已有验收空对话，保留原 ID、Desktop 资料与发送回执；手机无需重装。构建、安装和真实手机验收分别见 [接入记录](docs/EXISTING-CONVERSATION-ADMISSION.md)。
+
 > Windows alpha.21已发布并在本机实际升级、自动连接通过，修复alpha.20安装激活故障；[发布和运行证据](docs/WINDOWS-ALPHA21-PUBLICATION.md)。源码修复分支待合并，未宣称main已更新。
 
 > Windows alpha.20修复包已发布：已配对打开后自动连接，保留候选健康失败原因。原alpha.18连接保持，升级需任务空闲、安全断开；[发布证据及安装边界](docs/WINDOWS-ALPHA20-PUBLICATION.md)。

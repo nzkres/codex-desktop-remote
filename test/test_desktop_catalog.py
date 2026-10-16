@@ -53,4 +53,36 @@ class CatalogTests(unittest.TestCase):
             db=sqlite3.connect(Path(directory)/'state_5.sqlite');db.close()
             with self.assertRaises(sqlite3.Error):module.read_catalog(directory)
 
+    def test_admission_binds_existing_id_directory_and_provenance_without_writes(self):
+        with tempfile.TemporaryDirectory() as directory:
+            db=sqlite3.connect(Path(directory)/'state_5.sqlite')
+            db.execute('CREATE TABLE threads(id TEXT,cwd TEXT,title TEXT,updated_at INTEGER,archived INTEGER,source TEXT,originator TEXT,thread_source TEXT)')
+            first='00000000-1111-2222-3333-444444444444'
+            other='00000000-1111-2222-3333-555555555555'
+            origin='desktop_remote_create_probe'
+            for id in (first,other):
+                db.execute('INSERT INTO threads VALUES (?,?,?,1,0,?,?,?)',(id,directory,'','vscode',origin,origin))
+            db.commit()
+            approved={'threadId':first,'projectPath':directory,'title':'Existing empty conversation',
+                      'originator':origin,'threadSource':origin,'allowEmptyHistory':True}
+            self.assertEqual(module.read_catalog(directory)['tasks'],[])
+            rows=module.read_catalog(directory,linked=[approved])['tasks']
+            self.assertEqual(len(rows),1)
+            self.assertEqual(rows[0]['threadId'],first)
+            self.assertEqual(rows[0]['title'],approved['title'])
+            self.assertTrue(rows[0]['linkedEmptyHistory'])
+            self.assertEqual(db.execute('SELECT count(*) FROM threads').fetchone()[0],2)
+            self.assertEqual(db.execute('SELECT title FROM threads WHERE id=?',(first,)).fetchone()[0],'')
+            for field,value in [('originator','other'),('threadSource','other'),('projectPath',str(Path(directory).parent))]:
+                with self.subTest(field=field):
+                    self.assertEqual(module.read_catalog(directory,linked=[{**approved,field:value}])['tasks'],[])
+            db.execute('UPDATE threads SET source=? WHERE id=?',('cli',first));db.commit()
+            self.assertEqual(module.read_catalog(directory,linked=[approved])['tasks'],[])
+            db.execute('UPDATE threads SET source=?,thread_source=? WHERE id=?',('vscode','subagent',first));db.commit()
+            self.assertEqual(module.read_catalog(directory,linked=[approved])['tasks'],[])
+            with self.assertRaises(ValueError):module.read_catalog(directory,linked=[approved,approved])
+            with self.assertRaises(ValueError):module.read_catalog(directory,linked=[{**approved,'allowEmptyHistory':'true'}])
+            with self.assertRaises(ValueError):module.read_catalog(directory,linked=[{**approved,'threadId':"invalid') OR 1=1"}])
+            db.close()
+
 if __name__ == '__main__': unittest.main()

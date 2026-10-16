@@ -6,7 +6,7 @@ import {join} from 'node:path';
 import {TaskService} from '../src/tasks.js';
 import {Receipts} from '../src/receipts.js';
 import {httpServer} from '../src/service.js';
-import {taskScope} from '../src/catalog.js';
+import {taskScope,linkedConversations} from '../src/catalog.js';
 const A='00000000-1111-2222-3333-444444444444', B='00000000-1111-2222-3333-555555555555';
 function fixture(t) {
  const dir=mkdtempSync(join(tmpdir(),'cdr-auto-'));t.after(()=>rmSync(dir,{recursive:true,force:true}));
@@ -258,4 +258,31 @@ test('pending native open persists activity until fresh mobile idle evidence arr
  f.states.get(A).threadRuntimeStatus.type='active';await assert.rejects(f.service.updateStatus());
  f.states.get(A).threadRuntimeStatus.type='idle';await f.service.read(A);
  assert.equal(f.service.activity.entries().length,0);
+});
+
+test('explicit existing conversation admits empty native history without a creation or send receipt',async t=>{
+ const f=fixture(t);
+ const admission={threadId:A,projectPath:f.dir,title:'Existing',originator:'probe',threadSource:'probe',allowEmptyHistory:true};
+ f.service.config.linkedConversations=[admission];f.rows[0].linkedEmptyHistory=true;f.states.get(A).turns=[];
+ const result=await f.service.read(A);
+ assert.equal(result.session.id,A);assert.equal(result.session.status,'IDLE');assert.deepEqual(result.thread.turns,[]);
+ assert.equal(f.receipts.creationRecords().length,0);assert.equal(f.calls.length,0);
+ f.states.get(A).threadRuntimeStatus.type='active';
+ await assert.rejects(f.service.read(A),{code:'history_unavailable'});
+ f.states.get(A).threadRuntimeStatus.type='idle';delete f.states.get(A).currentPermissions;
+ await assert.rejects(f.service.read(A),{code:'permissions_unverified'});
+});
+
+test('empty-history admission needs both exact local approval and catalog binding and is revoked on refresh',async t=>{
+ const f=fixture(t);f.states.get(A).turns=[];f.rows[0].linkedEmptyHistory=true;
+ await assert.rejects(f.service.read(A),{code:'history_empty'});
+ const row={threadId:A,projectPath:f.dir,title:'Existing',originator:'probe',threadSource:'probe',allowEmptyHistory:true};
+ f.service.config.linkedConversations=[row];await f.service.read(A);
+ f.service.config.linkedConversations=[{...row,allowEmptyHistory:false}];
+ await assert.rejects(f.service.read(A),{code:'history_empty'});
+ f.service.config.linkedConversations=[{...row,projectPath:join(f.dir,'different')}];
+ await assert.rejects(f.service.read(A),{code:'history_empty'});
+ assert.throws(()=>linkedConversations({linkedConversations:[row,row]}),{code:'invalid_task_scope'});
+ assert.throws(()=>linkedConversations({linkedConversations:[{...row,threadSource:'subagent'}]}),{code:'invalid_task_scope'});
+ assert.equal(f.receipts.creationRecords().length,0);assert.equal(f.calls.length,0);
 });

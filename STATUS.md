@@ -1,3 +1,7 @@
+## 2026-10-16 已有验收空对话接入
+
+已复核现装 Windows alpha.22 在线，手机真实 HTTPS 接口返回 65 条对话、新建能力 true，但独立验收来源被过滤且没有手机创建回执。alpha.23 增加本机明确接入记录，精确绑定 ID、目录和来源，允许通过原生权限核验的空历史读取；不改 Desktop 数据、不创建新对话、不伪造回执。实现与当前层级见 [接入记录](docs/EXISTING-CONVERSATION-ADMISSION.md)。
+
 ## 2026-10-16 Windows alpha.21已实际安装并自动连接
 
 原签名sequence17已发布，真实HTTPS完整下载及原18验签器通过。经完整现场核验、清理未接单候选并回退18后，用现装alpha.18原WindowsDriver/Transaction实际升级至21，committed=true，保全及配对身份核对通过。真实21新窗口自动连接、诊断无错误；本机health200/healthy/sameInstance为true，手机HTTPS设备在线/原对话200（idle/desktop-ipc），30条既有回执全accepted。新测试消息0，USB为空，未声称手机屏幕及新发送实机通过。源码修复分支待PR合并，main直推被自动审批阻止；[完整证据](docs/WINDOWS-ALPHA21-PUBLICATION.md)。

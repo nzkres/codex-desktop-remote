@@ -1,3 +1,7 @@
+## 已有对话的明确接入
+
+Windows alpha.23 的本机 linkedConversations 逐条绑定已有 ID、真实目录、originator 与 threadSource；来源仍限定本机 vscode，guardian/subagent 不能接入。没有手机扩权接口，不写 Desktop 数据或伪造创建回执。目录只为匹配的接入项标注 linkedEmptyHistory，业务层仍逐次取得完整原生快照与权限核验。配置和接入标题不随包分发。
+
 ## Android alpha.21 / Windows alpha.22 创建空对话（构建验证中）
 
 2026-10-16用户明确允许仅创建空对话的 app-server 例外。手机提交当前电脑的项目标识、标题与稳定 createRequestId，沿现有 `/api/projects/{id}/sessions` 路由及原鉴权转发，不新增中继路由或端口。项目标识由已核验的本机目录去重产生，不接受手机传目录。
