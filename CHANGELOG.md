@@ -419,3 +419,6 @@ Android alpha.10/versionCode 10/sequence 4 已发布；原证书、实际 Manife
 - 增加统一合成自测入口与原型/架构/验收文档。新仓库 CI、APK 安装、真实手机/桌面和公网部署结果以 [STATUS.md](STATUS.md) 为准，当前不能从旧仓库或 Lite 的验收推定通过。
 - 修正独立 CI 的 Android SDK 安装包选择，并让 Windows 配置测试兼容临时目录的 8.3 路径别名。Windows/Linux 核心 CI 已通过。
 - Android 70 项 JVM 单元测试通过，Lint 0 errors / 39 warnings，主 APK 与 instrumentation APK 已编译；私有开发预览提供主 debug APK、校验值与报告。未进行新包安装、模拟器 UI 执行或真实手机联调。
+## 2026-10-16 维护记录：原连接已恢复
+
+复核alpha.19升级失败留下的needs_review事务，确认alpha.18原槽完整、旧进程退出及身份/任务权限/发送回执未变后记录核验回退，恢复原配对连接。真实HTTPS手机路径读取原对话为运行中，28条已有回执均确定；无新发送，USB未连接，手机界面另验收。本次不发布新软件版本，实际运行仍alpha.18。

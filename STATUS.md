@@ -775,3 +775,8 @@ alpha.2 APK：`desktop-remote-lite-0.1.0-alpha.2-debug.apk`，11,720,835 字节�
 alpha.1 归档 APK：11,719,461 字节，SHA-256 `16fcc64a5df5310369c2e9eed8fb0f4fbf165e031e7b63c3bdc68e877e7aa2e9`；Android 产品源码 `ebdb6e4`，核心产品源码 `ae9ed7c`。历史构件和记录仍保留在对应标签。
 
 下一次人工测试：先按 [TESTING.md](docs/TESTING.md) 运行合成自测，再以独立测试设备、专用 Desktop 任务逐项记录实际配对、手机发送、Desktop 同任务接续、手机显示、正常断开重连。未确认的发送不得重放；旧安装不能靠删除保护标志迁入。
+## 2026-10-16 Windows 安装现场复核及连接恢复
+
+实际指针仍为Windows alpha.18；alpha.19候选健康检查失败后，旧指针已回退，但事务停在needs_review，导致稳定启动器拒绝打开。管理员持有应用、更新及运行锁，核对原签名槽、完整进程清单、原端口、Desktop任务/权限/回执及升级前身份与任务数据摘要后，将原事务记录为经维护核验的rolled_back；归档原始失败记录，保留身份、回执及原文件访问权限，无重配、无消息重放、无清空保护现场。
+
+普通用户启动原稳定入口并连接：实际alpha.18窗口显示服务器在线及通道运行；本机health HTTP200、healthy及sameInstance均true。原HTTPS手机通道设备online=true、列表HTTP200、原验收对话mobile-sync HTTP200且observation=running/source=desktop-ipc；28条既有发送回执全accepted，新发送0。USB设备列表为空，未声称手机屏幕或新发送实机验收完成。alpha.19未安装；打开自动连接的后续源码改动尚未发布，本次恢复使用稳定入口已有的--connect参数。
