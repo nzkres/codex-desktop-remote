@@ -1,3 +1,7 @@
+## 2026-10-16 alpha.24失败，原22连接已恢复
+
+实际事务因active_or_unverified_desktop_task进入回退，旧版回退健康失败后needs_review。完整文件/进程/原生权限及数据保全核验通过后，仅恢复原22的rolled_back并归档失败，原owner/DACL及33条回执保持。正常重连后本机健康及服务器在线、手机HTTPS列表/原锚点读取200；24未安装，原验收空对话尚未正式接入。无后台安装重试。[失败与恢复证据](docs/EXISTING-CONVERSATION-ADMISSION.md)。
+
 ## 2026-10-16 alpha.24 已发布，等待本轮空闲后安装
 
 原签名sequence20、正常HTTPS完整下载/哈希/匿名401通过；原服务器程序、旧包及其他源未变。已签包本机列表66条、原验收ID鉴权open=1=200；原回执/历史未变。原22已正常退出，24已设备鉴权暂存；当前本轮native状态active，保持原门禁等待结束后安装。正式手机HTTPS打开/实屏尚未确认，不把本机探针当正式安装。[完整接入证据](docs/EXISTING-CONVERSATION-ADMISSION.md)。
